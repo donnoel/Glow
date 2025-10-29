@@ -15,13 +15,19 @@ struct HomeView: View {
         NavigationStack {
             List {
                 if habits.isEmpty {
-                    ContentUnavailableView("No habits yet",
-                                           systemImage: "sparkles",
-                                           description: Text("Tap + to add your first habit"))
+                    ContentUnavailableView(
+                        "No habits yet",
+                        systemImage: "sparkles",
+                        description: Text("Tap + to add your first habit")
+                    )
                 } else {
                     ForEach(habits) { habit in
-                        HabitRow(habit: habit) {
-                            toggleToday(habit)
+                        NavigationLink {
+                            HabitDetailView(habit: habit)
+                        } label: {
+                            HabitRow(habit: habit) {
+                                toggleToday(habit)
+                            }
                         }
                     }
                 }

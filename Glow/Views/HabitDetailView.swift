@@ -1,18 +1,66 @@
 import SwiftUI
+import SwiftData
 
+/// Detail screen for a single Habit.
+/// - Shows: title, Current/Best streak, Weekly progress ring, and a recent-days strip.
+/// - Notes: Pure Swift filtering on `habit.logs` (no predicates/macros).
 struct HabitDetailView: View {
     let habit: Habit
 
-    // Simple, schedule-agnostic weekly percent: 7 days window
-    private var weeklyPercent: Double {
+    var body: some View {
+        List {
+            headerSection
+            weekSection
+            recentSection
+        }
+        .navigationTitle("Details")
+    }
+
+    // MARK: - Sections
+
+    private var headerSection: some View {
+        let s = computeStreaks(from: habit.logs)
+        return Section {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(habit.title)
+                    .font(.title2).bold()
+                HStack(spacing: 12) {
+                    Label("Current \(s.current)", systemImage: "flame.fill")
+                    Label("Best \(s.best)", systemImage: "trophy.fill")
+                }
+                .foregroundStyle(.secondary)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Current streak \(s.current) days. Best streak \(s.best) days.")
+            }
+        }
+    }
+
+    private var weekSection: some View {
+        Section("This Week") {
+            WeeklyProgressRing(percent: weeklyPercent(from: habit.logs))
+                .frame(height: 140)
+                .frame(maxWidth: .infinity, alignment: .center)
+                .listRowInsets(EdgeInsets())
+        }
+    }
+
+    private var recentSection: some View {
+        Section("Recent Activity") {
+            RecentDaysStrip(logs: habit.logs, days: 14)
+                .listRowInsets(EdgeInsets())
+        }
+    }
+
+    // MARK: - Calculations (self-contained)
+
+    /// Percent of days completed in the last 7 days (including today).
+    private func weeklyPercent(from logs: [HabitLog]) -> Double {
         let cal = Calendar.current
         let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -6, to: Date())!)
         let completed = Set(
-            habit.logs
-                .filter { $0.completed && $0.date >= start }
+            logs.filter { $0.completed && $0.date >= start }
                 .map { cal.startOfDay(for: $0.date) }
         )
-        // Count completed unique days in the last 7 days
         var hits = 0
         for i in 0..<7 {
             let d = cal.startOfDay(for: cal.date(byAdding: .day, value: -i, to: Date())!)
@@ -21,48 +69,49 @@ struct HabitDetailView: View {
         return Double(hits) / 7.0
     }
 
-    private var streaks: (current: Int, best: Int) {
-        StreakEngine.computeStreaks(logs: habit.logs)
-    }
+    /// Computes (current, best) streak considering completed days only (daily cadence).
+    private func computeStreaks(from logs: [HabitLog]) -> (current: Int, best: Int) {
+        let cal = Calendar.current
+        let completedDays = Set(logs.filter { $0.completed }
+            .map { cal.startOfDay(for: $0.date) })
 
-    var body: some View {
-        List {
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(habit.title)
-                        .font(.title2).bold()
-                    HStack(spacing: 12) {
-                        Label("Current \(streaks.current)", systemImage: "flame.fill")
-                        Label("Best \(streaks.best)", systemImage: "trophy.fill")
-                    }
-                    .foregroundStyle(.secondary)
-                }
-            }
-
-            Section("This Week") {
-                WeeklyProgressRing(percent: weeklyPercent)
-                    .frame(height: 140)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .listRowInsets(EdgeInsets())
-            }
-
-            Section("Recent Activity") {
-                // Show last 14 days (✓ / —)
-                RecentDaysStrip(habit: habit, days: 14)
-                    .listRowInsets(EdgeInsets())
-            }
+        // Current streak: walk backwards from today while completed.
+        var current = 0
+        var day = cal.startOfDay(for: Date())
+        while completedDays.contains(day) {
+            current += 1
+            guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { break }
+            day = cal.startOfDay(for: prev)
         }
-        .navigationTitle("Details")
+
+        // Best streak: scan last 365 days.
+        var best = current
+        var rolling = 0
+        var cursor = cal.startOfDay(for: Date())
+        for _ in 0..<365 {
+            if completedDays.contains(cursor) {
+                rolling += 1
+                if rolling > best { best = rolling }
+            } else {
+                rolling = 0
+            }
+            guard let prev = cal.date(byAdding: .day, value: -1, to: cursor) else { break }
+            cursor = cal.startOfDay(for: prev)
+        }
+        return (current, best)
     }
 }
 
+// MARK: - Subviews (private to this file)
+
 private struct WeeklyProgressRing: View {
     let percent: Double
+
     var body: some View {
         ZStack {
             Circle().stroke(Color.gray.opacity(0.2), lineWidth: 12)
             Circle()
-                .trim(from: 0, to: percent)
+                .trim(from: 0, to: max(0, min(1, percent)))
                 .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 12, lineCap: .round))
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.3), value: percent)
@@ -75,21 +124,26 @@ private struct WeeklyProgressRing: View {
 }
 
 private struct RecentDaysStrip: View {
-    let habit: Habit
+    let logs: [HabitLog]
     let days: Int
+
     var body: some View {
         let cal = Calendar.current
+        let completed = Set(
+            logs.filter { $0.completed }
+                .map { cal.startOfDay(for: $0.date) }
+        )
+
         HStack(spacing: 6) {
             ForEach((0..<days).reversed(), id: \.self) { offset in
                 let date = cal.startOfDay(for: cal.date(byAdding: .day, value: -offset, to: Date())!)
-                let done = habit.logs.contains { $0.completed && $0.date == date }
+                let done = completed.contains(date)
                 RoundedRectangle(cornerRadius: 4)
                     .fill(done ? Color.accentColor : Color.gray.opacity(0.2))
                     .frame(width: 16, height: 16)
                     .accessibilityLabel(done
                         ? "Completed on \(date.formatted(date: .abbreviated, time: .omitted))"
-                        : "Missed on \(date.formatted(date: .abbreviated, time: .omitted))"
-                    )
+                        : "Missed on \(date.formatted(date: .abbreviated, time: .omitted))")
             }
         }
         .frame(maxWidth: .infinity, alignment: .center)
