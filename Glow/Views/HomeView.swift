@@ -4,29 +4,62 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var context
 
-    // Read directly from SwiftData; sort only (no filters/macros)
+    // Read directly from SwiftData; sort only
     @Query(sort: [SortDescriptor(\Habit.createdAt, order: .reverse)])
     private var habits: [Habit]
 
     @State private var showAdd = false
     @State private var newTitle = ""
+    @State private var newSchedule: HabitSchedule = .daily
+
+    // Delete confirmation
+    @State private var habitToDelete: Habit?
+
+    private var activeHabits: [Habit] {
+        habits.filter { !$0.isArchived }
+    }
+
+    private var dueToday: [Habit] {
+        let today = Date()
+        return activeHabits.filter { $0.schedule.isScheduled(on: today) }
+    }
+
+    private var notDueToday: [Habit] {
+        let today = Date()
+        return activeHabits.filter { !$0.schedule.isScheduled(on: today) }
+    }
 
     var body: some View {
         NavigationStack {
             List {
-                if habits.isEmpty {
+                if activeHabits.isEmpty {
                     ContentUnavailableView(
                         "No habits yet",
                         systemImage: "sparkles",
                         description: Text("Tap + to add your first habit")
                     )
                 } else {
-                    ForEach(habits) { habit in
-                        NavigationLink {
-                            HabitDetailView(habit: habit)
-                        } label: {
-                            HabitRow(habit: habit) {
-                                toggleToday(habit)
+                    if !dueToday.isEmpty {
+                        Section("Due Today") {
+                            ForEach(dueToday) { habit in
+                                row(for: habit)
+                            }
+                        }
+                    }
+                    if !notDueToday.isEmpty {
+                        Section("Not Today") {
+                            ForEach(notDueToday) { habit in
+                                row(for: habit)
+                            }
+                        }
+                    }
+
+                    // Archived section (optional visibility)
+                    let archived = habits.filter { $0.isArchived }
+                    if !archived.isEmpty {
+                        Section("Archived") {
+                            ForEach(archived) { habit in
+                                row(for: habit, isArchived: true)
                             }
                         }
                     }
@@ -51,6 +84,9 @@ struct HomeView: View {
                             TextField("Title", text: $newTitle)
                                 .textInputAutocapitalization(.words)
                         }
+                        Section("Schedule") {
+                            SchedulePicker(selection: $newSchedule)
+                        }
                     }
                     .navigationTitle("New Habit")
                     .toolbar {
@@ -61,7 +97,7 @@ struct HomeView: View {
                             Button("Save") {
                                 let title = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                                 guard !title.isEmpty else { return }
-                                context.insert(Habit(title: title))
+                                context.insert(Habit(title: title, schedule: newSchedule))
                                 try? context.save()
                                 showAdd = false
                             }
@@ -71,10 +107,57 @@ struct HomeView: View {
                 }
                 .presentationDetents([.medium])
             }
+            .confirmationDialog("Delete habit?",
+                                isPresented: Binding(get: { habitToDelete != nil },
+                                                     set: { if !$0 { habitToDelete = nil } }),
+                                presenting: habitToDelete) { h in
+                Button("Delete “\(h.title)”", role: .destructive) {
+                    context.delete(h)
+                    try? context.save()
+                    habitToDelete = nil
+                }
+                Button("Cancel", role: .cancel) { habitToDelete = nil }
+            }
         }
     }
 
-    // MARK: - Toggle logic (no predicates)
+    // MARK: - Row
+
+    @ViewBuilder
+    private func row(for habit: Habit, isArchived: Bool = false) -> some View {
+        NavigationLink {
+            HabitDetailView(habit: habit)
+        } label: {
+            HabitRow(habit: habit) {
+                toggleToday(habit)
+            }
+        }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            if isArchived {
+                Button {
+                    toggleArchive(habit, archived: false)
+                } label: {
+                    Label("Unarchive", systemImage: "archivebox")
+                }
+            } else {
+                Button {
+                    toggleArchive(habit, archived: true)
+                } label: {
+                    Label("Archive", systemImage: "archivebox.fill")
+                }
+                .tint(.blue)
+            }
+
+            Button(role: .destructive) {
+                habitToDelete = habit
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
+        }
+    }
+
+    // MARK: - Actions
+
     private func toggleToday(_ habit: Habit) {
         let today = Date().startOfDay()
         if let log = habit.logs.first(where: { $0.date == today }) {
@@ -83,6 +166,11 @@ struct HomeView: View {
             let log = HabitLog(date: today, completed: true, habit: habit)
             context.insert(log)
         }
+        try? context.save()
+    }
+
+    private func toggleArchive(_ habit: Habit, archived: Bool) {
+        habit.isArchived = archived
         try? context.save()
     }
 }
@@ -112,5 +200,71 @@ private struct HabitRow: View {
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
         }
+    }
+}
+
+private struct SchedulePicker: View {
+    @Binding var selection: HabitSchedule
+    @State private var isCustom: Bool = false
+    @State private var setDays: Set<Weekday> = Set(Weekday.allCases)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Toggle("Every day", isOn: Binding(
+                get: { !isCustom },
+                set: { isCustom = !$0; update() }
+            ))
+            if isCustom {
+                HStack {
+                    ForEach(Weekday.allCases, id: \.self) { day in
+                        let active = setDays.contains(day)
+                        Button(compactLabel(for: day)) {
+                            if active { setDays.remove(day) } else { setDays.insert(day) }
+                            update()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(active ? .accentColor : .secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(minWidth: 28) // keeps "Th" from wrapping/squeezing
+                        .accessibilityLabel("Toggle \(fullLabel(for: day))")
+                    }
+                }
+            }
+        }
+        .onAppear {
+            isCustom = selection.kind == .custom
+            setDays = selection.days
+        }
+    }
+
+    // Compact labels for visual buttons
+    private func compactLabel(for day: Weekday) -> String {
+        switch day {
+        case .sun: return "S"
+        case .mon: return "M"
+        case .tue: return "T"
+        case .wed: return "W"
+        case .thu: return "Th"
+        case .fri: return "F"
+        case .sat: return "S"
+        }
+    }
+
+    // Full labels for accessibility/VoiceOver
+    private func fullLabel(for day: Weekday) -> String {
+        switch day {
+        case .sun: return "Sunday"
+        case .mon: return "Monday"
+        case .tue: return "Tuesday"
+        case .wed: return "Wednesday"
+        case .thu: return "Thursday"
+        case .fri: return "Friday"
+        case .sat: return "Saturday"
+        }
+    }
+
+    private func update() {
+        selection = isCustom ? .weekdays(Array(setDays)) : .daily
     }
 }
