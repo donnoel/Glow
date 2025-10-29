@@ -11,6 +11,8 @@ struct HomeView: View {
     @State private var newTitle = ""
     @State private var newSchedule: HabitSchedule = .daily
 
+    // NEW: track which habit we’re editing
+    @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
 
     private var activeHabits: [Habit] { habits.filter { !$0.isArchived } }
@@ -72,6 +74,7 @@ struct HomeView: View {
                     .accessibilityLabel("Add habit")
                 }
             }
+            // Add sheet (unchanged)
             .sheet(isPresented: $showAdd) {
                 NavigationStack {
                     Form {
@@ -102,6 +105,14 @@ struct HomeView: View {
                 }
                 .presentationDetents([.medium])
             }
+            // NEW: Edit sheet (presents AddOrEditHabitForm in edit mode)
+            .sheet(isPresented: Binding(get: { habitToEdit != nil },
+                                        set: { if !$0 { habitToEdit = nil } })) {
+                if let habitToEdit {
+                    AddOrEditHabitForm(mode: .edit, habit: habitToEdit)
+                }
+            }
+            // Delete confirm (unchanged)
             .confirmationDialog("Delete habit?",
                                 isPresented: Binding(get: { habitToDelete != nil },
                                                      set: { if !$0 { habitToDelete = nil } }),
@@ -124,6 +135,13 @@ struct HomeView: View {
             HabitRow(habit: habit) { toggleToday(habit) }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            // NEW: Edit action
+            Button {
+                habitToEdit = habit
+            } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+
             if isArchived {
                 Button {
                     toggleArchive(habit, archived: false)
