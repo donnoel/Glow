@@ -118,8 +118,9 @@ struct HomeView: View {
                                                      set: { if !$0 { habitToDelete = nil } }),
                                 presenting: habitToDelete) { h in
                 Button("Delete “\(h.title)”", role: .destructive) {
+                    Task { await NotificationManager.cancelNotifications(for: h) }
                     context.delete(h)
-                    try? context.save()
+                    do { try context.save() } catch { print("SwiftData save error:", error) }
                     habitToDelete = nil
                 }
                 Button("Cancel", role: .cancel) { habitToDelete = nil }
@@ -177,7 +178,15 @@ struct HomeView: View {
 
     private func toggleArchive(_ habit: Habit, archived: Bool) {
         habit.isArchived = archived
-        try? context.save()
+        do { try context.save() } catch { print("SwiftData save error:", error) }
+        Task {
+            if archived {
+                await NotificationManager.cancelNotifications(for: habit)
+            } else if habit.reminderEnabled {
+                let ok = await NotificationManager.requestAuthorizationIfNeeded()
+                if ok { await NotificationManager.scheduleNotifications(for: habit) }
+            }
+        }
     }
 }
 
