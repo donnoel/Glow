@@ -7,13 +7,13 @@ final class Habit {
     var title: String
     var createdAt: Date
 
-    // NEW: archive flag
+    // M4: archive flag
     var isArchived: Bool
 
-    // NEW: schedule (backed by Data for SwiftData)
+    // M4: schedule persisted as Data
     var scheduleData: Data
 
-    // Existing logs relationship (for today toggles)
+    // M2: logs
     @Relationship(deleteRule: .cascade, inverse: \HabitLog.habit)
     var logs: [HabitLog] = []
 

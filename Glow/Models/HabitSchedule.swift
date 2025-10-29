@@ -1,13 +1,11 @@
 import Foundation
 
-enum Weekday: Int, Codable, CaseIterable {
+enum Weekday: Int, Codable, CaseIterable, Hashable {
     case sun = 1, mon, tue, wed, thu, fri, sat
 
     static func from(_ date: Date, calendar: Calendar = .current) -> Weekday {
         Weekday(rawValue: calendar.component(.weekday, from: date))!
     }
-
-    var shortLabel: String { ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"][rawValue - 1] }
 }
 
 struct HabitSchedule: Codable, Equatable {

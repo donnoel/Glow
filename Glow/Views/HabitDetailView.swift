@@ -1,9 +1,6 @@
 import SwiftUI
 import SwiftData
 
-/// Detail screen for a single Habit.
-/// - Shows: title, Current/Best streak, Weekly progress ring, and a recent-days strip.
-/// - Notes: Pure Swift filtering on `habit.logs` (no predicates/macros).
 struct HabitDetailView: View {
     let habit: Habit
 
@@ -15,8 +12,6 @@ struct HabitDetailView: View {
         }
         .navigationTitle("Details")
     }
-
-    // MARK: - Sections
 
     private var headerSection: some View {
         let s = computeStreaks(from: habit.logs)
@@ -51,9 +46,6 @@ struct HabitDetailView: View {
         }
     }
 
-    // MARK: - Calculations (self-contained)
-
-    /// Percent of days completed in the last 7 days (including today).
     private func weeklyPercent(from logs: [HabitLog]) -> Double {
         let cal = Calendar.current
         let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -6, to: Date())!)
@@ -69,44 +61,13 @@ struct HabitDetailView: View {
         return Double(hits) / 7.0
     }
 
-    /// Computes (current, best) streak considering completed days only (daily cadence).
     private func computeStreaks(from logs: [HabitLog]) -> (current: Int, best: Int) {
-        let cal = Calendar.current
-        let completedDays = Set(logs.filter { $0.completed }
-            .map { cal.startOfDay(for: $0.date) })
-
-        // Current streak: walk backwards from today while completed.
-        var current = 0
-        var day = cal.startOfDay(for: Date())
-        while completedDays.contains(day) {
-            current += 1
-            guard let prev = cal.date(byAdding: .day, value: -1, to: day) else { break }
-            day = cal.startOfDay(for: prev)
-        }
-
-        // Best streak: scan last 365 days.
-        var best = current
-        var rolling = 0
-        var cursor = cal.startOfDay(for: Date())
-        for _ in 0..<365 {
-            if completedDays.contains(cursor) {
-                rolling += 1
-                if rolling > best { best = rolling }
-            } else {
-                rolling = 0
-            }
-            guard let prev = cal.date(byAdding: .day, value: -1, to: cursor) else { break }
-            cursor = cal.startOfDay(for: prev)
-        }
-        return (current, best)
+        StreakEngine.computeStreaks(logs: logs)
     }
 }
 
-// MARK: - Subviews (private to this file)
-
 private struct WeeklyProgressRing: View {
     let percent: Double
-
     var body: some View {
         ZStack {
             Circle().stroke(Color.gray.opacity(0.2), lineWidth: 12)
@@ -126,14 +87,11 @@ private struct WeeklyProgressRing: View {
 private struct RecentDaysStrip: View {
     let logs: [HabitLog]
     let days: Int
-
     var body: some View {
         let cal = Calendar.current
         let completed = Set(
-            logs.filter { $0.completed }
-                .map { cal.startOfDay(for: $0.date) }
+            logs.filter { $0.completed }.map { cal.startOfDay(for: $0.date) }
         )
-
         HStack(spacing: 6) {
             ForEach((0..<days).reversed(), id: \.self) { offset in
                 let date = cal.startOfDay(for: cal.date(byAdding: .day, value: -offset, to: Date())!)

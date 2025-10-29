@@ -4,7 +4,6 @@ import SwiftData
 struct HomeView: View {
     @Environment(\.modelContext) private var context
 
-    // Read directly from SwiftData; sort only
     @Query(sort: [SortDescriptor(\Habit.createdAt, order: .reverse)])
     private var habits: [Habit]
 
@@ -12,18 +11,14 @@ struct HomeView: View {
     @State private var newTitle = ""
     @State private var newSchedule: HabitSchedule = .daily
 
-    // Delete confirmation
     @State private var habitToDelete: Habit?
 
-    private var activeHabits: [Habit] {
-        habits.filter { !$0.isArchived }
-    }
+    private var activeHabits: [Habit] { habits.filter { !$0.isArchived } }
 
     private var dueToday: [Habit] {
         let today = Date()
         return activeHabits.filter { $0.schedule.isScheduled(on: today) }
     }
-
     private var notDueToday: [Habit] {
         let today = Date()
         return activeHabits.filter { !$0.schedule.isScheduled(on: today) }
@@ -54,7 +49,6 @@ struct HomeView: View {
                         }
                     }
 
-                    // Archived section (optional visibility)
                     let archived = habits.filter { $0.isArchived }
                     if !archived.isEmpty {
                         Section("Archived") {
@@ -70,6 +64,7 @@ struct HomeView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         newTitle = ""
+                        newSchedule = .daily
                         showAdd = true
                     } label: {
                         Image(systemName: "plus.circle.fill").imageScale(.large)
@@ -121,16 +116,12 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Row
-
     @ViewBuilder
     private func row(for habit: Habit, isArchived: Bool = false) -> some View {
         NavigationLink {
             HabitDetailView(habit: habit)
         } label: {
-            HabitRow(habit: habit) {
-                toggleToday(habit)
-            }
+            HabitRow(habit: habit) { toggleToday(habit) }
         }
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             if isArchived {
@@ -147,7 +138,6 @@ struct HomeView: View {
                 }
                 .tint(.blue)
             }
-
             Button(role: .destructive) {
                 habitToDelete = habit
             } label: {
@@ -155,8 +145,6 @@ struct HomeView: View {
             }
         }
     }
-
-    // MARK: - Actions
 
     private func toggleToday(_ habit: Habit) {
         let today = Date().startOfDay()
@@ -175,7 +163,6 @@ struct HomeView: View {
     }
 }
 
-// Simple row with trailing check button
 private struct HabitRow: View {
     let habit: Habit
     let toggle: () -> Void
@@ -189,9 +176,7 @@ private struct HabitRow: View {
         HStack {
             Text(habit.title)
             Spacer()
-            Button {
-                toggle()
-            } label: {
+            Button { toggle() } label: {
                 Image(systemName: doneToday ? "checkmark.circle.fill" : "circle")
                     .imageScale(.large)
                     .foregroundStyle(doneToday ? Color.accentColor : Color.secondary)
@@ -203,6 +188,7 @@ private struct HabitRow: View {
     }
 }
 
+// Compact, non-wrapping weekday picker used in Add sheet
 private struct SchedulePicker: View {
     @Binding var selection: HabitSchedule
     @State private var isCustom: Bool = false
@@ -226,7 +212,7 @@ private struct SchedulePicker: View {
                         .tint(active ? .accentColor : .secondary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.8)
-                        .frame(minWidth: 28) // keeps "Th" from wrapping/squeezing
+                        .frame(minWidth: 28) // keeps "Th" from wrapping
                         .accessibilityLabel("Toggle \(fullLabel(for: day))")
                     }
                 }
@@ -238,7 +224,6 @@ private struct SchedulePicker: View {
         }
     }
 
-    // Compact labels for visual buttons
     private func compactLabel(for day: Weekday) -> String {
         switch day {
         case .sun: return "S"
@@ -250,8 +235,6 @@ private struct SchedulePicker: View {
         case .sat: return "S"
         }
     }
-
-    // Full labels for accessibility/VoiceOver
     private func fullLabel(for day: Weekday) -> String {
         switch day {
         case .sun: return "Sunday"
@@ -263,7 +246,6 @@ private struct SchedulePicker: View {
         case .sat: return "Saturday"
         }
     }
-
     private func update() {
         selection = isCustom ? .weekdays(Array(setDays)) : .daily
     }

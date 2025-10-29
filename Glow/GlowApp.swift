@@ -7,5 +7,6 @@ struct GlowApp: App {
         WindowGroup {
             HomeView()
         }
-        .modelContainer(for: [Habit.self, HabitLog.self])    }
+        .modelContainer(for: [Habit.self, HabitLog.self])
+    }
 }
