@@ -8,9 +8,9 @@ struct HabitDetailView: View {
     var body: some View {
         List {
             headerSection
+            recentSection        // ⬅️ moved up, used to be last
             weekSection
             heatmapSection
-            recentSection
         }
         .navigationTitle("Details")
     }
@@ -48,6 +48,14 @@ struct HabitDetailView: View {
         }
     }
 
+    // MARK: - Recent Activity strip (moved up)
+    private var recentSection: some View {
+        Section("Recent Activity") {
+            RecentDaysStrip(logs: habit.logs, days: 14)
+                .listRowInsets(EdgeInsets())
+        }
+    }
+
     // MARK: - Weekly Ring
     private var weekSection: some View {
         Section("This Week") {
@@ -81,14 +89,6 @@ struct HabitDetailView: View {
                 }
             )
             .listRowInsets(EdgeInsets())
-        }
-    }
-
-    // MARK: - Recent Activity strip
-    private var recentSection: some View {
-        Section("Recent Activity") {
-            RecentDaysStrip(logs: habit.logs, days: 14)
-                .listRowInsets(EdgeInsets())
         }
     }
 
