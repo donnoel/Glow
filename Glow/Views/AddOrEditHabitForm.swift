@@ -33,7 +33,7 @@ struct AddOrEditHabitForm: View {
         _schedule = State(initialValue: habit?.schedule ?? .daily)
         _isArchived = State(initialValue: habit?.isArchived ?? false)
 
-        // Icon
+        // Icon guess / existing icon
         let initialIcon = habit?.iconName
             ?? Habit.guessIconName(for: habit?.title ?? "")
         _iconName = State(initialValue: initialIcon)
@@ -64,23 +64,27 @@ struct AddOrEditHabitForm: View {
                     TextField("Title", text: $title)
                         .textInputAutocapitalization(.words)
                         .onChange(of: title) { newValue in
-                            // Live icon guess if user hasn't manually changed it
-                            if mode == .add {
-                                // Only auto-pick if we're still using the "predicted" icon
-                                // (simple heuristic: if iconName is checkmark.circle OR matches guess)
-                                let guess = Habit.guessIconName(for: newValue)
-                                if iconName == "checkmark.circle"
-                                    || iconName == Habit.guessIconName(for: "")
-                                    || iconName == Habit.guessIconName(for: title) {
-                                    iconName = guess
-                                }
+                            guard mode == .add else { return }
+
+                            // Predict an icon from the updated title
+                            let freshGuess = Habit.guessIconName(for: newValue)
+
+                            // Only auto-update if we think the user hasn't manually chosen an icon.
+                            let userHasNotCustomizedIcon =
+                                iconName == "checkmark.circle" ||
+                                iconName == Habit.guessIconName(for: "") ||
+                                iconName == Habit.guessIconName(for: title) ||
+                                iconName == Habit.guessIconName(for: newValue)
+
+                            if userHasNotCustomizedIcon {
+                                iconName = freshGuess
                             }
                         }
                 }
 
                 // SCHEDULE
                 Section("Schedule") {
-                    // Use the SAME picker UI we use when creating in HomeView
+                    // Match creation UI
                     SchedulePicker(selection: $schedule)
                 }
 
@@ -133,7 +137,7 @@ struct AddOrEditHabitForm: View {
 
     // MARK: - Save / Helpers
 
-    /// Copy reminder-related fields from form state into the Habit model.
+    /// Copy reminder-related fields into the Habit model.
     private func applyReminderFields(to habit: Habit) {
         habit.reminderEnabled = remindMe
         if remindMe {
@@ -145,7 +149,6 @@ struct AddOrEditHabitForm: View {
     }
 
     /// Compute the next sortOrder so new practices show at the bottom.
-    /// We fetch all Habit objects and take max(sortOrder)+1.
     private func nextSortOrder() -> Int {
         let descriptor = FetchDescriptor<Habit>()
         let allHabits = (try? context.fetch(descriptor)) ?? []
@@ -184,7 +187,7 @@ struct AddOrEditHabitForm: View {
             context.insert(newHabit)
             try? context.save()
 
-            // Notifications for brand new habit
+            // Schedule notifications for a brand new practice
             if remindMe {
                 let ok = await NotificationManager.requestAuthorizationIfNeeded()
                 if ok {
@@ -210,16 +213,16 @@ struct AddOrEditHabitForm: View {
 
             // Handle notifications depending on new state
             if habit.isArchived {
-                // If archived, kill notifications
+                // Turn off if archived
                 await NotificationManager.cancelNotifications(for: habit)
             } else if habit.reminderEnabled {
-                // Still active + reminders on
+                // Active + reminders ON
                 let ok = await NotificationManager.requestAuthorizationIfNeeded()
                 if ok {
                     await NotificationManager.scheduleNotifications(for: habit)
                 }
             } else if wasEnabled && !habit.reminderEnabled {
-                // Reminders used to be on, now off
+                // Reminders used to be ON, now OFF
                 await NotificationManager.cancelNotifications(for: habit)
             }
         }
@@ -227,7 +230,7 @@ struct AddOrEditHabitForm: View {
         dismiss()
     }
 
-    /// Default reminder time (8:00 PM local) for new practices
+    /// Default reminder time (8:00 PM local) for new practices.
     private static func defaultReminderTime() -> Date {
         let cal = Calendar.current
         let now = Date()

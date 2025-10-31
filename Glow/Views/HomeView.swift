@@ -8,7 +8,7 @@ struct HomeView: View {
     @Query(sort: [SortDescriptor(\Habit.createdAt, order: .reverse)])
     private var habits: [Habit]
 
-    // Add Sheet / New Habit fields
+    // Add Sheet / New Practice fields
     @State private var showAdd = false
     @State private var newTitle = ""
     @State private var newSchedule: HabitSchedule = .daily
@@ -121,7 +121,7 @@ struct HomeView: View {
                 }
                 // DELETE CONFIRM
                 .confirmationDialog(
-                    "Delete habit?",
+                    "Delete practice?",
                     isPresented: Binding(
                         get: { habitToDelete != nil },
                         set: { if !$0 { habitToDelete = nil } }
@@ -182,9 +182,9 @@ struct HomeView: View {
 
             if activeHabits.isEmpty {
                 ContentUnavailableView(
-                    "No habits yet",
+                    "No practices yet",
                     systemImage: "sparkles",
-                    description: Text("Tap + to add your first habit")
+                    description: Text("Tap + to add your first practice")
                 )
             } else {
                 // Completed Today
@@ -248,7 +248,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Add Habit sheet
+    // MARK: - Add Practice sheet
 
     private var addSheet: some View {
         NavigationStack {
@@ -289,7 +289,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .navigationTitle("New Habit")
+            .navigationTitle("New Practice")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { showAdd = false }
@@ -299,7 +299,7 @@ struct HomeView: View {
                         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
 
-                        // give new habit a sortOrder after the current max
+                        // give new practice a sortOrder after the current max
                         let maxOrder = (habits.map { $0.sortOrder }.max() ?? 9_998)
                         let newOrder = maxOrder + 1
 
@@ -448,7 +448,7 @@ struct HomeView: View {
 
     // MARK: - Helpers
 
-    /// Default reminder time when creating a new habit (8:00 PM local).
+    /// Default reminder time when creating a new practice (8:00 PM local).
     private static func defaultReminderTime() -> Date {
         let cal = Calendar.current
         let now = Date()
@@ -470,7 +470,7 @@ private struct NavAddButton: View {
             Image(systemName: "plus.circle.fill")
                 .imageScale(.large)
                 .foregroundStyle(navIconColor)
-                .accessibilityLabel("Add habit")
+                .accessibilityLabel("Add practice")
         }
     }
 
@@ -575,7 +575,7 @@ private struct HabitRow: View {
                         : incompleteRingColor
                     )
                     .scaleEffect(tappedBounce ? 1.08 : 1.0)
-                    .accessibilityLabel(doneToday ? "Mark incomplete" : "Mark complete")
+                    .accessibilityLabel(doneToday ? "Mark practice incomplete" : "Mark practice complete")
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
@@ -682,13 +682,13 @@ private struct HeroCard: View {
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Today \(done) of \(total) habits complete, \(Int(percent * 100)) percent.")
+        .accessibilityLabel("Today \(done) of \(total) practices complete, \(Int(percent * 100)) percent.")
     }
 }
 
 // MARK: - SchedulePicker
 
-    struct SchedulePicker: View {
+struct SchedulePicker: View {
     @Binding var selection: HabitSchedule
 
     @State private var isCustom: Bool = false
