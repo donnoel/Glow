@@ -17,9 +17,6 @@ struct HomeView: View {
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
 
-    // Reorder mode for "Due Today"
-    @State private var isEditingOrder = false
-
     // MARK: - Derived Collections
 
     private var activeHabits: [Habit] {
@@ -81,18 +78,7 @@ struct HomeView: View {
             contentList
                 .navigationTitle("Glow")
                 .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        // "Edit" / "Done" to control reordering mode
-                        if !scheduledTodayHabits.isEmpty {
-                            Button(isEditingOrder ? "Done" : "Edit") {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isEditingOrder.toggle()
-                                }
-                            }
-                            .accessibilityLabel(isEditingOrder ? "Stop Reordering" : "Reorder habits")
-                        }
-                    }
-
+                    // NOTE: We removed the .topBarLeading Edit/Done button.
                     ToolbarItem(placement: .topBarTrailing) {
                         NavAddButton {
                             // reset form state
@@ -170,17 +156,18 @@ struct HomeView: View {
                 // Due Today (not yet done)
                 if !dueButNotDoneToday.isEmpty {
                     Section("Due Today") {
+                        // Reorderable list of habits due today
                         ForEach(dueButNotDoneToday) { habit in
                             row(for: habit)
                         }
-                        // Reorder only when we're in edit mode
                         .onMove { indices, newOffset in
-                            handleMove(indices: indices,
-                                       newOffset: newOffset,
-                                       sourceArray: dueButNotDoneToday)
+                            handleMove(
+                                indices: indices,
+                                newOffset: newOffset,
+                                sourceArray: dueButNotDoneToday
+                            )
                         }
-                        .environment(\.editMode,
-                                     .constant(isEditingOrder ? .active : .inactive))
+                        // ⬅️ removed .environment(\.editMode, .constant(.active))
                     }
                 }
 
