@@ -406,6 +406,8 @@ private struct NavAddButton: View {
 // MARK: - HabitRow
 
 private struct HabitRow: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let habit: Habit
     let toggle: () -> Void
 
@@ -417,22 +419,63 @@ private struct HabitRow: View {
         return habit.logs.first(where: { cal.startOfDay(for: $0.date) == today })?.completed == true
     }
 
+    // text/icon color for the row
+    private var rowTextColor: Color {
+        colorScheme == .dark ? Color.white : GlowTheme.textPrimary
+    }
+
+    // background for the row tile
+    private var rowBackground: some View {
+        Group {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.black.opacity(0.6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            } else {
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.04), radius: 2, y: 1)
+            }
+        }
+    }
+
+    // circle behind the habit icon
+    private var iconBubbleColor: Color {
+        if colorScheme == .dark {
+            return Color.white.opacity(0.12)
+        } else {
+            return GlowTheme.borderMuted.opacity(0.15)
+        }
+    }
+
+    // ring color for the checkmark circle when it's NOT done yet
+    private var incompleteRingColor: Color {
+        if colorScheme == .dark {
+            return Color.white.opacity(0.4)
+        } else {
+            return GlowTheme.borderMuted.opacity(0.8)
+        }
+    }
+
     var body: some View {
         HStack(spacing: 12) {
             // Icon badge
             ZStack {
                 Circle()
-                    .fill(GlowTheme.borderMuted.opacity(0.15))
+                    .fill(iconBubbleColor)
                     .frame(width: 32, height: 32)
 
                 Image(systemName: habit.iconName)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(GlowTheme.textPrimary)
+                    .foregroundStyle(rowTextColor)
             }
 
             // Title
             Text(habit.title)
-                .foregroundStyle(GlowTheme.textPrimary)
+                .foregroundStyle(rowTextColor)
 
             Spacer()
 
@@ -448,8 +491,8 @@ private struct HabitRow: View {
                     .imageScale(.large)
                     .foregroundStyle(
                         doneToday
-                        ? GlowTheme.accentPrimary
-                        : GlowTheme.borderMuted.opacity(0.8)
+                        ? GlowTheme.accentPrimary // this pops on both light & dark
+                        : incompleteRingColor
                     )
                     .scaleEffect(tappedBounce ? 1.08 : 1.0)
                     .accessibilityLabel(doneToday ? "Mark incomplete" : "Mark complete")
@@ -463,20 +506,61 @@ private struct HabitRow: View {
             }
         }
         .padding(.vertical, 8)
-        .listRowBackground(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.04), radius: 2, y: 1)
-        )
+        .listRowBackground(rowBackground)
     }
 }
 
 // MARK: - HeroCard
 
 private struct HeroCard: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let done: Int
     let total: Int
     let percent: Double
+
+    // Text colors that guarantee contrast on the card background
+    private var primaryTextColor: Color {
+        switch colorScheme {
+        case .light: return GlowTheme.textPrimary          // dark ink
+        case .dark:  return Color.white                    // pure white on dark card
+        @unknown default: return GlowTheme.textPrimary
+        }
+    }
+
+    private var secondaryTextColor: Color {
+        switch colorScheme {
+        case .light: return GlowTheme.textSecondary        // secondary ink
+        case .dark:  return Color.white.opacity(0.7)       // dimmed white
+        @unknown default: return GlowTheme.textSecondary
+        }
+    }
+
+    // Card background (light vs dark)
+    private var cardBackground: some View {
+        Group {
+            if colorScheme == .dark {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.black.opacity(0.6))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.8), radius: 20, y: 10)
+            } else {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.white)
+                    .shadow(color: Color.black.opacity(0.04), radius: 3, y: 2)
+            }
+        }
+    }
+
+    // Ring track color in the progress donut
+    private var ringTrackColor: Color {
+        colorScheme == .dark
+        ? Color.white.opacity(0.15)
+        : GlowTheme.borderMuted.opacity(0.4)
+    }
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
@@ -484,7 +568,7 @@ private struct HeroCard: View {
             // Progress ring
             ZStack {
                 Circle()
-                    .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 12)
+                    .stroke(ringTrackColor, lineWidth: 12)
 
                 Circle()
                     .trim(from: 0, to: max(0, min(1, percent)))
@@ -497,28 +581,24 @@ private struct HeroCard: View {
 
                 Text("\(Int(percent * 100))%")
                     .font(.headline.monospacedDigit())
-                    .foregroundStyle(GlowTheme.textPrimary)
+                    .foregroundStyle(primaryTextColor)
             }
             .frame(width: 72, height: 72)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today")
                     .font(.headline)
-                    .foregroundStyle(GlowTheme.textPrimary)
+                    .foregroundStyle(primaryTextColor)
 
                 Text("\(done) of \(total) complete")
                     .font(.subheadline.monospacedDigit())
-                    .foregroundStyle(GlowTheme.textSecondary)
+                    .foregroundStyle(secondaryTextColor)
             }
 
             Spacer()
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.white)
-                .shadow(color: Color.black.opacity(0.04), radius: 3, y: 2)
-        )
+        .background(cardBackground)
         .padding(.vertical, 8)
         .padding(.horizontal, 16)
         .accessibilityElement(children: .combine)
