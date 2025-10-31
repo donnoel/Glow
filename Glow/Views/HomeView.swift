@@ -690,54 +690,90 @@ private struct HeroCard: View {
 
 private struct SchedulePicker: View {
     @Binding var selection: HabitSchedule
+
     @State private var isCustom: Bool = false
     @State private var setDays: Set<Weekday> = Set(Weekday.allCases)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Toggle("Every day", isOn: Binding(
-                get: { !isCustom },
-                set: { isCustom = !$0; updateSelection() }
-            ))
+        VStack(alignment: .leading, spacing: 16) {
 
-            if isCustom {
-                HStack {
-                    ForEach(Weekday.allCases, id: \.self) { day in
-                        let active = setDays.contains(day)
+            // Card wrapper for the schedule controls
+            VStack(alignment: .leading, spacing: 12) {
+                // Top row: toggle between "Every day" vs custom days
+                Toggle(isOn: Binding(
+                    get: { !isCustom },
+                    set: { newValue in
+                        isCustom = !newValue
+                        updateSelection()
+                    }
+                )) {
+                    Text("Every day")
+                        .foregroundStyle(GlowTheme.textPrimary)
+                }
+                .toggleStyle(.switch)
 
-                        Button(dayShortLabel(day)) {
-                            if active {
-                                setDays.remove(day)
-                            } else {
-                                setDays.insert(day)
+                // Custom days row
+                if isCustom {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Which days?")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(GlowTheme.textPrimary)
+
+                        // 7 evenly-sized chips in a row
+                        HStack(spacing: 8) {
+                            ForEach(Weekday.allCases, id: \.self) { day in
+                                let active = setDays.contains(day)
+
+                                DayChip(
+                                    label: shortLabel(for: day),
+                                    active: active
+                                ) {
+                                    if active {
+                                        setDays.remove(day)
+                                    } else {
+                                        setDays.insert(day)
+                                    }
+                                    updateSelection()
+                                }
+                                .accessibilityLabel("Toggle \(fullLabel(for: day))")
                             }
-                            updateSelection()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(
-                            active
-                            ? GlowTheme.accentPrimary
-                            : GlowTheme.borderMuted.opacity(0.6)
-                        )
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .frame(minWidth: 28)
-                        .accessibilityLabel("Toggle \(dayFullLabel(day))")
+                        .frame(maxWidth: .infinity)
                     }
                 }
             }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(GlowTheme.bgSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
+            )
         }
         .onAppear {
-            isCustom = selection.kind == .custom
+            // reflect incoming binding -> local UI state
+            isCustom = (selection.kind == .custom)
             setDays = selection.days
         }
     }
 
+    // Push local edits (isCustom + setDays) back into the binding
     private func updateSelection() {
-        selection = isCustom ? .weekdays(Array(setDays)) : .daily
+        if isCustom {
+            selection = .weekdays(Array(setDays))
+        } else {
+            selection = .daily
+            // keep local mirror in sync so if they flip back to custom
+            // we don't accidentally lose previous custom picks
+            setDays = Set(Weekday.allCases)
+        }
     }
 
-    private func dayShortLabel(_ day: Weekday) -> String {
+    // MARK: - Labels
+
+    private func shortLabel(for day: Weekday) -> String {
         switch day {
         case .sun: return "S"
         case .mon: return "M"
@@ -749,7 +785,7 @@ private struct SchedulePicker: View {
         }
     }
 
-    private func dayFullLabel(_ day: Weekday) -> String {
+    private func fullLabel(for day: Weekday) -> String {
         switch day {
         case .sun: return "Sunday"
         case .mon: return "Monday"
@@ -759,5 +795,51 @@ private struct SchedulePicker: View {
         case .fri: return "Friday"
         case .sat: return "Saturday"
         }
+    }
+}
+
+// MARK: - DayChip
+
+/// One little rounded chip for a weekday toggle.
+/// Active = accent glow, inactive = subtle surface.
+private struct DayChip: View {
+    let label: String
+    let active: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            Text(label)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(
+                    active
+                    ? GlowTheme.accentPrimary
+                    : GlowTheme.textPrimary
+                )
+                .frame(minWidth: 32, minHeight: 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                        .fill(
+                            active
+                            ? GlowTheme.accentPrimary.opacity(0.15)
+                            : GlowTheme.borderMuted.opacity(0.15)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(
+                                    active
+                                    ? GlowTheme.accentPrimary
+                                    : GlowTheme.borderMuted.opacity(0.4),
+                                    lineWidth: active ? 2 : 1
+                                )
+                        )
+                )
+        }
+        .buttonStyle(.plain)
+        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .frame(maxWidth: .infinity)
+        .accessibilityAddTraits(
+            active ? [.isSelected] : []
+        )
     }
 }
