@@ -688,7 +688,7 @@ private struct HeroCard: View {
 
 // MARK: - SchedulePicker
 
-private struct SchedulePicker: View {
+    struct SchedulePicker: View {
     @Binding var selection: HabitSchedule
 
     @State private var isCustom: Bool = false

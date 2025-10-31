@@ -10,65 +10,130 @@ struct AddOrEditHabitForm: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
 
+    // MARK: - Form State
+
     @State private var title: String
     @State private var schedule: HabitSchedule
     @State private var isArchived: Bool
 
-    // M7: reminders
+    @State private var iconName: String
+
+    // Reminder state
     @State private var remindMe: Bool
     @State private var reminderTime: Date
+
+    // MARK: - Init
 
     init(mode: Mode, habit: Habit? = nil) {
         self.mode = mode
         self.habit = habit
 
+        // Title / schedule / archive
         _title = State(initialValue: habit?.title ?? "")
         _schedule = State(initialValue: habit?.schedule ?? .daily)
         _isArchived = State(initialValue: habit?.isArchived ?? false)
 
+        // Icon
+        let initialIcon = habit?.iconName
+            ?? Habit.guessIconName(for: habit?.title ?? "")
+        _iconName = State(initialValue: initialIcon)
+
+        // Reminder toggle + time
         let cal = Calendar.current
-        let defaultTime: Date = cal.date(from: DateComponents(hour: 9, minute: 0)) ?? Date()
-        _remindMe = State(initialValue: habit?.reminderEnabled ?? false)
-        if let h = habit, let comps = h.reminderTimeComponents,
-           let date = cal.date(from: comps) {
-            _reminderTime = State(initialValue: date)
+        let defaultTime = AddOrEditHabitForm.defaultReminderTime()
+        let habitHasReminder = habit?.reminderEnabled ?? false
+
+        _remindMe = State(initialValue: habitHasReminder)
+
+        if let h = habit,
+           let comps = h.reminderTimeComponents,
+           let dateFromHabit = cal.date(from: comps) {
+            _reminderTime = State(initialValue: dateFromHabit)
         } else {
             _reminderTime = State(initialValue: defaultTime)
         }
     }
 
+    // MARK: - Body
+
     var body: some View {
         NavigationStack {
             Form {
+                // DETAILS
                 Section("Details") {
                     TextField("Title", text: $title)
                         .textInputAutocapitalization(.words)
+                        .onChange(of: title) { newValue in
+                            // Live icon guess if user hasn't manually changed it
+                            if mode == .add {
+                                // Only auto-pick if we're still using the "predicted" icon
+                                // (simple heuristic: if iconName is checkmark.circle OR matches guess)
+                                let guess = Habit.guessIconName(for: newValue)
+                                if iconName == "checkmark.circle"
+                                    || iconName == Habit.guessIconName(for: "")
+                                    || iconName == Habit.guessIconName(for: title) {
+                                    iconName = guess
+                                }
+                            }
+                        }
                 }
+
+                // SCHEDULE
                 Section("Schedule") {
-                    LocalSchedulePicker(selection: $schedule)
+                    // Use the SAME picker UI we use when creating in HomeView
+                    SchedulePicker(selection: $schedule)
                 }
+
+                // ICON
+                Section("Icon") {
+                    IconPickerRow(selection: $iconName)
+                }
+
+                // REMINDER
                 Section("Reminder") {
                     Toggle("Remind me", isOn: $remindMe)
+
                     if remindMe {
-                        DatePicker("Time", selection: $reminderTime, displayedComponents: .hourAndMinute)
+                        DatePicker(
+                            "Time",
+                            selection: $reminderTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .accessibilityLabel("Reminder time")
                     }
                 }
+
+                // ARCHIVE (edit only)
                 if mode == .edit {
-                    Section { Toggle("Archived", isOn: $isArchived) }
+                    Section {
+                        Toggle("Archived", isOn: $isArchived)
+                    }
                 }
             }
-            .navigationTitle(mode == .add ? "New Habit" : "Edit Habit")
+            .navigationTitle(mode == .add ? "New Practice" : "Edit Practice")
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(mode == .add ? "Save" : "Done") { Task { await handleSave() } }
-                        .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    Button(mode == .add ? "Save" : "Done") {
+                        Task { await handleSave() }
+                    }
+                    .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
+        .glowTint()
+        .glowScreenBackground()
         .presentationDetents([.medium])
     }
 
+    // MARK: - Save / Helpers
+
+    /// Copy reminder-related fields from form state into the Habit model.
     private func applyReminderFields(to habit: Habit) {
         habit.reminderEnabled = remindMe
         if remindMe {
@@ -79,9 +144,13 @@ struct AddOrEditHabitForm: View {
         }
     }
 
-    private func saveAndDismiss() {
-        try? context.save()
-        dismiss()
+    /// Compute the next sortOrder so new practices show at the bottom.
+    /// We fetch all Habit objects and take max(sortOrder)+1.
+    private func nextSortOrder() -> Int {
+        let descriptor = FetchDescriptor<Habit>()
+        let allHabits = (try? context.fetch(descriptor)) ?? []
+        let maxOrder = (allHabits.map { $0.sortOrder }.max() ?? 9_998)
+        return maxOrder + 1
     }
 
     private func handleSave() async {
@@ -89,101 +158,82 @@ struct AddOrEditHabitForm: View {
         guard !trimmed.isEmpty else { return }
 
         switch mode {
+
         case .add:
-            let newHabit = Habit(title: trimmed, schedule: schedule)
+            // Build a brand new Habit using our form state
+            let sortOrder = nextSortOrder()
+
+            let comps = Calendar.current.dateComponents([.hour, .minute], from: reminderTime)
+            let hour = comps.hour
+            let minute = comps.minute
+
+            let newHabit = Habit(
+                title: trimmed,
+                createdAt: .now,
+                isArchived: false,
+                schedule: schedule,
+                reminderEnabled: remindMe,
+                reminderHour: hour,
+                reminderMinute: minute,
+                iconName: iconName.isEmpty
+                    ? Habit.guessIconName(for: trimmed)
+                    : iconName,
+                sortOrder: sortOrder
+            )
+
             context.insert(newHabit)
-            // write reminders after insert to ensure an id exists
-            applyReminderFields(to: newHabit)
             try? context.save()
 
-            if newHabit.reminderEnabled {
+            // Notifications for brand new habit
+            if remindMe {
                 let ok = await NotificationManager.requestAuthorizationIfNeeded()
-                if ok { await NotificationManager.scheduleNotifications(for: newHabit) }
+                if ok {
+                    await NotificationManager.scheduleNotifications(for: newHabit)
+                }
             }
 
         case .edit:
-            guard let habit else { return }
+            guard let habit else { break }
+
+            // Update existing Habit with new values
             habit.title = trimmed
             habit.schedule = schedule
             habit.isArchived = isArchived
+            habit.iconName = iconName.isEmpty
+                ? Habit.guessIconName(for: trimmed)
+                : iconName
 
             let wasEnabled = habit.reminderEnabled
             applyReminderFields(to: habit)
+
             try? context.save()
 
+            // Handle notifications depending on new state
             if habit.isArchived {
+                // If archived, kill notifications
                 await NotificationManager.cancelNotifications(for: habit)
             } else if habit.reminderEnabled {
+                // Still active + reminders on
                 let ok = await NotificationManager.requestAuthorizationIfNeeded()
-                if ok { await NotificationManager.scheduleNotifications(for: habit) }
+                if ok {
+                    await NotificationManager.scheduleNotifications(for: habit)
+                }
             } else if wasEnabled && !habit.reminderEnabled {
+                // Reminders used to be on, now off
                 await NotificationManager.cancelNotifications(for: habit)
             }
         }
 
         dismiss()
     }
-}
 
-// === Local compact weekday picker (unchanged API) ===
-private struct LocalSchedulePicker: View {
-    @Binding var selection: HabitSchedule
-    @State private var isCustom: Bool = false
-    @State private var setDays: Set<Weekday> = Set(Weekday.allCases)
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Toggle("Every day", isOn: Binding(
-                get: { !isCustom },
-                set: { isCustom = !$0; update() }
-            ))
-            if isCustom {
-                HStack {
-                    ForEach(Weekday.allCases, id: \.self) { day in
-                        let active = setDays.contains(day)
-                        Button(compactLabel(for: day)) {
-                            if active { setDays.remove(day) } else { setDays.insert(day) }
-                            update()
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(active ? .accentColor : .secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                        .frame(minWidth: 28)
-                        .accessibilityLabel("Toggle \(fullLabel(for: day))")
-                    }
-                }
-            }
+    /// Default reminder time (8:00 PM local) for new practices
+    private static func defaultReminderTime() -> Date {
+        let cal = Calendar.current
+        let now = Date()
+        if let eightPM = cal.date(bySettingHour: 20, minute: 0, second: 0, of: now) {
+            return eightPM
         }
-        .onAppear {
-            isCustom = selection.kind == .custom
-            setDays = selection.days
-        }
-    }
-
-    private func compactLabel(for day: Weekday) -> String {
-        switch day {
-        case .sun: return "S"
-        case .mon: return "M"
-        case .tue: return "T"
-        case .wed: return "W"
-        case .thu: return "Th"
-        case .fri: return "F"
-        case .sat: return "S"
-        }
-    }
-    private func fullLabel(for day: Weekday) -> String {
-        switch day {
-        case .sun: return "Sunday"
-        case .mon: return "Monday"
-        case .tue: return "Tuesday"
-        case .wed: return "Wednesday"
-        case .thu: return "Thursday"
-        case .fri: return "Friday"
-        case .sat: return "Saturday"
-        }
-    }
-    private func update() {
-        selection = isCustom ? .weekdays(Array(setDays)) : .daily
+        return now
     }
 }
