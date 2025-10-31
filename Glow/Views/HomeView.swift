@@ -14,6 +14,10 @@ struct HomeView: View {
     @State private var newSchedule: HabitSchedule = .daily
     @State private var newIconName: String = "checkmark.circle"
 
+    // 🔔 New reminder fields for creation
+    @State private var newReminderEnabled = false
+    @State private var newReminderTime: Date = HomeView.defaultReminderTime()
+
     // Edit / Delete state
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
@@ -87,10 +91,15 @@ struct HomeView: View {
                     // NOTE: We removed the .topBarLeading Edit/Done button.
                     ToolbarItem(placement: .topBarTrailing) {
                         NavAddButton {
-                            // reset form state
+                            // reset form state when + is tapped
                             newTitle = ""
                             newSchedule = .daily
                             newIconName = Habit.guessIconName(for: newTitle)
+
+                            // reset reminder state
+                            newReminderEnabled = false
+                            newReminderTime = HomeView.defaultReminderTime()
+
                             showAdd = true
                         }
                     }
@@ -263,6 +272,22 @@ struct HomeView: View {
                 Section("Icon") {
                     IconPickerRow(selection: $newIconName)
                 }
+
+                // 🔔 NEW: Reminder setup at creation
+                Section("Reminder") {
+                    Toggle("Remind me", isOn: $newReminderEnabled)
+
+                    if newReminderEnabled {
+                        DatePicker(
+                            "Time",
+                            selection: $newReminderTime,
+                            displayedComponents: .hourAndMinute
+                        )
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .accessibilityLabel("Reminder time")
+                    }
+                }
             }
             .navigationTitle("New Habit")
             .toolbar {
@@ -278,9 +303,20 @@ struct HomeView: View {
                         let maxOrder = (habits.map { $0.sortOrder }.max() ?? 9_998)
                         let newOrder = maxOrder + 1
 
+                        // pull hour/minute from the chosen reminder time
+                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newReminderTime)
+                        let hour = comps.hour
+                        let minute = comps.minute
+
+                        // build the Habit model
                         let h = Habit(
                             title: trimmed,
+                            createdAt: .now,
+                            isArchived: false,
                             schedule: newSchedule,
+                            reminderEnabled: newReminderEnabled,
+                            reminderHour: hour,
+                            reminderMinute: minute,
                             iconName: newIconName.isEmpty
                                 ? Habit.guessIconName(for: trimmed)
                                 : newIconName,
@@ -289,6 +325,17 @@ struct HomeView: View {
 
                         context.insert(h)
                         try? context.save()
+
+                        // if reminders are on, request permission + schedule now
+                        if newReminderEnabled {
+                            Task {
+                                let ok = await NotificationManager.requestAuthorizationIfNeeded()
+                                if ok {
+                                    await NotificationManager.scheduleNotifications(for: h)
+                                }
+                            }
+                        }
+
                         showAdd = false
                     }
                     .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -397,6 +444,18 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Helpers
+
+    /// Default reminder time when creating a new habit (8:00 PM local).
+    private static func defaultReminderTime() -> Date {
+        let cal = Calendar.current
+        let now = Date()
+        if let eightPM = cal.date(bySettingHour: 20, minute: 0, second: 0, of: now) {
+            return eightPM
+        }
+        return now
     }
 }
 
