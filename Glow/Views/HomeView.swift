@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 struct HomeView: View {
     @Environment(\.modelContext) private var context
@@ -16,6 +17,11 @@ struct HomeView: View {
     // Edit / Delete state
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
+
+    // MARK: - Day rollover support
+    // We remember "today at midnight" and we update it if the day changes.
+    @State private var todayAnchor: Date = Calendar.current.startOfDay(for: Date())
+    @State private var timerCancellable: AnyCancellable?
 
     // MARK: - Derived Collections
 
@@ -126,8 +132,37 @@ struct HomeView: View {
                     }
                 }
         }
+        .onAppear {
+            startMidnightWatcher()
+        }
+        .onDisappear {
+            timerCancellable?.cancel()
+            timerCancellable = nil
+        }
         .glowTint()
         .glowScreenBackground()
+    }
+
+    // MARK: - Midnight / new-day watcher
+
+    /// Sets up a 60s heartbeat. If calendar day rolled over,
+    /// update `todayAnchor`, which invalidates all the computed views.
+    private func startMidnightWatcher() {
+        // Avoid double-registering if view appears again
+        if timerCancellable != nil { return }
+
+        let cal = Calendar.current
+
+        timerCancellable = Timer
+            .publish(every: 60, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in
+                let startOfNow = cal.startOfDay(for: Date())
+                if startOfNow != todayAnchor {
+                    // Day changed (past midnight)
+                    todayAnchor = startOfNow
+                }
+            }
     }
 
     // MARK: - List content
@@ -167,7 +202,6 @@ struct HomeView: View {
                                 sourceArray: dueButNotDoneToday
                             )
                         }
-                        // ⬅️ removed .environment(\.editMode, .constant(.active))
                     }
                 }
 
