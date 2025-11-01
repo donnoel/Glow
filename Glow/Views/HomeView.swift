@@ -584,8 +584,8 @@ private struct NavAddButton: View {
 
 private enum SidebarTab: String {
     case home = "Home"
-    case progress = "Progress"
-    case settings = "Settings"
+    case progress = "Trends"
+    case settings = "You"
 }
 
 // MARK: - SidebarOverlay
@@ -631,7 +631,7 @@ private struct SidebarOverlay: View {
 
                     SidebarRow(
                         icon: "chart.bar",
-                        label: "Progress",
+                        label: "Trends",
                         isSelected: selectedTab == .progress,
                         colorScheme: colorScheme
                     ) {
@@ -641,7 +641,7 @@ private struct SidebarOverlay: View {
 
                     SidebarRow(
                         icon: "gearshape.fill",
-                        label: "Settings",
+                        label: "You",
                         isSelected: selectedTab == .settings,
                         colorScheme: colorScheme
                     ) {
