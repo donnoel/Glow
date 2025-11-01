@@ -128,6 +128,7 @@ struct HabitDetailView: View {
             MonthHeatmap(
                 habit: habit,
                 month: monthAnchor,
+                tint: habitTint,
                 onPrev: {
                     monthAnchor = Calendar.current.date(byAdding: .month, value: -1, to: monthAnchor)!
                 },
@@ -232,6 +233,7 @@ private struct RecentDaysStrip: View {
 private struct MonthHeatmap: View {
     let habit: Habit
     let month: Date
+    let tint: Color
     let onPrev: () -> Void
     let onNext: () -> Void
 
@@ -342,7 +344,8 @@ private struct MonthHeatmap: View {
                             date: cellDate,
                             isToday: cellDate.map { cal.startOfDay(for: $0) == today } ?? false,
                             isInMonth: cellDate.map { cal.isDate($0, equalTo: month, toGranularity: .month) } ?? false,
-                            done: cellDate.map { completedDays.contains(cal.startOfDay(for: $0)) } ?? false
+                            done: cellDate.map { completedDays.contains(cal.startOfDay(for: $0)) } ?? false,
+                            tint: tint
                         )
                         .frame(maxWidth: .infinity)
                     }
@@ -403,6 +406,7 @@ private struct DayCell: View {
     let isToday: Bool
     let isInMonth: Bool
     let done: Bool
+    let tint: Color
 
     var body: some View {
         ZStack {
@@ -443,7 +447,7 @@ private struct DayCell: View {
             return GlowTheme.borderMuted.opacity(0.08)
         }
         return done
-            ? GlowTheme.accentPrimary.opacity(0.85)
+            ? tint.opacity(0.85)
             : GlowTheme.borderMuted.opacity(0.15)
     }
 
