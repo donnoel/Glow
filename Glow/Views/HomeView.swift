@@ -743,10 +743,7 @@ private struct SidebarOverlay: View {
                 }
                 .padding(.bottom, 12)
 
-                // streak card stays very bottom for encouragement
-                StreakCard(colorScheme: colorScheme)
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 20)
+            
             }
             .frame(width: sidebarWidth, alignment: .leading)
             .padding(.vertical, verticalInset)
@@ -785,6 +782,9 @@ private struct SidebarOverlay: View {
             .offset(x: offsetX)
         }
         .onAppear {
+            // Always default highlight to Home when opening
+            selectedTab = .home
+
             // start off-screen
             offsetX = -sidebarWidth - 40
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
