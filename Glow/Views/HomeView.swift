@@ -28,8 +28,9 @@ struct HomeView: View {
     @State private var todayAnchor: Date = Calendar.current.startOfDay(for: Date())
     @State private var timerCancellable: AnyCancellable?
 
-    // Bottom dock selection (Home / Stats / Settings)
-    @State private var selectedDockTab: DockTab = .home
+    // Sidebar
+    @State private var showSidebar = false
+    @State private var selectedTab: SidebarTab = .home
 
     // MARK: - Derived Collections
 
@@ -92,11 +93,75 @@ struct HomeView: View {
     // MARK: - body
 
     var body: some View {
-        NavigationStack {
-            contentList
-                .navigationTitle("Glow")
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
+        ZStack {
+            NavigationStack {
+                homeRoot
+                    .navigationBarHidden(true)
+                    .sheet(isPresented: $showAdd) { addSheet }
+                    .sheet(
+                        isPresented: Binding(
+                            get: { habitToEdit != nil },
+                            set: { if !$0 { habitToEdit = nil } }
+                        )
+                    ) {
+                        if let habitToEdit {
+                            AddOrEditHabitForm(mode: .edit, habit: habitToEdit)
+                        }
+                    }
+                    .confirmationDialog(
+                        "Delete practice?",
+                        isPresented: Binding(
+                            get: { habitToDelete != nil },
+                            set: { if !$0 { habitToDelete = nil } }
+                        ),
+                        presenting: habitToDelete
+                    ) { h in
+                        Button("Delete “\(h.title)”", role: .destructive) {
+                            Task { await NotificationManager.cancelNotifications(for: h) }
+                            context.delete(h)
+                            do { try context.save() } catch {
+                                print("SwiftData save error:", error)
+                            }
+                            habitToDelete = nil
+                        }
+                        Button("Cancel", role: .cancel) { habitToDelete = nil }
+                    }
+            }
+            .glowTint()
+            .glowScreenBackground()
+            .onAppear { startMidnightWatcher() }
+            .onDisappear {
+                timerCancellable?.cancel()
+                timerCancellable = nil
+            }
+
+            if showSidebar {
+                SidebarOverlay(
+                    selectedTab: $selectedTab,
+                    close: {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                            showSidebar = false
+                        }
+                    }
+                )
+                .transition(.identity)
+            }
+        }
+    }
+
+    // MARK: - Home Root View with Chrome Overlay
+    private var homeRoot: some View {
+        contentList
+            .overlay(alignment: .topLeading) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        SidebarHandleButton {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                showSidebar = true
+                            }
+                            GlowTheme.tapHaptic()
+                        }
+                        Spacer()
                         NavAddButton {
                             // reset form state when + is tapped
                             newTitle = ""
@@ -110,56 +175,12 @@ struct HomeView: View {
                         }
                         .accessibilityLabel("Add practice")
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 48)
+                    Spacer()
                 }
-                // Add
-                .sheet(isPresented: $showAdd) {
-                    addSheet
-                }
-                // Edit
-                .sheet(
-                    isPresented: Binding(
-                        get: { habitToEdit != nil },
-                        set: { if !$0 { habitToEdit = nil } }
-                    )
-                ) {
-                    if let habitToEdit {
-                        AddOrEditHabitForm(mode: .edit, habit: habitToEdit)
-                    }
-                }
-                // Delete confirm
-                .confirmationDialog(
-                    "Delete practice?",
-                    isPresented: Binding(
-                        get: { habitToDelete != nil },
-                        set: { if !$0 { habitToDelete = nil } }
-                    ),
-                    presenting: habitToDelete
-                ) { h in
-                    Button("Delete “\(h.title)”", role: .destructive) {
-                        Task { await NotificationManager.cancelNotifications(for: h) }
-                        context.delete(h)
-                        do { try context.save() } catch {
-                            print("SwiftData save error:", error)
-                        }
-                        habitToDelete = nil
-                    }
-                    Button("Cancel", role: .cancel) { habitToDelete = nil }
-                }
-        }
-        .onAppear { startMidnightWatcher() }
-        .onDisappear {
-            timerCancellable?.cancel()
-            timerCancellable = nil
-        }
-        // frosted-tinted app background (yours)
-        .glowTint()
-        .glowScreenBackground()
-        // floating dock sitting over content
-        .safeAreaInset(edge: .bottom) {
-            GlowDock(selected: $selectedDockTab)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 8)
-        }
+                .ignoresSafeArea()
+            }
     }
 
     // MARK: - Add Practice sheet
@@ -171,7 +192,6 @@ struct HomeView: View {
                     TextField("Title", text: $newTitle)
                         .textInputAutocapitalization(.words)
                         .onChange(of: newTitle) { newValue in
-                            // live icon guess
                             let guess = Habit.guessIconName(for: newValue)
                             if newIconName == "checkmark.circle" || newIconName.isEmpty {
                                 newIconName = guess
@@ -212,16 +232,13 @@ struct HomeView: View {
                         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
 
-                        // give new practice a sortOrder after the current max
                         let maxOrder = (habits.map { $0.sortOrder }.max() ?? 9_998)
                         let newOrder = maxOrder + 1
 
-                        // pull hour/minute from the chosen reminder time
                         let comps = Calendar.current.dateComponents([.hour, .minute], from: newReminderTime)
                         let hour = comps.hour
                         let minute = comps.minute
 
-                        // build the Habit model
                         let h = Habit(
                             title: trimmed,
                             createdAt: .now,
@@ -239,7 +256,6 @@ struct HomeView: View {
                         context.insert(h)
                         try? context.save()
 
-                        // if reminders are on, request permission + schedule now
                         if newReminderEnabled {
                             Task {
                                 let ok = await NotificationManager.requestAuthorizationIfNeeded()
@@ -281,12 +297,17 @@ struct HomeView: View {
         List {
             // HERO
             Section {
+                // Add some top padding here so the hero visually sits just under
+                // that floating chrome instead of jammed into the status bar.
                 HeroCardGlass(
                     done: todayCompletion.done,
                     total: todayCompletion.total,
                     percent: todayCompletion.percent
                 )
-                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16))
+                .padding(.top, 44) // breathing room under status bar + buttons
+                .listRowInsets(
+                    EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
+                )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
@@ -303,7 +324,6 @@ struct HomeView: View {
                     .listRowSeparator(.hidden)
                 }
             } else {
-                // Completed Today
                 if !completedToday.isEmpty {
                     Section("Completed Today") {
                         ForEach(completedToday) { habit in
@@ -312,7 +332,6 @@ struct HomeView: View {
                     }
                 }
 
-                // Due Today
                 if !dueButNotDoneToday.isEmpty {
                     Section("Due Today") {
                         ForEach(dueButNotDoneToday) { habit in
@@ -328,7 +347,6 @@ struct HomeView: View {
                     }
                 }
 
-                // Not Today
                 if !notDueToday.isEmpty {
                     Section("Not Today") {
                         ForEach(notDueToday) { habit in
@@ -337,7 +355,6 @@ struct HomeView: View {
                     }
                 }
 
-                // Archived
                 if !archivedHabits.isEmpty {
                     Section("Archived") {
                         ForEach(archivedHabits) { habit in
@@ -346,10 +363,11 @@ struct HomeView: View {
                     }
                 }
             }
-            // bottom spacer so last row clears the floating dock
+
+            // comfy bottom spacer so last row never slams into bottom edge
             Section {
                 Color.clear
-                    .frame(height: 120) // should be >= dock height
+                    .frame(height: 48)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             }
@@ -469,7 +487,38 @@ struct HomeView: View {
     }
 }
 
+// MARK: - SidebarHandleButton
+// Small frosted circle in the top-left to open the sidebar.
+
+private struct SidebarHandleButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "line.3.horizontal")
+                .font(.system(size: 29, weight: .semibold))
+                .foregroundStyle(
+                    colorScheme == .dark
+                    ? GlowTheme.accentPrimary
+                    : GlowTheme.textPrimary
+                )
+                .padding(10)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .shadow(
+                            color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                            radius: 20, y: 10
+                        )
+                )
+        }
+        .accessibilityLabel("Menu")
+    }
+}
+
 // MARK: - NavAddButton
+// (unchanged visuals, still our floating +)
 
 private struct NavAddButton: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -478,7 +527,7 @@ private struct NavAddButton: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: "plus.circle.fill")
-                .imageScale(.large)
+                .font(.system(size: 29, weight: .semibold))
                 .foregroundStyle(navIconColor)
                 .padding(10)
                 .background(
@@ -499,8 +548,349 @@ private struct NavAddButton: View {
     }
 }
 
+// MARK: - SidebarOverlay
+// Dimmed backdrop + sliding glass drawer
+
+private enum SidebarTab: String {
+    case home = "Home"
+    case stats = "Stats"
+    case settings = "Settings"
+}
+
+// MARK: - SidebarOverlay
+// Dimmed backdrop + floating glass drawer (inset, lighter, with streak footer)
+
+private struct SidebarOverlay: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    @Binding var selectedTab: SidebarTab
+    let close: () -> Void
+
+    // slide animation state
+    @State private var offsetX: CGFloat = -320
+
+    // layout tuning
+    private var sidebarWidth: CGFloat { 260 }          // slimmer than before
+    private var verticalInset: CGFloat { 40 }          // float down from the top and up from the bottom
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // Dim behind
+            Color.black
+                .opacity(0.25)
+                .ignoresSafeArea()
+                .onTapGesture {
+                    closeWithSlideOut()
+                }
+
+            // Floating glass "sheet"
+            VStack(alignment: .leading, spacing: 0) {
+                // MAIN NAV
+                VStack(alignment: .leading, spacing: 6) {
+                    SidebarRow(
+                        icon: "house.fill",
+                        label: "Home",
+                        isSelected: selectedTab == .home,
+                        colorScheme: colorScheme
+                    ) {
+                        selectedTab = .home
+                        closeWithSlideOut()
+                    }
+
+                    SidebarRow(
+                        icon: "chart.bar",
+                        label: "Stats",
+                        isSelected: selectedTab == .stats,
+                        colorScheme: colorScheme
+                    ) {
+                        selectedTab = .stats
+                        closeWithSlideOut()
+                    }
+
+                    SidebarRow(
+                        icon: "gearshape.fill",
+                        label: "Settings",
+                        isSelected: selectedTab == .settings,
+                        colorScheme: colorScheme
+                    ) {
+                        selectedTab = .settings
+                        closeWithSlideOut()
+                    }
+                }
+                .padding(.top, 20)
+
+                // subtle divider
+                Rectangle()
+                    .fill(
+                        Color.white
+                            .opacity(colorScheme == .dark ? 0.18 : 0.4)
+                    )
+                    .frame(height: 1)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 16)
+
+                // SECONDARY NAV
+                VStack(alignment: .leading, spacing: 6) {
+                    SidebarRow(
+                        icon: "bell.badge",
+                        label: "Reminders",
+                        isSelected: false,
+                        colorScheme: colorScheme
+                    ) {
+                        closeWithSlideOut()
+                    }
+
+                    SidebarRow(
+                        icon: "archivebox.fill",
+                        label: "Archived",
+                        isSelected: false,
+                        colorScheme: colorScheme
+                    ) {
+                        closeWithSlideOut()
+                    }
+                }
+
+                Spacer(minLength: 20)
+
+                // STREAK lives at the bottom now so the top stays clean
+                StreakCard(colorScheme: colorScheme)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 20)
+            }
+            .frame(width: sidebarWidth, alignment: .leading)
+            .padding(.vertical, verticalInset)
+            .background(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.ultraThinMaterial)
+                    // faint vertical frost tint so it's readable, but more transparent than before
+                    .overlay(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.04 : 0.18),
+                                Color.white.opacity(0.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                    )
+                    // delicate edge highlight for that "glass edge"
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .stroke(
+                                Color.white
+                                    .opacity(colorScheme == .dark ? 0.18 : 0.4),
+                                lineWidth: 1
+                            )
+                            .blendMode(.plusLighter)
+                    )
+                    // deeper shadow so it hovers over the blurred background
+                    .shadow(
+                        color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.15),
+                        radius: 40,
+                        y: 20
+                    )
+            )
+            // slide-in offset
+            .offset(x: offsetX)
+        }
+        .onAppear {
+            // start off-screen to the left a bit more than our width
+            offsetX = -sidebarWidth - 40
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                offsetX = 0
+            }
+        }
+    }
+
+    private func closeWithSlideOut() {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            offsetX = -sidebarWidth - 40
+        }
+        // actually dismiss after the slide finishes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            close()
+        }
+    }
+}
+
+// MARK: - GlowChipView
+// Small branded pill under the top chrome. Gives Glow identity without yelling.
+
+private struct GlowChipView: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(GlowTheme.accentPrimary)
+
+            Text("Glow")
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(
+                    colorScheme == .dark
+                    ? Color.white
+                    : GlowTheme.textPrimary
+                )
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+                // gentle tint wash
+                .overlay(
+                    GlowTheme.accentPrimary
+                        .opacity(colorScheme == .dark ? 0.18 : 0.10)
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
+                        .blendMode(.plusLighter)
+                )
+                // edge highlight / glass rim
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(
+                            GlowTheme.accentPrimary
+                                .opacity(colorScheme == .dark ? 0.45 : 0.3),
+                            lineWidth: 1
+                        )
+                )
+                .shadow(
+                    color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                    radius: 20,
+                    y: 10
+                )
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Glow")
+    }
+}
+
+// MARK: - StreakCard
+// small encouragement chip at the bottom of the drawer
+
+private struct StreakCard: View {
+    let colorScheme: ColorScheme
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Image(systemName: "sparkles")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(GlowTheme.accentPrimary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("You’re on a streak ✨")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(
+                        colorScheme == .dark
+                        ? Color.white
+                        : GlowTheme.textPrimary
+                    )
+
+                Text("4 days in a row")
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(
+                        colorScheme == .dark
+                        ? Color.white.opacity(0.7)
+                        : GlowTheme.textSecondary
+                    )
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    GlowTheme.accentPrimary
+                        .opacity(colorScheme == .dark ? 0.15 : 0.10)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(
+                            GlowTheme.accentPrimary
+                                .opacity(colorScheme == .dark ? 0.4 : 0.3),
+                            lineWidth: 1
+                        )
+                )
+        )
+    }
+}
+
+// MARK: - SidebarRow
+// Reusable glassy-ish row inside sidebar.
+
+private struct SidebarRow: View {
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let colorScheme: ColorScheme
+    let tap: () -> Void
+
+    private var fgColor: Color {
+        if isSelected {
+            return GlowTheme.accentPrimary
+        } else {
+            return colorScheme == .dark
+            ? .white
+            : GlowTheme.textPrimary
+        }
+    }
+
+    private var bgCapsule: some View {
+        Group {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                        GlowTheme.accentPrimary
+                            .opacity(colorScheme == .dark ? 0.22 : 0.12)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .stroke(
+                                GlowTheme.accentPrimary
+                                    .opacity(colorScheme == .dark ? 0.5 : 0.4),
+                                lineWidth: 1
+                            )
+                    )
+            } else {
+                Color.clear
+            }
+        }
+    }
+
+    var body: some View {
+        Button(action: tap) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(fgColor)
+
+                Text(label)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(fgColor)
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(bgCapsule)
+            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 12)
+    }
+}
+
 // MARK: - HabitRowGlass
-// A single practice row rendered as a frosted capsule with habit tint.
+// (unchanged except we keep the gorgeous tinted glass rows)
 
 private struct HabitRowGlass: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -517,29 +907,24 @@ private struct HabitRowGlass: View {
         return habit.logs.first(where: { cal.startOfDay(for: $0.date) == today })?.completed == true
     }
 
-    // Text ink
     private var rowTextColor: Color {
         colorScheme == .dark ? .white : GlowTheme.textPrimary
     }
 
-    // tiny colored chip bg behind SF Symbol
     private var iconBubbleColor: Color {
         habit.accentColor.opacity(colorScheme == .dark ? 0.32 : 0.22)
     }
 
-    // ring color for incomplete circle
     private var incompleteRingColor: Color {
         colorScheme == .dark
         ? Color.white.opacity(0.45)
         : GlowTheme.borderMuted.opacity(0.8)
     }
 
-    // frosted capsule behind row content
     private var glassCapsule: some View {
         RoundedRectangle(cornerRadius: 18, style: .continuous)
-            .fill(.ultraThinMaterial) // base blur
+            .fill(.ultraThinMaterial)
             .overlay(
-                // whisper of habit tint across the glass
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .fill(
                         habit.accentColor
@@ -548,7 +933,6 @@ private struct HabitRowGlass: View {
                     .blendMode(.plusLighter)
             )
             .overlay(
-                // hairline stroke that picks up the tint
                 RoundedRectangle(cornerRadius: 18, style: .continuous)
                     .stroke(
                         habit.accentColor
@@ -564,7 +948,6 @@ private struct HabitRowGlass: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // icon chip
             ZStack {
                 Circle()
                     .fill(iconBubbleColor)
@@ -575,13 +958,11 @@ private struct HabitRowGlass: View {
                     .foregroundStyle(habit.accentColor)
             }
 
-            // title
             Text(habit.title)
                 .foregroundStyle(rowTextColor)
 
             Spacer(minLength: 8)
 
-            // completion toggle
             Button {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
                     tappedBounce = true
@@ -613,23 +994,18 @@ private struct HabitRowGlass: View {
                     tappedBounce = false
                 }
             }
-
-            // chevron is provided by NavigationLink cell style automatically
-            // so we don't draw another arrow here
         }
         .padding(.vertical, 12)
         .padding(.horizontal, 12)
         .background(glassCapsule)
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-        // higher hit target for a11y
         .accessibilityElement(children: .combine)
         .accessibilityHint("Double tap for details")
     }
 }
 
 // MARK: - HeroCardGlass
-// Frosted summary card with ring progress.
-// Sits at the top of the list and sets the visual language.
+// same hero vibe, this is your "Today" card
 
 private struct HeroCardGlass: View {
     @Environment(\.colorScheme) private var colorScheme
@@ -661,7 +1037,6 @@ private struct HeroCardGlass: View {
     }
 
     private var ringProgressColor: Color {
-        // use the app accent for the hero (keeps brand cohesion)
         GlowTheme.accentPrimary
     }
 
@@ -685,8 +1060,6 @@ private struct HeroCardGlass: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
-
-            // donut
             ZStack {
                 Circle()
                     .stroke(ringTrackColor, lineWidth: 14)
@@ -726,130 +1099,6 @@ private struct HeroCardGlass: View {
         .accessibilityLabel(
             "Today \(done) of \(total) practices complete, \(Int(percent * 100)) percent."
         )
-    }
-}
-
-// MARK: - GlowDock
-// Floating iOS-style home-screen dock bar.
-// (Visual only for now — feels like “Glow is an OS for your habits”.)
-
-private enum DockTab: String {
-    case home
-    case stats
-    case settings
-}
-
-private struct GlowDock: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    @Binding var selected: DockTab
-
-    private var dockBackground: some View {
-        RoundedRectangle(cornerRadius: 28, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .stroke(
-                        Color.white
-                            .opacity(colorScheme == .dark ? 0.12 : 0.3),
-                        lineWidth: 0.5
-                    )
-                    .blendMode(.plusLighter)
-            )
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.05),
-                radius: 20, y: 8
-            )
-    }
-
-    var body: some View {
-        HStack(spacing: 28) {
-            DockButton(
-                icon: "house.fill",
-                label: "Home",
-                isSelected: selected == .home
-            ) { selected = .home }
-
-            DockButton(
-                icon: "chart.bar",
-                label: "Stats",
-                isSelected: selected == .stats
-            ) { selected = .stats }
-
-            DockButton(
-                icon: "gearshape.fill",
-                label: "Settings",
-                isSelected: selected == .settings
-            ) { selected = .settings }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-        .background(dockBackground)
-        .frame(maxWidth: .infinity)
-        .padding(.bottom, 4)
-    }
-}
-
-// MARK: - DockButton
-
-private struct DockButton: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let icon: String
-    let label: String
-    let isSelected: Bool
-    let action: () -> Void
-
-    private var fgColor: Color {
-        if isSelected {
-            return GlowTheme.accentPrimary
-        } else {
-            return colorScheme == .dark
-            ? .white.opacity(0.8)
-            : GlowTheme.textPrimary
-        }
-    }
-
-    private var capsuleBG: some View {
-        Group {
-            if isSelected {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .fill(
-                        GlowTheme.accentPrimary
-                            .opacity(colorScheme == .dark ? 0.22 : 0.12)
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .stroke(
-                                GlowTheme.accentPrimary
-                                    .opacity(colorScheme == .dark ? 0.4 : 0.3),
-                                lineWidth: 1
-                            )
-                    )
-            } else {
-                Color.clear
-            }
-        }
-    }
-
-    var body: some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(fgColor)
-
-                Text(label)
-                    .font(.caption2.weight(.medium))
-                    .foregroundStyle(fgColor)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(capsuleBG)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
-        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }
 
