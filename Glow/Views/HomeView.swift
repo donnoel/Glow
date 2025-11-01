@@ -1041,6 +1041,9 @@ private struct HabitRowGlass: View {
 private struct HeroCardGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
+    // pulse animation for the percent label
+    @State private var pulse = false
+
     // MARK: inputs
     // done / total drive the ring % math
     // bonus + allDone are just for display ("(+2 bonus)")
@@ -1088,6 +1091,7 @@ private struct HeroCardGlass: View {
         GlowTheme.accentPrimary
     }
 
+    // glass background for the whole card
     private var glassCardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(.regularMaterial)
@@ -1102,8 +1106,17 @@ private struct HeroCardGlass: View {
             )
             .shadow(
                 color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.07),
-                radius: 24, y: 12
+                radius: 24,
+                y: 12
             )
+    }
+
+    // tiny helper to kick the pulse animation
+    private func triggerPulse() {
+        pulse = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            pulse = false
+        }
     }
 
     // MARK: body
@@ -1127,16 +1140,32 @@ private struct HeroCardGlass: View {
                 Text("\(Int(percent * 100))%")
                     .font(.headline.monospacedDigit())
                     .foregroundStyle(primaryTextColor)
+                    .scaleEffect(pulse ? 1.07 : 1.0)
+                    .animation(
+                        .spring(response: 0.3, dampingFraction: 0.6),
+                        value: pulse
+                    )
+                    // fire whenever percent changes
+                    .onChange(of: percent) { newValue in
+                        if newValue > 1.0 {
+                            triggerPulse()
+                        }
+                    }
+                    // also fire on first appear if already >100%
+                    .onAppear {
+                        if percent > 1.0 {
+                            triggerPulse()
+                        }
+                    }
             }
             .frame(width: 76, height: 76)
 
-            // text block you pasted ✅
+            // right side text block
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today")
                     .font(.headline)
                     .foregroundStyle(primaryTextColor)
 
-                // "8 of 6 complete (+2 bonus)" or "6 of 6 complete"
                 Text(statusLine)
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(secondaryTextColor)
