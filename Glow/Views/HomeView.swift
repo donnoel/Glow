@@ -235,7 +235,6 @@ struct HomeView: View {
             NavigationStack {
                 homeRoot
                     .navigationBarHidden(true)
-                    .sheet(isPresented: $showAdd) { addSheet }
                     .sheet(
                         isPresented: Binding(
                             get: { habitToEdit != nil },
@@ -244,7 +243,12 @@ struct HomeView: View {
                     ) {
                         if let habitToEdit {
                             AddOrEditHabitForm(mode: .edit, habit: habitToEdit)
+                                .presentationDetents([.large])
+                                .presentationDragIndicator(.visible)
                         }
+                    }
+                    .sheet(isPresented: $showAdd) {
+                        addSheet
                     }
                     .confirmationDialog(
                         "Delete practice?",
@@ -437,7 +441,8 @@ struct HomeView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
     
     // MARK: - Midnight / new-day watcher
