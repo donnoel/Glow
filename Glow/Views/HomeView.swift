@@ -348,7 +348,7 @@ struct HomeView: View {
                     bonus: bonusCompletedToday.count,
                     allDone: todayCompletion.done + bonusCompletedToday.count
                 )
-                .padding(.top, 44) // breathing room under status bar + buttons
+                .padding(.top, 36) // slightly tighter to status bar (8pt less)
                 .listRowInsets(
                     EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
                 )
@@ -373,6 +373,13 @@ struct HomeView: View {
                         ForEach(completedToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
+                        .onMove { indices, newOffset in
+                            handleMove(
+                                indices: indices,
+                                newOffset: newOffset,
+                                sourceArray: completedToday
+                            )
+                        }
                     }
                 }
                 
@@ -396,6 +403,13 @@ struct HomeView: View {
                         ForEach(notDueToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
+                        .onMove { indices, newOffset in
+                            handleMove(
+                                indices: indices,
+                                newOffset: newOffset,
+                                sourceArray: notDueToday
+                            )
+                        }
                     }
                 }
                 
@@ -403,6 +417,13 @@ struct HomeView: View {
                     Section("Archived") {
                         ForEach(archivedHabits) { habit in
                             rowCell(habit: habit, isArchived: true)
+                        }
+                        .onMove { indices, newOffset in
+                            handleMove(
+                                indices: indices,
+                                newOffset: newOffset,
+                                sourceArray: archivedHabits
+                            )
                         }
                     }
                 }
@@ -416,6 +437,7 @@ struct HomeView: View {
                     .listRowSeparator(.hidden)
             }
         }
+        .listSectionSeparator(.hidden)
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
