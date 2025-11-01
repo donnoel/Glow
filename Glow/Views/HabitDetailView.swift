@@ -5,11 +5,16 @@ struct HabitDetailView: View {
     let habit: Habit
     @State private var monthAnchor: Date = .now
 
+    // Reuse the same accent color this habit has in HomeView rows
+    private var habitTint: Color {
+        habit.accentColor
+    }
+
     var body: some View {
         List {
             headerSection
-            recentSection        // ⬅️ moved up, used to be last
             weekSection
+            recentSection
             heatmapSection
         }
         .navigationTitle("Details")
@@ -19,39 +24,66 @@ struct HabitDetailView: View {
     private var headerSection: some View {
         let s = computeStreaks(from: habit.logs)
         return Section {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(habit.title)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(GlowTheme.textPrimary)
+            VStack(alignment: .leading, spacing: 12) {
+                // top row: tinted icon chip + title
+                HStack(alignment: .center, spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                habitTint.opacity(0.18)
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(
+                                        habitTint.opacity(0.4),
+                                        lineWidth: 1
+                                    )
+                            )
+                            .frame(width: 40, height: 40)
 
-                HStack(spacing: 12) {
-                    Label {
-                        Text("Current \(s.current)")
-                            .monospacedDigit()
-                    } icon: {
-                        Image(systemName: "flame.fill")
+                        Image(systemName: habit.iconName)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(habitTint)
                     }
 
-                    Label {
-                        Text("Best \(s.best)")
-                            .monospacedDigit()
-                    } icon: {
-                        Image(systemName: "trophy.fill")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(habit.title)
+                            .font(.headline.weight(.semibold))
+                            .foregroundStyle(GlowTheme.textPrimary)
+
+                        // mini status line under title
+                        HStack(spacing: 12) {
+                            Label {
+                                Text("\(s.current)d streak")
+                                    .monospacedDigit()
+                            } icon: {
+                                Image(systemName: "flame.fill")
+                            }
+
+                            Label {
+                                Text("best \(s.best)d")
+                                    .monospacedDigit()
+                            } icon: {
+                                Image(systemName: "trophy.fill")
+                            }
+                        }
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(GlowTheme.textSecondary)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Current streak \(s.current) days. Best streak \(s.best) days.")
                     }
+
+                    Spacer(minLength: 8)
                 }
-                .font(.subheadline)
-                .foregroundStyle(GlowTheme.textSecondary)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel("Current streak \(s.current) days. Best streak \(s.best) days.")
             }
-            .padding(.vertical, 4)
+            .padding(.vertical, 8)
         }
     }
 
     // MARK: - Recent Activity strip (moved up)
     private var recentSection: some View {
-        Section("Recent Activity") {
-            RecentDaysStrip(logs: habit.logs, days: 14)
+        Section("Recent") {
+            RecentDaysStrip(logs: habit.logs, days: 14, tint: habitTint)
                 .listRowInsets(EdgeInsets())
         }
     }
@@ -59,17 +91,32 @@ struct HabitDetailView: View {
     // MARK: - Weekly Ring
     private var weekSection: some View {
         Section("This Week") {
-            WeeklyProgressRing(percent: weeklyPercent(from: habit.logs))
-                .frame(height: 140)
+            WeeklyProgressRing(percent: weeklyPercent(from: habit.logs), tint: habitTint)
+                .frame(height: 120)
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(16)
                 .background(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .fill(GlowTheme.bgSurface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 16, style: .continuous)
-                        .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(
+                                    habitTint.opacity(0.08)
+                                )
+                                .blendMode(.plusLighter)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .stroke(
+                                    habitTint
+                                        .opacity(0.28),
+                                    lineWidth: 1
+                                )
+                        )
+                        .shadow(
+                            color: Color.black.opacity(0.4),
+                            radius: 20, y: 10
+                        )
                 )
                 .listRowInsets(EdgeInsets())
         }
@@ -118,6 +165,7 @@ struct HabitDetailView: View {
 // MARK: - WeeklyProgressRing
 private struct WeeklyProgressRing: View {
     let percent: Double
+    let tint: Color
 
     var body: some View {
         ZStack {
@@ -127,7 +175,7 @@ private struct WeeklyProgressRing: View {
             Circle()
                 .trim(from: 0, to: max(0, min(1, percent)))
                 .stroke(
-                    GlowTheme.accentPrimary,
+                    tint,
                     style: StrokeStyle(lineWidth: 12, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
@@ -146,6 +194,7 @@ private struct WeeklyProgressRing: View {
 private struct RecentDaysStrip: View {
     let logs: [HabitLog]
     let days: Int
+    let tint: Color
 
     var body: some View {
         let cal = Calendar.current
@@ -163,7 +212,7 @@ private struct RecentDaysStrip: View {
                 RoundedRectangle(cornerRadius: 4)
                     .fill(
                         done
-                        ? GlowTheme.accentPrimary
+                        ? tint
                         : GlowTheme.borderMuted.opacity(0.6)
                     )
                     .frame(width: 16, height: 16)
@@ -226,13 +275,13 @@ private struct MonthHeatmap: View {
     }
 
     var body: some View {
-        VStack(spacing: 10) {
+        VStack(spacing: 8) {
             header
             weekdayHeader
             grid
             summary
         }
-        .padding(.vertical, 6)
+        .padding(.vertical, 8)
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
