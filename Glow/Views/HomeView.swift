@@ -584,7 +584,7 @@ private struct NavAddButton: View {
 
 private enum SidebarTab: String {
     case home = "Home"
-    case stats = "Stats"
+    case progress = "Progress"
     case settings = "Settings"
 }
 
@@ -601,8 +601,8 @@ private struct SidebarOverlay: View {
     @State private var offsetX: CGFloat = -320
 
     // layout tuning
-    private var sidebarWidth: CGFloat { 260 }          // slimmer than before
-    private var verticalInset: CGFloat { 40 }          // float down from the top and up from the bottom
+    private var sidebarWidth: CGFloat { 260 }
+    private var verticalInset: CGFloat { 40 } // float, not full height
 
     var body: some View {
         ZStack(alignment: .leading) {
@@ -614,9 +614,10 @@ private struct SidebarOverlay: View {
                     closeWithSlideOut()
                 }
 
-            // Floating glass "sheet"
+            // Floating glass panel
             VStack(alignment: .leading, spacing: 0) {
-                // MAIN NAV
+
+                // ===== MAIN NAV =====
                 VStack(alignment: .leading, spacing: 6) {
                     SidebarRow(
                         icon: "house.fill",
@@ -630,11 +631,11 @@ private struct SidebarOverlay: View {
 
                     SidebarRow(
                         icon: "chart.bar",
-                        label: "Stats",
-                        isSelected: selectedTab == .stats,
+                        label: "Progress",
+                        isSelected: selectedTab == .progress,
                         colorScheme: colorScheme
                     ) {
-                        selectedTab = .stats
+                        selectedTab = .progress
                         closeWithSlideOut()
                     }
 
@@ -650,17 +651,10 @@ private struct SidebarOverlay: View {
                 }
                 .padding(.top, 20)
 
-                // subtle divider
-                Rectangle()
-                    .fill(
-                        Color.white
-                            .opacity(colorScheme == .dark ? 0.18 : 0.4)
-                    )
-                    .frame(height: 1)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
+                // subtle glassy divider
+                sidebarDivider
 
-                // SECONDARY NAV
+                // ===== SECONDARY NAV =====
                 VStack(alignment: .leading, spacing: 6) {
                     SidebarRow(
                         icon: "bell.badge",
@@ -681,9 +675,38 @@ private struct SidebarOverlay: View {
                     }
                 }
 
+                // push helper section + streak card to bottom
                 Spacer(minLength: 20)
 
-                // STREAK lives at the bottom now so the top stays clean
+                // another soft divider for the "info / meta" stuff
+                sidebarDivider
+                    .padding(.bottom, 8)
+
+                // ===== ABOUT / FEEDBACK =====
+                VStack(alignment: .leading, spacing: 6) {
+                    SidebarRow(
+                        icon: "sparkles",
+                        label: "About Glow",
+                        isSelected: false,
+                        colorScheme: colorScheme
+                    ) {
+                        // later: present About sheet
+                        closeWithSlideOut()
+                    }
+
+                    SidebarRow(
+                        icon: "paperplane.fill",
+                        label: "Send Feedback",
+                        isSelected: false,
+                        colorScheme: colorScheme
+                    ) {
+                        // later: open mail / form
+                        closeWithSlideOut()
+                    }
+                }
+                .padding(.bottom, 12)
+
+                // streak card stays very bottom for encouragement
                 StreakCard(colorScheme: colorScheme)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 20)
@@ -693,40 +716,39 @@ private struct SidebarOverlay: View {
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                     .fill(.ultraThinMaterial)
-                    // faint vertical frost tint so it's readable, but more transparent than before
+                    // softer frost wash, slightly lighter than before
                     .overlay(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(colorScheme == .dark ? 0.04 : 0.18),
-                                Color.white.opacity(0.0)
+                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.20),
+                                Color.white.opacity(0.00)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                         .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
                     )
-                    // delicate edge highlight for that "glass edge"
+                    // thinner highlight edge so it's more "float glass", less "card"
                     .overlay(
                         RoundedRectangle(cornerRadius: 28, style: .continuous)
                             .stroke(
                                 Color.white
-                                    .opacity(colorScheme == .dark ? 0.18 : 0.4),
-                                lineWidth: 1
+                                    .opacity(colorScheme == .dark ? 0.16 : 0.30),
+                                lineWidth: 0.75
                             )
                             .blendMode(.plusLighter)
                     )
-                    // deeper shadow so it hovers over the blurred background
+                    // deeper drop shadow for lift, but slightly wider + softer
                     .shadow(
                         color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.15),
                         radius: 40,
                         y: 20
                     )
             )
-            // slide-in offset
             .offset(x: offsetX)
         }
         .onAppear {
-            // start off-screen to the left a bit more than our width
+            // start off-screen
             offsetX = -sidebarWidth - 40
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 offsetX = 0
@@ -734,11 +756,29 @@ private struct SidebarOverlay: View {
         }
     }
 
+    // MARK: - tiny helper views
+
+    private var sidebarDivider: some View {
+        Rectangle()
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.white.opacity(colorScheme == .dark ? 0.20 : 0.35),
+                        Color.white.opacity(0.0)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(height: 1)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 16)
+    }
+
     private func closeWithSlideOut() {
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
             offsetX = -sidebarWidth - 40
         }
-        // actually dismiss after the slide finishes
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             close()
         }
