@@ -72,7 +72,7 @@ struct TrendsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 28) {
 
                     // 1. HERO STREAK CARD
                     streakHeroCard
@@ -102,94 +102,104 @@ struct TrendsView: View {
         let current = globalStreaks.current
         let best = globalStreaks.best
 
-        return RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(
-                        Color.white.opacity(0.25),
-                        lineWidth: 1
-                    )
-                    .blendMode(.plusLighter)
-            )
-            .shadow(
-                color: Color.black.opacity(0.15),
-                radius: 24,
-                y: 12
-            )
-            .overlay {
-                VStack(alignment: .leading, spacing: 12) {
-                    // header row
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(GlowTheme.accentPrimary)
+        return VStack(alignment: .leading, spacing: 16) {
 
-                        Text("You’re on a streak ✨")
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(GlowTheme.textPrimary)
+            // streak headline row
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(GlowTheme.accentPrimary)
 
-                        Spacer(minLength: 0)
-                    }
+                Text("You’re on a streak ✨")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(GlowTheme.textPrimary)
 
-                    // numbers row
-                    HStack(spacing: 16) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(current) days")
-                                .font(.title3.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(GlowTheme.textPrimary)
-                            Text("Current streak")
-                                .font(.footnote)
-                                .foregroundStyle(GlowTheme.textSecondary)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(best) days")
-                                .font(.title3.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(GlowTheme.textPrimary)
-                            Text("Best streak")
-                                .font(.footnote)
-                                .foregroundStyle(GlowTheme.textSecondary)
-                        }
-
-                        Spacer()
-
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text("\(weeklyActiveDaysCount)/7")
-                                .font(.title3.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(GlowTheme.accentPrimary)
-                            Text("Active this week")
-                                .font(.footnote)
-                                .foregroundStyle(GlowTheme.textSecondary)
-                        }
-                    }
-                }
-                .padding(16)
+                Spacer(minLength: 0)
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(
-                "Current streak \(current) days. Best streak \(best) days. You were active \(weeklyActiveDaysCount) of the last 7 days."
-            )
+
+            // 3-column stats row
+            HStack(alignment: .top, spacing: 0) {
+
+                // Current streak column
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(current) days")
+                        .font(.title2.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(GlowTheme.textPrimary)
+                    Text("Current streak")
+                        .font(.caption)
+                        .foregroundStyle(GlowTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Best streak column
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("\(best) days")
+                        .font(.title2.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(GlowTheme.textPrimary)
+                    Text("Best streak")
+                        .font(.caption)
+                        .foregroundStyle(GlowTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                // Active this week column
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text("\(weeklyActiveDaysCount)/7")
+                        .font(.title2.monospacedDigit().weight(.semibold))
+                        .foregroundStyle(GlowTheme.accentPrimary)
+                    Text("Active this week")
+                        .font(.caption)
+                        .foregroundStyle(GlowTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .padding(.vertical, 20)
+        .padding(.horizontal, 16)
+        .background(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(
+                            Color.white.opacity(0.25),
+                            lineWidth: 1
+                        )
+                        .blendMode(.plusLighter)
+                )
+                .shadow(
+                    color: Color.black.opacity(0.15),
+                    radius: 24,
+                    y: 12
+                )
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Current streak \(current) days. Best streak \(best) days. You were active \(weeklyActiveDaysCount) of the last 7 days."
+        )
     }
 
     // leaderboard style list of habits you're doing best
     private var topHabitsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Your Top Habits")
-                .font(.headline.weight(.semibold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(GlowTheme.textPrimary)
+                .padding(.top, 4)
 
-            ForEach(habitStats.prefix(5)) { stat in
-                HabitPerformanceRow(stat: stat)
+            VStack(spacing: 10) {
+                ForEach(habitStats.prefix(5)) { stat in
+                    HabitPerformanceRow(stat: stat)
+                }
             }
         }
     }
 
     // last 7 days, "did you show up?"
     private var weeklyActivitySection: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("This Week")
-                .font(.headline.weight(.semibold))
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(GlowTheme.textPrimary)
 
             WeeklyActivityStrip(allHabits: habits)
@@ -296,9 +306,9 @@ private struct HabitPerformanceRow: View {
                 .foregroundStyle(GlowTheme.textSecondary)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, 12)
+        .padding(.vertical, 10)
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 18, style: .continuous)
@@ -307,13 +317,13 @@ private struct HabitPerformanceRow: View {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(
                             stat.habit.accentColor
-                                .opacity(colorScheme == .dark ? 0.28 : 0.18),
+                                .opacity(colorScheme == .dark ? 0.24 : 0.15),
                             lineWidth: 1
                         )
                 )
                 .shadow(
-                    color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
-                    radius: 20, y: 10
+                    color: Color.black.opacity(colorScheme == .dark ? 0.5 : 0.06),
+                    radius: 16, y: 8
                 )
         )
         .accessibilityElement(children: .combine)
@@ -336,7 +346,6 @@ private struct WeeklyActivityStrip: View {
             for: cal.date(byAdding: .day, value: -6, to: now)!
         )
 
-        // map of day -> didSomething
         var map: [Date: Bool] = [:]
 
         for habit in allHabits {
@@ -348,7 +357,7 @@ private struct WeeklyActivityStrip: View {
             }
         }
 
-        // create 7 entries oldest→newest
+        // oldest → newest
         return (0..<7).reversed().map { offset in
             let d = cal.startOfDay(
                 for: cal.date(byAdding: .day, value: -offset, to: now)!
@@ -358,48 +367,51 @@ private struct WeeklyActivityStrip: View {
     }
 
     var body: some View {
-        HStack(spacing: 6) {
-            ForEach(0..<daysData.count, id: \.self) { idx in
-                let info = daysData[idx]
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(
-                        info.didAnything
-                        ? GlowTheme.accentPrimary
-                        : GlowTheme.borderMuted.opacity(0.4)
-                    )
-                    .frame(width: 20, height: 20)
-                    .overlay(
-                        Text(shortWeekday(for: info.date))
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(
-                                info.didAnything
-                                ? Color.white
-                                : (colorScheme == .dark
-                                   ? Color.white.opacity(0.6)
-                                   : GlowTheme.textSecondary)
-                            )
-                            .minimumScaleFactor(0.5)
-                            .lineLimit(1)
-                            .offset(y: 28) // label under the square
-                    )
-                    .accessibilityLabel(
-                        info.didAnything
-                        ? "You showed up on \(formatted(info.date))"
-                        : "No activity on \(formatted(info.date))"
-                    )
+        VStack(spacing: 8) {
+
+            // Row of squares
+            HStack(spacing: 6) {
+                ForEach(0..<daysData.count, id: \.self) { idx in
+                    let info = daysData[idx]
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(
+                            info.didAnything
+                            ? GlowTheme.accentPrimary
+                            : GlowTheme.borderMuted.opacity(0.4)
+                        )
+                        .frame(width: 20, height: 20)
+                        .accessibilityHidden(true)
+                }
+            }
+
+            // Row of weekday labels
+            HStack(spacing: 6) {
+                ForEach(0..<daysData.count, id: \.self) { idx in
+                    let info = daysData[idx]
+                    Text(shortWeekday(for: info.date))
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(
+                            info.didAnything
+                            ? (colorScheme == .dark ? Color.white : GlowTheme.textPrimary)
+                            : (colorScheme == .dark
+                               ? Color.white.opacity(0.6)
+                               : GlowTheme.textSecondary)
+                        )
+                        .frame(width: 20)
+                        .minimumScaleFactor(0.5)
+                        .lineLimit(1)
+                }
             }
         }
         .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Weekly activity. Most recent day is on the right.")
     }
 
     private func shortWeekday(for date: Date) -> String {
         let f = DateFormatter()
-        f.dateFormat = "E" // Mon Tue Wed...
+        f.dateFormat = "E"
         return f.string(from: date)
-    }
-
-    private func formatted(_ date: Date) -> String {
-        date.formatted(date: .abbreviated, time: .omitted)
     }
 }
 
