@@ -550,7 +550,7 @@ private struct HabitRow: View {
 
                 Image(systemName: habit.iconName)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(rowTextColor)
+                    .foregroundStyle(habit.accentColor)
             }
 
             // Title
@@ -571,7 +571,7 @@ private struct HabitRow: View {
                     .imageScale(.large)
                     .foregroundStyle(
                         doneToday
-                        ? GlowTheme.accentPrimary // this pops on both light & dark
+                        ? habit.accentColor
                         : incompleteRingColor
                     )
                     .scaleEffect(tappedBounce ? 1.08 : 1.0)
@@ -841,5 +841,24 @@ private struct DayChip: View {
         .accessibilityAddTraits(
             active ? [.isSelected] : []
         )
+    }
+}
+
+// MARK: - Accent Color Helper
+extension Habit {
+    /// Deterministically assigns a color from our practice palette
+    /// so each practice keeps its same tint forever.
+    var accentColorName: String {
+        switch abs(id.hashValue) % 5 {
+        case 0: return "PracticeBlueAccent"
+        case 1: return "PracticeGreenAccent"
+        case 2: return "PracticePurpleAccent"
+        case 3: return "PracticeOrangeAccent"
+        default: return "PracticePinkAccent"
+        }
+    }
+
+    var accentColor: Color {
+        Color(accentColorName)
     }
 }
