@@ -615,7 +615,6 @@ private struct NavAddButton: View {
     }
 }
 
-// MARK: - SidebarOverlay
 // Dimmed backdrop + sliding glass drawer
 
 private enum SidebarTab: String {
@@ -635,6 +634,33 @@ private struct SidebarOverlay: View {
 
     // slide animation state
     @State private var offsetX: CGFloat = -320
+    
+    @Environment(\.openURL) private var openURL
+
+    private func sendFeedback() {
+        // This is where replies will land
+        let toAddress = "donnoel@icloud.com"
+
+        // Subject + body with light prefill
+        let subject = "Glow Feedback"
+        let body = """
+    Hi there 👋
+
+    I'd love to share some feedback about Glow:
+
+    """
+
+        // URL encode
+        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        if let url = URL(string: "mailto:\(toAddress)?subject=\(encodedSubject)&body=\(encodedBody)") {
+            openURL(url)
+        }
+
+        // close the sidebar after launching Mail
+        closeWithSlideOut()
+    }
 
     // layout tuning
     private var sidebarWidth: CGFloat { 260 }
@@ -730,15 +756,14 @@ private struct SidebarOverlay: View {
                         // later: present About sheet
                         closeWithSlideOut()
                     }
-
+                    
                     SidebarRow(
                         icon: "paperplane.fill",
                         label: "Send Feedback",
                         isSelected: false,
                         colorScheme: colorScheme
                     ) {
-                        // later: open mail / form
-                        closeWithSlideOut()
+                        sendFeedback()
                     }
                 }
                 .padding(.bottom, 12)
