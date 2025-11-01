@@ -1248,19 +1248,19 @@ private struct DayChip: View {
 // MARK: - Habit accent helper
 
 extension Habit {
-    /// Deterministically assigns a color from our practice palette
-    /// so each practice keeps its same tint forever.
     var accentColorName: String {
-        switch abs(id.hashValue) % 5 {
+        switch abs(id.hashValue) % 10 {
         case 0: return "PracticeBlueAccent"
         case 1: return "PracticeGreenAccent"
         case 2: return "PracticePurpleAccent"
         case 3: return "PracticeOrangeAccent"
-        default: return "PracticePinkAccent"
+        case 4: return "PracticePinkAccent"
+        case 5: return "PracticeTealAccent"
+        case 6: return "PracticeAmberAccent"
+        case 7: return "PracticeCoralAccent"
+        case 8: return "PracticeLavenderAccent"
+        default: return "PracticeMintAccent"
         }
     }
-
-    var accentColor: Color {
-        Color(accentColorName)
-    }
+    var accentColor: Color { Color(accentColorName) }
 }
