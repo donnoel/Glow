@@ -286,7 +286,14 @@ struct HomeView: View {
                 showAbout = true
             }
             .sheet(isPresented: $showYou) {
-                YouView()
+                YouView(
+                    currentStreak: globalStreak.current,
+                    bestStreak: globalStreak.best,
+                    favoriteTitle: mostConsistentHabit.title,
+                    favoriteHits: mostConsistentHabit.hits,
+                    favoriteWindow: mostConsistentHabit.window,
+                    checkInTime: typicalCheckInTime
+                )
             }
             .onReceive(NotificationCenter.default.publisher(for: .glowShowYou)) { _ in
                 showYou = true
@@ -1760,11 +1767,48 @@ private struct YouView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
+    // 🔥 live data coming in from HomeView
+    let currentStreak: Int
+    let bestStreak: Int
+    let favoriteTitle: String
+    let favoriteHits: Int      // e.g. "9" times in window
+    let favoriteWindow: Int    // e.g. "14" days window
+    let checkInTime: Date      // e.g. ~8:15pm
+
+    // small formatter for the usual check-in time ("8:15 PM")
+    private var checkInTimeString: String {
+        let f = DateFormatter()
+        f.dateStyle = .none
+        f.timeStyle = .short
+        return f.string(from: checkInTime)
+    }
+
+    // shared glass background
+    private var glassCardBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(
+                        Color.white
+                            .opacity(colorScheme == .dark ? 0.18 : 0.4),
+                        lineWidth: 1
+                    )
+                    .blendMode(.plusLighter)
+            )
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.12),
+                radius: 32,
+                y: 20
+            )
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Greeting / slot for personalization later
+
+                    // MARK: Greeting / headline
                     VStack(spacing: 8) {
                         Text("Hi there 👋")
                             .font(.title2.weight(.semibold))
@@ -1784,7 +1828,86 @@ private struct YouView: View {
                     }
                     .frame(maxWidth: .infinity)
 
-                    // Placeholder card for “streak / vibe / etc”
+                    // MARK: Right now card (REAL DATA ⭐)
+                    VStack(alignment: .leading, spacing: 16) {
+
+                        Text("Right now")
+                            .font(.headline)
+                            .foregroundStyle(
+                                colorScheme == .dark ? .white : GlowTheme.textPrimary
+                            )
+
+                        // streak row
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Image(systemName: "flame.fill")
+                                .foregroundStyle(GlowTheme.accentPrimary)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(currentStreak) day streak")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(
+                                        colorScheme == .dark ? .white : GlowTheme.textPrimary
+                                    )
+
+                                Text("Best streak: \(bestStreak) days")
+                                    .font(.footnote.monospacedDigit())
+                                    .foregroundStyle(
+                                        colorScheme == .dark
+                                        ? Color.white.opacity(0.7)
+                                        : GlowTheme.textSecondary
+                                    )
+                            }
+                        }
+
+                        // most consistent habit row
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Image(systemName: "heart.fill")
+                                .foregroundStyle(.pink)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Most consistent: \(favoriteTitle)")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(
+                                        colorScheme == .dark ? .white : GlowTheme.textPrimary
+                                    )
+
+                                Text("\(favoriteHits) days in last \(favoriteWindow) days")
+                                    .font(.footnote.monospacedDigit())
+                                    .foregroundStyle(
+                                        colorScheme == .dark
+                                        ? Color.white.opacity(0.7)
+                                        : GlowTheme.textSecondary
+                                    )
+                            }
+                        }
+
+                        // check-in time row
+                        HStack(alignment: .firstTextBaseline, spacing: 12) {
+                            Image(systemName: "clock.fill")
+                                .foregroundStyle(GlowTheme.accentPrimary)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("You usually check in around \(checkInTimeString)")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(
+                                        colorScheme == .dark ? .white : GlowTheme.textPrimary
+                                    )
+
+                                Text("That’s when you tend to mark things done.")
+                                    .font(.footnote)
+                                    .foregroundStyle(
+                                        colorScheme == .dark
+                                        ? Color.white.opacity(0.7)
+                                        : GlowTheme.textSecondary
+                                    )
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(glassCardBackground)
+
+                    // MARK: Future card / roadmap vibes
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Coming soon")
                             .font(.headline)
@@ -1792,7 +1915,7 @@ private struct YouView: View {
                                 colorScheme == .dark ? .white : GlowTheme.textPrimary
                             )
 
-                        Text("Daily streak, favorite practices, gentle nudges, mood check-ins… all lives here.")
+                        Text("Daily mood, gentle nudges, tiny reflections. A calmer way to see how you're actually doing, not just what you checked off.")
                             .font(.subheadline)
                             .foregroundStyle(
                                 colorScheme == .dark
@@ -1802,24 +1925,7 @@ private struct YouView: View {
                     }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .stroke(
-                                        Color.white
-                                            .opacity(colorScheme == .dark ? 0.18 : 0.4),
-                                        lineWidth: 1
-                                    )
-                                    .blendMode(.plusLighter)
-                            )
-                            .shadow(
-                                color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.12),
-                                radius: 32,
-                                y: 20
-                            )
-                    )
+                    .background(glassCardBackground)
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
