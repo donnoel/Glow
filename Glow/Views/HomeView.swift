@@ -2,6 +2,8 @@ import SwiftUI
 import SwiftData
 import Combine
 
+// MARK: - HomeView
+
 struct HomeView: View {
     @Environment(\.modelContext) private var context
 
@@ -14,7 +16,7 @@ struct HomeView: View {
     @State private var newSchedule: HabitSchedule = .daily
     @State private var newIconName: String = "checkmark.circle"
 
-    // 🔔 New reminder fields for creation
+    // 🔔 Reminder fields for creation
     @State private var newReminderEnabled = false
     @State private var newReminderTime: Date = HomeView.defaultReminderTime()
 
@@ -22,10 +24,12 @@ struct HomeView: View {
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
 
-    // MARK: - Day rollover support
-    // We remember "today at midnight" and we update it if the day changes.
+    // Day rollover watcher
     @State private var todayAnchor: Date = Calendar.current.startOfDay(for: Date())
     @State private var timerCancellable: AnyCancellable?
+
+    // Bottom dock selection (Home / Stats / Settings)
+    @State private var selectedDockTab: DockTab = .home
 
     // MARK: - Derived Collections
 
@@ -33,7 +37,7 @@ struct HomeView: View {
         habits.filter { !$0.isArchived }
     }
 
-    // All habits that are *scheduled today*
+    // All habits scheduled today
     private var scheduledTodayHabits: [Habit] {
         let today = Date()
         return activeHabits
@@ -41,7 +45,7 @@ struct HomeView: View {
             .sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    // Subset: completed today
+    // Completed today
     private var completedToday: [Habit] {
         let cal = Calendar.current
         let todayStart = cal.startOfDay(for: Date())
@@ -53,7 +57,7 @@ struct HomeView: View {
         }
     }
 
-    // Subset: due today but not done
+    // Due today but not done
     private var dueButNotDoneToday: [Habit] {
         let cal = Calendar.current
         let todayStart = cal.startOfDay(for: Date())
@@ -65,7 +69,7 @@ struct HomeView: View {
         }
     }
 
-    // Habits NOT on today's schedule
+    // Not scheduled today
     private var notDueToday: [Habit] {
         let today = Date()
         return activeHabits
@@ -73,7 +77,11 @@ struct HomeView: View {
             .sorted { $0.createdAt > $1.createdAt }
     }
 
-    // hero card numbers
+    private var archivedHabits: [Habit] {
+        habits.filter { $0.isArchived }
+    }
+
+    // Hero numbers
     private var todayCompletion: (done: Int, total: Int, percent: Double) {
         let total = scheduledTodayHabits.count
         let done = completedToday.count
@@ -81,14 +89,13 @@ struct HomeView: View {
         return (done, total, pct)
     }
 
-    // MARK: - Body
+    // MARK: - body
 
     var body: some View {
         NavigationStack {
             contentList
                 .navigationTitle("Glow")
                 .toolbar {
-                    // NOTE: We removed the .topBarLeading Edit/Done button.
                     ToolbarItem(placement: .topBarTrailing) {
                         NavAddButton {
                             // reset form state when + is tapped
@@ -96,19 +103,19 @@ struct HomeView: View {
                             newSchedule = .daily
                             newIconName = Habit.guessIconName(for: newTitle)
 
-                            // reset reminder state
                             newReminderEnabled = false
                             newReminderTime = HomeView.defaultReminderTime()
 
                             showAdd = true
                         }
+                        .accessibilityLabel("Add practice")
                     }
                 }
-                // ADD SHEET
+                // Add
                 .sheet(isPresented: $showAdd) {
                     addSheet
                 }
-                // EDIT SHEET
+                // Edit
                 .sheet(
                     isPresented: Binding(
                         get: { habitToEdit != nil },
@@ -119,7 +126,7 @@ struct HomeView: View {
                         AddOrEditHabitForm(mode: .edit, habit: habitToEdit)
                     }
                 }
-                // DELETE CONFIRM
+                // Delete confirm
                 .confirmationDialog(
                     "Delete practice?",
                     isPresented: Binding(
@@ -136,115 +143,22 @@ struct HomeView: View {
                         }
                         habitToDelete = nil
                     }
-                    Button("Cancel", role: .cancel) {
-                        habitToDelete = nil
-                    }
+                    Button("Cancel", role: .cancel) { habitToDelete = nil }
                 }
         }
-        .onAppear {
-            startMidnightWatcher()
-        }
+        .onAppear { startMidnightWatcher() }
         .onDisappear {
             timerCancellable?.cancel()
             timerCancellable = nil
         }
+        // frosted-tinted app background (yours)
         .glowTint()
         .glowScreenBackground()
-    }
-
-    // MARK: - Midnight / new-day watcher
-
-    /// Sets up a 60s heartbeat. If calendar day rolled over,
-    /// update `todayAnchor`, which invalidates all the computed views.
-    private func startMidnightWatcher() {
-        // Avoid double-registering if view appears again
-        if timerCancellable != nil { return }
-
-        let cal = Calendar.current
-
-        timerCancellable = Timer
-            .publish(every: 60, on: .main, in: .common)
-            .autoconnect()
-            .sink { _ in
-                let startOfNow = cal.startOfDay(for: Date())
-                if startOfNow != todayAnchor {
-                    // Day changed (past midnight)
-                    todayAnchor = startOfNow
-                }
-            }
-    }
-
-    // MARK: - List content
-
-    private var contentList: some View {
-        List {
-            heroSection
-
-            if activeHabits.isEmpty {
-                ContentUnavailableView(
-                    "No practices yet",
-                    systemImage: "sparkles",
-                    description: Text("Tap + to add your first practice")
-                )
-            } else {
-                // Completed Today
-                if !completedToday.isEmpty {
-                    Section("Completed Today") {
-                        ForEach(completedToday) { habit in
-                            row(for: habit)
-                                .disabled(false) // we still let you tap detail if you want
-                        }
-                    }
-                }
-
-                // Due Today (not yet done)
-                if !dueButNotDoneToday.isEmpty {
-                    Section("Due Today") {
-                        // Reorderable list of habits due today
-                        ForEach(dueButNotDoneToday) { habit in
-                            row(for: habit)
-                        }
-                        .onMove { indices, newOffset in
-                            handleMove(
-                                indices: indices,
-                                newOffset: newOffset,
-                                sourceArray: dueButNotDoneToday
-                            )
-                        }
-                    }
-                }
-
-                // Not Today
-                if !notDueToday.isEmpty {
-                    Section("Not Today") {
-                        ForEach(notDueToday) { habit in
-                            row(for: habit)
-                        }
-                    }
-                }
-
-                // Archived
-                let archived = habits.filter { $0.isArchived }
-                if !archived.isEmpty {
-                    Section("Archived") {
-                        ForEach(archived) { habit in
-                            row(for: habit, isArchived: true)
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private var heroSection: some View {
-        Section {
-            HeroCard(
-                done: todayCompletion.done,
-                total: todayCompletion.total,
-                percent: todayCompletion.percent
-            )
-            .listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
+        // floating dock sitting over content
+        .safeAreaInset(edge: .bottom) {
+            GlowDock(selected: $selectedDockTab)
+                .padding(.horizontal, 16)
+                .padding(.bottom, 8)
         }
     }
 
@@ -273,7 +187,6 @@ struct HomeView: View {
                     IconPickerRow(selection: $newIconName)
                 }
 
-                // 🔔 NEW: Reminder setup at creation
                 Section("Reminder") {
                     Toggle("Remind me", isOn: $newReminderEnabled)
 
@@ -345,17 +258,120 @@ struct HomeView: View {
         .presentationDetents([.medium])
     }
 
-    // MARK: - Row builder
+    // MARK: - Midnight / new-day watcher
+
+    private func startMidnightWatcher() {
+        guard timerCancellable == nil else { return }
+
+        let cal = Calendar.current
+        timerCancellable = Timer
+            .publish(every: 60, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in
+                let startOfNow = cal.startOfDay(for: Date())
+                if startOfNow != todayAnchor {
+                    todayAnchor = startOfNow
+                }
+            }
+    }
+
+    // MARK: - List Content
+
+    private var contentList: some View {
+        List {
+            // HERO
+            Section {
+                HeroCardGlass(
+                    done: todayCompletion.done,
+                    total: todayCompletion.total,
+                    percent: todayCompletion.percent
+                )
+                .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+
+            if activeHabits.isEmpty && archivedHabits.isEmpty {
+                Section {
+                    ContentUnavailableView(
+                        "No practices yet",
+                        systemImage: "sparkles",
+                        description: Text("Tap + to add your first practice")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 200)
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                }
+            } else {
+                // Completed Today
+                if !completedToday.isEmpty {
+                    Section("Completed Today") {
+                        ForEach(completedToday) { habit in
+                            rowCell(habit: habit, isArchived: false)
+                        }
+                    }
+                }
+
+                // Due Today
+                if !dueButNotDoneToday.isEmpty {
+                    Section("Due Today") {
+                        ForEach(dueButNotDoneToday) { habit in
+                            rowCell(habit: habit, isArchived: false)
+                        }
+                        .onMove { indices, newOffset in
+                            handleMove(
+                                indices: indices,
+                                newOffset: newOffset,
+                                sourceArray: dueButNotDoneToday
+                            )
+                        }
+                    }
+                }
+
+                // Not Today
+                if !notDueToday.isEmpty {
+                    Section("Not Today") {
+                        ForEach(notDueToday) { habit in
+                            rowCell(habit: habit, isArchived: false)
+                        }
+                    }
+                }
+
+                // Archived
+                if !archivedHabits.isEmpty {
+                    Section("Archived") {
+                        ForEach(archivedHabits) { habit in
+                            rowCell(habit: habit, isArchived: true)
+                        }
+                    }
+                }
+            }
+            // bottom spacer so last row clears the floating dock
+            Section {
+                Color.clear
+                    .frame(height: 120) // should be >= dock height
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
+        }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
+    }
+
+    // MARK: - Row builder (NavigationLink wrapper with our glass row content)
 
     @ViewBuilder
-    private func row(for habit: Habit, isArchived: Bool = false) -> some View {
+    private func rowCell(habit: Habit, isArchived: Bool) -> some View {
         NavigationLink {
             HabitDetailView(habit: habit)
         } label: {
-            HabitRow(habit: habit) {
+            HabitRowGlass(habit: habit) {
                 toggleToday(habit)
             }
         }
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button {
                 habitToEdit = habit
@@ -388,12 +404,6 @@ struct HomeView: View {
 
     // MARK: - Reorder handler
 
-    /// Handles dragging rows in "Due Today".
-    /// We:
-    /// 1. Build a mutable copy of dueButNotDoneToday
-    /// 2. Apply the move
-    /// 3. Write each habit.sortOrder = its index
-    /// 4. Save
     private func handleMove(indices: IndexSet, newOffset: Int, sourceArray: [Habit]) {
         var working = sourceArray
         working.move(fromOffsets: indices, toOffset: newOffset)
@@ -470,7 +480,13 @@ private struct NavAddButton: View {
             Image(systemName: "plus.circle.fill")
                 .imageScale(.large)
                 .foregroundStyle(navIconColor)
-                .accessibilityLabel("Add practice")
+                .padding(10)
+                .background(
+                    Circle()
+                        .fill(.ultraThinMaterial)
+                        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                                radius: 20, y: 10)
+                )
         }
     }
 
@@ -483,66 +499,72 @@ private struct NavAddButton: View {
     }
 }
 
-// MARK: - HabitRow
+// MARK: - HabitRowGlass
+// A single practice row rendered as a frosted capsule with habit tint.
 
-private struct HabitRow: View {
+private struct HabitRowGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let habit: Habit
     let toggle: () -> Void
 
-    @State private var tappedBounce: Bool = false
+    @State private var tappedBounce = false
 
+    // did user complete this habit today?
     private var doneToday: Bool {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         return habit.logs.first(where: { cal.startOfDay(for: $0.date) == today })?.completed == true
     }
 
-    // text/icon color for the row
+    // Text ink
     private var rowTextColor: Color {
-        colorScheme == .dark ? Color.white : GlowTheme.textPrimary
+        colorScheme == .dark ? .white : GlowTheme.textPrimary
     }
 
-    // background for the row tile
-    private var rowBackground: some View {
-        Group {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.black.opacity(0.6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    )
-            } else {
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.04), radius: 2, y: 1)
-            }
-        }
-    }
-
-    // circle behind the habit icon
+    // tiny colored chip bg behind SF Symbol
     private var iconBubbleColor: Color {
-        if colorScheme == .dark {
-            return Color.white.opacity(0.12)
-        } else {
-            return GlowTheme.borderMuted.opacity(0.15)
-        }
+        habit.accentColor.opacity(colorScheme == .dark ? 0.32 : 0.22)
     }
 
-    // ring color for the checkmark circle when it's NOT done yet
+    // ring color for incomplete circle
     private var incompleteRingColor: Color {
-        if colorScheme == .dark {
-            return Color.white.opacity(0.4)
-        } else {
-            return GlowTheme.borderMuted.opacity(0.8)
-        }
+        colorScheme == .dark
+        ? Color.white.opacity(0.45)
+        : GlowTheme.borderMuted.opacity(0.8)
+    }
+
+    // frosted capsule behind row content
+    private var glassCapsule: some View {
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
+            .fill(.ultraThinMaterial) // base blur
+            .overlay(
+                // whisper of habit tint across the glass
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(
+                        habit.accentColor
+                            .opacity(colorScheme == .dark ? 0.16 : 0.08)
+                    )
+                    .blendMode(.plusLighter)
+            )
+            .overlay(
+                // hairline stroke that picks up the tint
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(
+                        habit.accentColor
+                            .opacity(colorScheme == .dark ? 0.28 : 0.18),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                radius: 20, y: 10
+            )
     }
 
     var body: some View {
         HStack(spacing: 12) {
-            // Icon badge
+            // icon chip
             ZStack {
                 Circle()
                     .fill(iconBubbleColor)
@@ -553,13 +575,13 @@ private struct HabitRow: View {
                     .foregroundStyle(habit.accentColor)
             }
 
-            // Title
+            // title
             Text(habit.title)
                 .foregroundStyle(rowTextColor)
 
-            Spacer()
+            Spacer(minLength: 8)
 
-            // Complete toggle
+            // completion toggle
             Button {
                 withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
                     tappedBounce = true
@@ -575,86 +597,105 @@ private struct HabitRow: View {
                         : incompleteRingColor
                     )
                     .scaleEffect(tappedBounce ? 1.08 : 1.0)
-                    .accessibilityLabel(doneToday ? "Mark practice incomplete" : "Mark practice complete")
+                    .accessibilityLabel(
+                        doneToday
+                        ? "Mark practice incomplete"
+                        : "Mark practice complete"
+                    )
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
             .onChange(of: doneToday) { _ in
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8).delay(0.05)) {
+                withAnimation(
+                    .spring(response: 0.3, dampingFraction: 0.8)
+                        .delay(0.05)
+                ) {
                     tappedBounce = false
                 }
             }
+
+            // chevron is provided by NavigationLink cell style automatically
+            // so we don't draw another arrow here
         }
-        .padding(.vertical, 8)
-        .listRowBackground(rowBackground)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 12)
+        .background(glassCapsule)
+        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        // higher hit target for a11y
+        .accessibilityElement(children: .combine)
+        .accessibilityHint("Double tap for details")
     }
 }
 
-// MARK: - HeroCard
+// MARK: - HeroCardGlass
+// Frosted summary card with ring progress.
+// Sits at the top of the list and sets the visual language.
 
-private struct HeroCard: View {
+private struct HeroCardGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let done: Int
     let total: Int
     let percent: Double
 
-    // Text colors that guarantee contrast on the card background
     private var primaryTextColor: Color {
         switch colorScheme {
-        case .light: return GlowTheme.textPrimary          // dark ink
-        case .dark:  return Color.white                    // pure white on dark card
+        case .light: return GlowTheme.textPrimary
+        case .dark:  return .white
         @unknown default: return GlowTheme.textPrimary
         }
     }
 
     private var secondaryTextColor: Color {
         switch colorScheme {
-        case .light: return GlowTheme.textSecondary        // secondary ink
-        case .dark:  return Color.white.opacity(0.7)       // dimmed white
+        case .light: return GlowTheme.textSecondary
+        case .dark:  return Color.white.opacity(0.7)
         @unknown default: return GlowTheme.textSecondary
         }
     }
 
-    // Card background (light vs dark)
-    private var cardBackground: some View {
-        Group {
-            if colorScheme == .dark {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.black.opacity(0.6))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                    )
-                    .shadow(color: Color.black.opacity(0.8), radius: 20, y: 10)
-            } else {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(Color.white)
-                    .shadow(color: Color.black.opacity(0.04), radius: 3, y: 2)
-            }
-        }
-    }
-
-    // Ring track color in the progress donut
     private var ringTrackColor: Color {
         colorScheme == .dark
-        ? Color.white.opacity(0.15)
-        : GlowTheme.borderMuted.opacity(0.4)
+        ? Color.white.opacity(0.18)
+        : GlowTheme.borderMuted.opacity(0.45)
+    }
+
+    private var ringProgressColor: Color {
+        // use the app accent for the hero (keeps brand cohesion)
+        GlowTheme.accentPrimary
+    }
+
+    private var glassCardBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(.regularMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(
+                        Color.white
+                            .opacity(colorScheme == .dark ? 0.15 : 0.6),
+                        lineWidth: colorScheme == .dark ? 0.5 : 1
+                    )
+                    .blendMode(.plusLighter)
+            )
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.07),
+                radius: 24, y: 12
+            )
     }
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
 
-            // Progress ring
+            // donut
             ZStack {
                 Circle()
-                    .stroke(ringTrackColor, lineWidth: 12)
+                    .stroke(ringTrackColor, lineWidth: 14)
 
                 Circle()
                     .trim(from: 0, to: max(0, min(1, percent)))
                     .stroke(
-                        GlowTheme.accentPrimary,
-                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                        ringProgressColor,
+                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
                     )
                     .rotationEffect(.degrees(-90))
                     .animation(.easeInOut(duration: 0.3), value: percent)
@@ -663,7 +704,7 @@ private struct HeroCard: View {
                     .font(.headline.monospacedDigit())
                     .foregroundStyle(primaryTextColor)
             }
-            .frame(width: 72, height: 72)
+            .frame(width: 76, height: 76)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today")
@@ -675,18 +716,144 @@ private struct HeroCard: View {
                     .foregroundStyle(secondaryTextColor)
             }
 
-            Spacer()
+            Spacer(minLength: 8)
         }
-        .padding(16)
-        .background(cardBackground)
-        .padding(.vertical, 8)
+        .padding(.vertical, 16)
         .padding(.horizontal, 16)
+        .background(glassCardBackground)
+        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Today \(done) of \(total) practices complete, \(Int(percent * 100)) percent.")
+        .accessibilityLabel(
+            "Today \(done) of \(total) practices complete, \(Int(percent * 100)) percent."
+        )
     }
 }
 
-// MARK: - SchedulePicker
+// MARK: - GlowDock
+// Floating iOS-style home-screen dock bar.
+// (Visual only for now — feels like “Glow is an OS for your habits”.)
+
+private enum DockTab: String {
+    case home
+    case stats
+    case settings
+}
+
+private struct GlowDock: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    @Binding var selected: DockTab
+
+    private var dockBackground: some View {
+        RoundedRectangle(cornerRadius: 28, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .stroke(
+                        Color.white
+                            .opacity(colorScheme == .dark ? 0.12 : 0.3),
+                        lineWidth: 0.5
+                    )
+                    .blendMode(.plusLighter)
+            )
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.4 : 0.05),
+                radius: 20, y: 8
+            )
+    }
+
+    var body: some View {
+        HStack(spacing: 28) {
+            DockButton(
+                icon: "house.fill",
+                label: "Home",
+                isSelected: selected == .home
+            ) { selected = .home }
+
+            DockButton(
+                icon: "chart.bar",
+                label: "Stats",
+                isSelected: selected == .stats
+            ) { selected = .stats }
+
+            DockButton(
+                icon: "gearshape.fill",
+                label: "Settings",
+                isSelected: selected == .settings
+            ) { selected = .settings }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background(dockBackground)
+        .frame(maxWidth: .infinity)
+        .padding(.bottom, 4)
+    }
+}
+
+// MARK: - DockButton
+
+private struct DockButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let icon: String
+    let label: String
+    let isSelected: Bool
+    let action: () -> Void
+
+    private var fgColor: Color {
+        if isSelected {
+            return GlowTheme.accentPrimary
+        } else {
+            return colorScheme == .dark
+            ? .white.opacity(0.8)
+            : GlowTheme.textPrimary
+        }
+    }
+
+    private var capsuleBG: some View {
+        Group {
+            if isSelected {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .fill(
+                        GlowTheme.accentPrimary
+                            .opacity(colorScheme == .dark ? 0.22 : 0.12)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                            .stroke(
+                                GlowTheme.accentPrimary
+                                    .opacity(colorScheme == .dark ? 0.4 : 0.3),
+                                lineWidth: 1
+                            )
+                    )
+            } else {
+                Color.clear
+            }
+        }
+    }
+
+    var body: some View {
+        Button(action: action) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(fgColor)
+
+                Text(label)
+                    .font(.caption2.weight(.medium))
+                    .foregroundStyle(fgColor)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(capsuleBG)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+}
+
+// MARK: - SchedulePicker / DayChip / Habit accent helpers
 
 struct SchedulePicker: View {
     @Binding var selection: HabitSchedule
@@ -696,10 +863,7 @@ struct SchedulePicker: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-
-            // Card wrapper for the schedule controls
             VStack(alignment: .leading, spacing: 12) {
-                // Top row: toggle between "Every day" vs custom days
                 Toggle(isOn: Binding(
                     get: { !isCustom },
                     set: { newValue in
@@ -712,14 +876,12 @@ struct SchedulePicker: View {
                 }
                 .toggleStyle(.switch)
 
-                // Custom days row
                 if isCustom {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Which days?")
                             .font(.subheadline.weight(.medium))
                             .foregroundStyle(GlowTheme.textPrimary)
 
-                        // 7 evenly-sized chips in a row
                         HStack(spacing: 8) {
                             ForEach(Weekday.allCases, id: \.self) { day in
                                 let active = setDays.contains(day)
@@ -753,25 +915,19 @@ struct SchedulePicker: View {
             )
         }
         .onAppear {
-            // reflect incoming binding -> local UI state
             isCustom = (selection.kind == .custom)
             setDays = selection.days
         }
     }
 
-    // Push local edits (isCustom + setDays) back into the binding
     private func updateSelection() {
         if isCustom {
             selection = .weekdays(Array(setDays))
         } else {
             selection = .daily
-            // keep local mirror in sync so if they flip back to custom
-            // we don't accidentally lose previous custom picks
             setDays = Set(Weekday.allCases)
         }
     }
-
-    // MARK: - Labels
 
     private func shortLabel(for day: Weekday) -> String {
         switch day {
@@ -798,10 +954,6 @@ struct SchedulePicker: View {
     }
 }
 
-// MARK: - DayChip
-
-/// One little rounded chip for a weekday toggle.
-/// Active = accent glow, inactive = subtle surface.
 private struct DayChip: View {
     let label: String
     let active: Bool
@@ -844,7 +996,8 @@ private struct DayChip: View {
     }
 }
 
-// MARK: - Accent Color Helper
+// MARK: - Habit accent helper
+
 extension Habit {
     /// Deterministically assigns a color from our practice palette
     /// so each practice keeps its same tint forever.
