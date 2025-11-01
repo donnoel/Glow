@@ -30,6 +30,7 @@ struct HomeView: View {
     // Sidebar
     @State private var showSidebar = false
     @State private var selectedTab: SidebarTab = .home
+    @State private var showTrends = false
     
     // Fires every 30s so we can notice when the day boundary changes.
     private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -168,7 +169,20 @@ struct HomeView: View {
             .onReceive(dayTimer) { _ in
                 checkForNewDay()
             }
-            
+
+            // 👇👇 ADD THESE TWO HERE, still chained to the NavigationStack 👇👇
+
+            .sheet(isPresented: $showTrends) {
+                // This is the new sheet for Trends
+                TrendsView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .glowShowTrends)) { _ in
+                // Sidebar said "show Trends"
+                showTrends = true
+            }
+
+            // 👆👆 END OF NEW BIT 👆👆
+
             if showSidebar {
                 SidebarOverlay(
                     selectedTab: $selectedTab,
@@ -637,6 +651,7 @@ private struct SidebarOverlay: View {
                     ) {
                         selectedTab = .progress
                         closeWithSlideOut()
+                        NotificationCenter.default.post(name: .glowShowTrends, object: nil)
                     }
 
                     SidebarRow(
@@ -1383,5 +1398,10 @@ extension Habit {
         default: return "PracticeMintAccent"
         }
     }
+
     var accentColor: Color { Color(accentColorName) }
+}
+
+extension Notification.Name {
+    static let glowShowTrends = Notification.Name("glowShowTrends")
 }
