@@ -808,7 +808,8 @@ private struct SidebarOverlay: View {
                         icon: "house.fill",
                         label: "Home",
                         isSelected: selectedTab == .home,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        iconSize: 20
                     ) {
                         selectedTab = .home
                         closeWithSlideOut()
@@ -818,7 +819,8 @@ private struct SidebarOverlay: View {
                         icon: "chart.bar",
                         label: "Trends",
                         isSelected: selectedTab == .progress,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        iconSize: 21
                     ) {
                         selectedTab = .progress
                         closeWithSlideOut()
@@ -829,7 +831,8 @@ private struct SidebarOverlay: View {
                         icon: "gearshape.fill",
                         label: "You",
                         isSelected: selectedTab == .settings,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        iconSize: 19
                     ) {
                         selectedTab = .settings
                         closeWithSlideOut()
@@ -847,7 +850,8 @@ private struct SidebarOverlay: View {
                         icon: "bell.badge",
                         label: "Reminders",
                         isSelected: false,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        iconSize: 20
                     ) {
                         closeWithSlideOut()
                     }
@@ -856,17 +860,18 @@ private struct SidebarOverlay: View {
                         icon: "archivebox.fill",
                         label: "Archived",
                         isSelected: false,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        iconSize: 20
                     ) {
                         closeWithSlideOut()
                     }
                 }
 
                 // push helper section + streak card to bottom
-                Spacer(minLength: 20)
 
-                // another soft divider for the "info / meta" stuff
+                // slight visual break before the meta section
                 sidebarDivider
+                    .padding(.top, 24)   // puts a little air below "Archived"
                     .padding(.bottom, 8)
 
                 // ===== ABOUT / FEEDBACK =====
@@ -875,7 +880,8 @@ private struct SidebarOverlay: View {
                         icon: "sparkles",
                         label: "About Glow",
                         isSelected: false,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        iconSize: 20
                     ) {
                         closeWithSlideOut()
                         NotificationCenter.default.post(name: .glowShowAbout, object: nil)
@@ -885,7 +891,8 @@ private struct SidebarOverlay: View {
                         icon: "paperplane.fill",
                         label: "Send Feedback",
                         isSelected: false,
-                        colorScheme: colorScheme
+                        colorScheme: colorScheme,
+                        iconSize: 20
                     ) {
                         sendFeedback()
                     }
@@ -949,7 +956,7 @@ private struct SidebarOverlay: View {
             .fill(
                 LinearGradient(
                     colors: [
-                        Color.white.opacity(colorScheme == .dark ? 0.20 : 0.35),
+                        Color.white.opacity(colorScheme == .dark ? 0.15 : 0.25),
                         Color.white.opacity(0.0)
                     ],
                     startPoint: .leading,
@@ -958,7 +965,7 @@ private struct SidebarOverlay: View {
             )
             .frame(height: 1)
             .padding(.horizontal, 16)
-            .padding(.vertical, 16)
+            .padding(.vertical, 10) // tighter than 16, pulls sections closer
     }
 
     private func closeWithSlideOut() {
@@ -1088,6 +1095,7 @@ private struct SidebarRow: View {
     let label: String
     let isSelected: Bool
     let colorScheme: ColorScheme
+    let iconSize: CGFloat
     let tap: () -> Void
 
     private var fgColor: Color {
@@ -1126,7 +1134,7 @@ private struct SidebarRow: View {
         Button(action: tap) {
             HStack(spacing: 14) {
                 Image(systemName: icon)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: iconSize, weight: .semibold))
                     .foregroundStyle(fgColor)
 
                 Text(label)
@@ -1136,7 +1144,8 @@ private struct SidebarRow: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.vertical, 12)
+            .frame(minHeight: 48, alignment: .leading) // guaranteed comfy tap target
             .background(bgCapsule)
             .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
