@@ -32,6 +32,7 @@ struct HomeView: View {
     @State private var selectedTab: SidebarTab = .home
     @State private var showTrends = false
     @State private var showAbout = false
+    @State private var showYou = false
     
     // Fires every 30s so we can notice when the day boundary changes.
     private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -127,6 +128,105 @@ struct HomeView: View {
     private var todayStartOfDay: Date {
         todayAnchor
     }
+    // MARK: - "You" summaries feeding YouView
+
+    /// All logs, flattened from all habits.
+    private var allLogs: [HabitLog] {
+        habits.flatMap { $0.logs }
+    }
+
+    /// Current streak and best streak *across all habits*.
+    /// We treat a "day counts" if you completed ANY habit that day.
+    private var globalStreak: (current: Int, best: Int) {
+        let cal = Calendar.current
+
+        // collect all UNIQUE days where you completed something
+        let groupedByDay = Dictionary(grouping: allLogs.filter { $0.completed }) {
+            cal.startOfDay(for: $0.date)
+        }
+
+        // Turn those days into fake HabitLogs so we can reuse StreakEngine
+        let synthetic: [HabitLog] = groupedByDay.keys.map { day in
+            HabitLog(date: day, completed: true, habit: Habit.placeholder)
+        }
+
+        return StreakEngine.computeStreaks(logs: synthetic)
+    }
+
+    /// Which habit is "most consistent" in the last 14 days?
+    /// We'll look at each habit and count how many distinct days it was completed.
+    private var mostConsistentHabit: (title: String, hits: Int, window: Int) {
+        let cal = Calendar.current
+        let windowDays = 14
+        let windowStart = cal.startOfDay(
+            for: cal.date(byAdding: .day, value: -windowDays + 1, to: Date())!
+        )
+
+        var bestTitle: String = "—"
+        var bestHits = 0
+
+        for h in habits {
+            // unique days this habit was done in that window
+            let daysHit = Set(
+                h.logs
+                    .filter { $0.completed && $0.date >= windowStart }
+                    .map { cal.startOfDay(for: $0.date) }
+            )
+
+            if daysHit.count > bestHits {
+                bestHits = daysHit.count
+                bestTitle = h.title
+            }
+        }
+
+        return (title: bestTitle, hits: bestHits, window: windowDays)
+    }
+
+    /// Rough guess of "when you usually check in":
+    /// We'll average all active reminder times, fallback to ~8pm.
+    private var typicalCheckInTime: Date {
+        let times: [Date] = activeHabits.compactMap { h in
+            guard let hour = h.reminderHour,
+                  let minute = h.reminderMinute else {
+                return nil
+            }
+            return Calendar.current.date(
+                bySettingHour: hour,
+                minute: minute,
+                second: 0,
+                of: Date()
+            )
+        }
+
+        // Fallback if you have no reminders set anywhere
+        guard !times.isEmpty else {
+            return Calendar.current.date(
+                bySettingHour: 20,
+                minute: 0,
+                second: 0,
+                of: Date()
+            ) ?? Date()
+        }
+
+        // Average the minutes after midnight (so 9:30am = 570 mins, etc)
+        let cal = Calendar.current
+        let minutesArray = times.map { t in
+            let comps = cal.dateComponents([.hour, .minute], from: t)
+            return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+        }
+
+        let avgMins = minutesArray.reduce(0, +) / minutesArray.count
+        let avgHour = avgMins / 60
+        let avgMinute = avgMins % 60
+
+        return cal.date(
+            bySettingHour: avgHour,
+            minute: avgMinute,
+            second: 0,
+            of: Date()
+        ) ?? Date()
+    }
+    
     
     // MARK: - body
     
@@ -174,11 +274,9 @@ struct HomeView: View {
             // 👇👇 ADD THESE TWO HERE, still chained to the NavigationStack 👇👇
 
             .sheet(isPresented: $showTrends) {
-                // This is the new sheet for Trends
                 TrendsView()
             }
             .onReceive(NotificationCenter.default.publisher(for: .glowShowTrends)) { _ in
-                // Sidebar said "show Trends"
                 showTrends = true
             }
             .sheet(isPresented: $showAbout) {
@@ -186,6 +284,12 @@ struct HomeView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .glowShowAbout)) { _ in
                 showAbout = true
+            }
+            .sheet(isPresented: $showYou) {
+                YouView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .glowShowYou)) { _ in
+                showYou = true
             }
 
             // 👆👆 END OF NEW BIT 👆👆
@@ -717,6 +821,7 @@ private struct SidebarOverlay: View {
                     ) {
                         selectedTab = .settings
                         closeWithSlideOut()
+                        NotificationCenter.default.post(name: .glowShowYou, object: nil)
                     }
                 }
                 .padding(.top, 20)
@@ -1459,6 +1564,24 @@ extension Habit {
 extension Notification.Name {
     static let glowShowTrends = Notification.Name("glowShowTrends")
     static let glowShowAbout  = Notification.Name("glowShowAbout")
+    static let glowShowYou    = Notification.Name("glowShowYou")
+}
+
+extension Habit {
+    /// Minimal stand-in habit so we can reuse StreakEngine at the global level.
+    static var placeholder: Habit {
+        Habit(
+            title: "Any Habit",
+            createdAt: .now,
+            isArchived: false,
+            schedule: .daily,
+            reminderEnabled: false,
+            reminderHour: nil,
+            reminderMinute: nil,
+            iconName: "circle",
+            sortOrder: 0
+        )
+    }
 }
 
 // MARK: - AboutGlowView
@@ -1617,6 +1740,92 @@ private struct AboutGlowView: View {
                 .padding(.bottom, 40)
             }
             .navigationTitle("About Glow")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .font(.body.weight(.semibold))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - YouView
+// Personal "You" sheet surfaced from the sidebar
+
+private struct YouView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Greeting / slot for personalization later
+                    VStack(spacing: 8) {
+                        Text("Hi there 👋")
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(
+                                colorScheme == .dark ? .white : GlowTheme.textPrimary
+                            )
+
+                        Text("This is your space. Your habits, your rhythm, your wins.")
+                            .font(.subheadline)
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(
+                                colorScheme == .dark
+                                ? Color.white.opacity(0.7)
+                                : GlowTheme.textSecondary
+                            )
+                            .padding(.horizontal, 16)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    // Placeholder card for “streak / vibe / etc”
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Coming soon")
+                            .font(.headline)
+                            .foregroundStyle(
+                                colorScheme == .dark ? .white : GlowTheme.textPrimary
+                            )
+
+                        Text("Daily streak, favorite practices, gentle nudges, mood check-ins… all lives here.")
+                            .font(.subheadline)
+                            .foregroundStyle(
+                                colorScheme == .dark
+                                ? Color.white.opacity(0.8)
+                                : GlowTheme.textSecondary
+                            )
+                    }
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                                    .stroke(
+                                        Color.white
+                                            .opacity(colorScheme == .dark ? 0.18 : 0.4),
+                                        lineWidth: 1
+                                    )
+                                    .blendMode(.plusLighter)
+                            )
+                            .shadow(
+                                color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.12),
+                                radius: 32,
+                                y: 20
+                            )
+                    )
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+                .padding(.bottom, 40)
+            }
+            .navigationTitle("You")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
