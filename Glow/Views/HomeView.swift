@@ -6,92 +6,128 @@ import Combine
 
 struct HomeView: View {
     @Environment(\.modelContext) private var context
-
+    
     @Query(sort: [SortDescriptor(\Habit.createdAt, order: .reverse)])
     private var habits: [Habit]
-
+    
     // Add Sheet / New Practice fields
     @State private var showAdd = false
     @State private var newTitle = ""
     @State private var newSchedule: HabitSchedule = .daily
     @State private var newIconName: String = "checkmark.circle"
-
+    
     // 🔔 Reminder fields for creation
     @State private var newReminderEnabled = false
     @State private var newReminderTime: Date = HomeView.defaultReminderTime()
-
+    
     // Edit / Delete state
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
-
+    
     // Day rollover watcher
     @State private var todayAnchor: Date = Calendar.current.startOfDay(for: Date())
-    @State private var timerCancellable: AnyCancellable?
-
+    
     // Sidebar
     @State private var showSidebar = false
     @State private var selectedTab: SidebarTab = .home
-
+    
+    // Fires every 30s so we can notice when the day boundary changes.
+    private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
+    
     // MARK: - Derived Collections
-
+    
     private var activeHabits: [Habit] {
         habits.filter { !$0.isArchived }
     }
-
+    
     // All habits scheduled today
     private var scheduledTodayHabits: [Habit] {
-        let today = Date()
-        return activeHabits
-            .filter { $0.schedule.isScheduled(on: today) }
+        activeHabits
+            .filter { $0.schedule.isScheduled(on: todayStartOfDay) }
             .sorted { $0.sortOrder < $1.sortOrder }
     }
-
+    
     // Completed today
     private var completedToday: [Habit] {
         let cal = Calendar.current
-        let todayStart = cal.startOfDay(for: Date())
-
+        let todayStart = todayStartOfDay
+        
         return scheduledTodayHabits.filter { habit in
             habit.logs.contains { log in
                 cal.startOfDay(for: log.date) == todayStart && log.completed
             }
         }
     }
-
+    
     // Due today but not done
     private var dueButNotDoneToday: [Habit] {
         let cal = Calendar.current
-        let todayStart = cal.startOfDay(for: Date())
-
+        let todayStart = todayStartOfDay
+        
         return scheduledTodayHabits.filter { habit in
             !habit.logs.contains { log in
                 cal.startOfDay(for: log.date) == todayStart && log.completed
             }
         }
     }
-
+    
     // Not scheduled today
     private var notDueToday: [Habit] {
-        let today = Date()
-        return activeHabits
-            .filter { !$0.schedule.isScheduled(on: today) }
+        activeHabits
+            .filter { !$0.schedule.isScheduled(on: todayStartOfDay) }
             .sorted { $0.createdAt > $1.createdAt }
     }
+    
+    // Completed today even though they were NOT scheduled today.
+    // This is your "bonus work" that should count toward >100%.
+    private var bonusCompletedToday: [Habit] {
+        let cal = Calendar.current
+        let todayStart = todayStartOfDay
 
+        return notDueToday.filter { habit in
+            habit.logs.contains { log in
+                cal.startOfDay(for: log.date) == todayStart && log.completed
+            }
+        }
+    }
+    
+    
     private var archivedHabits: [Habit] {
         habits.filter { $0.isArchived }
     }
-
+    
     // Hero numbers
     private var todayCompletion: (done: Int, total: Int, percent: Double) {
-        let total = scheduledTodayHabits.count
-        let done = completedToday.count
-        let pct = total == 0 ? 0.0 : Double(done) / Double(total)
-        return (done, total, pct)
+        let totalScheduled = scheduledTodayHabits.count          // how many you "owe" today
+        let doneScheduled = completedToday.count                 // how many of those you actually did
+        let bonus = bonusCompletedToday.count                    // extra wins not scheduled today
+
+        // percent can go above 1.0 now because we include bonus
+        let percentValue: Double
+        if totalScheduled == 0 {
+            // Edge case: nothing was scheduled today.
+            // If you still did stuff anyway, that should count as >100%.
+            // So if you did 2 bonus habits on a "rest" day, that's 200%.
+            percentValue = bonus == 0 ? 0.0 : Double(bonus)
+        } else {
+            percentValue = Double(doneScheduled + bonus) / Double(totalScheduled)
+        }
+
+        return (
+            done: doneScheduled,
+            total: totalScheduled,
+            percent: percentValue
+        )
     }
-
+    
+    
+    // This is "today" for the whole screen. When this changes, the UI should refresh.
+    private var todayStartOfDay: Date {
+        todayAnchor
+    }
+    
     // MARK: - body
-
+    
     var body: some View {
         ZStack {
             NavigationStack {
@@ -129,12 +165,10 @@ struct HomeView: View {
             }
             .glowTint()
             .glowScreenBackground()
-            .onAppear { startMidnightWatcher() }
-            .onDisappear {
-                timerCancellable?.cancel()
-                timerCancellable = nil
+            .onReceive(dayTimer) { _ in
+                checkForNewDay()
             }
-
+            
             if showSidebar {
                 SidebarOverlay(
                     selectedTab: $selectedTab,
@@ -148,7 +182,7 @@ struct HomeView: View {
             }
         }
     }
-
+    
     // MARK: - Home Root View with Chrome Overlay
     private var homeRoot: some View {
         contentList
@@ -167,10 +201,10 @@ struct HomeView: View {
                             newTitle = ""
                             newSchedule = .daily
                             newIconName = Habit.guessIconName(for: newTitle)
-
+                            
                             newReminderEnabled = false
                             newReminderTime = HomeView.defaultReminderTime()
-
+                            
                             showAdd = true
                         }
                         .accessibilityLabel("Add practice")
@@ -182,9 +216,9 @@ struct HomeView: View {
                 .ignoresSafeArea()
             }
     }
-
+    
     // MARK: - Add Practice sheet
-
+    
     private var addSheet: some View {
         NavigationStack {
             Form {
@@ -198,18 +232,18 @@ struct HomeView: View {
                             }
                         }
                 }
-
+                
                 Section("Schedule") {
                     SchedulePicker(selection: $newSchedule)
                 }
-
+                
                 Section("Icon") {
                     IconPickerRow(selection: $newIconName)
                 }
-
+                
                 Section("Reminder") {
                     Toggle("Remind me", isOn: $newReminderEnabled)
-
+                    
                     if newReminderEnabled {
                         DatePicker(
                             "Time",
@@ -231,14 +265,14 @@ struct HomeView: View {
                     Button("Save") {
                         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
                         guard !trimmed.isEmpty else { return }
-
+                        
                         let maxOrder = (habits.map { $0.sortOrder }.max() ?? 9_998)
                         let newOrder = maxOrder + 1
-
+                        
                         let comps = Calendar.current.dateComponents([.hour, .minute], from: newReminderTime)
                         let hour = comps.hour
                         let minute = comps.minute
-
+                        
                         let h = Habit(
                             title: trimmed,
                             createdAt: .now,
@@ -248,14 +282,14 @@ struct HomeView: View {
                             reminderHour: hour,
                             reminderMinute: minute,
                             iconName: newIconName.isEmpty
-                                ? Habit.guessIconName(for: trimmed)
-                                : newIconName,
+                            ? Habit.guessIconName(for: trimmed)
+                            : newIconName,
                             sortOrder: newOrder
                         )
-
+                        
                         context.insert(h)
                         try? context.save()
-
+                        
                         if newReminderEnabled {
                             Task {
                                 let ok = await NotificationManager.requestAuthorizationIfNeeded()
@@ -264,7 +298,7 @@ struct HomeView: View {
                                 }
                             }
                         }
-
+                        
                         showAdd = false
                     }
                     .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -273,26 +307,20 @@ struct HomeView: View {
         }
         .presentationDetents([.medium])
     }
-
+    
     // MARK: - Midnight / new-day watcher
-
-    private func startMidnightWatcher() {
-        guard timerCancellable == nil else { return }
-
+    /// Called periodically to see if the calendar day rolled over.
+    /// If it did, we update `todayAnchor`, which triggers the view to recompute.
+    private func checkForNewDay() {
         let cal = Calendar.current
-        timerCancellable = Timer
-            .publish(every: 60, on: .main, in: .common)
-            .autoconnect()
-            .sink { _ in
-                let startOfNow = cal.startOfDay(for: Date())
-                if startOfNow != todayAnchor {
-                    todayAnchor = startOfNow
-                }
-            }
+        let startOfNow = cal.startOfDay(for: Date())
+        if startOfNow != todayAnchor {
+            todayAnchor = startOfNow
+        }
     }
-
+    
     // MARK: - List Content
-
+    
     private var contentList: some View {
         List {
             // HERO
@@ -302,7 +330,9 @@ struct HomeView: View {
                 HeroCardGlass(
                     done: todayCompletion.done,
                     total: todayCompletion.total,
-                    percent: todayCompletion.percent
+                    percent: todayCompletion.percent,
+                    bonus: bonusCompletedToday.count,
+                    allDone: todayCompletion.done + bonusCompletedToday.count
                 )
                 .padding(.top, 44) // breathing room under status bar + buttons
                 .listRowInsets(
@@ -311,7 +341,7 @@ struct HomeView: View {
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             }
-
+            
             if activeHabits.isEmpty && archivedHabits.isEmpty {
                 Section {
                     ContentUnavailableView(
@@ -331,7 +361,7 @@ struct HomeView: View {
                         }
                     }
                 }
-
+                
                 if !dueButNotDoneToday.isEmpty {
                     Section("Due Today") {
                         ForEach(dueButNotDoneToday) { habit in
@@ -346,7 +376,7 @@ struct HomeView: View {
                         }
                     }
                 }
-
+                
                 if !notDueToday.isEmpty {
                     Section("Not Today") {
                         ForEach(notDueToday) { habit in
@@ -354,7 +384,7 @@ struct HomeView: View {
                         }
                     }
                 }
-
+                
                 if !archivedHabits.isEmpty {
                     Section("Archived") {
                         ForEach(archivedHabits) { habit in
@@ -363,7 +393,7 @@ struct HomeView: View {
                     }
                 }
             }
-
+            
             // comfy bottom spacer so last row never slams into bottom edge
             Section {
                 Color.clear
@@ -375,9 +405,9 @@ struct HomeView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
-
+    
     // MARK: - Row builder (NavigationLink wrapper with our glass row content)
-
+    
     @ViewBuilder
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
         NavigationLink {
@@ -396,7 +426,7 @@ struct HomeView: View {
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
-
+            
             if isArchived {
                 Button {
                     toggleArchive(habit, archived: false)
@@ -411,7 +441,7 @@ struct HomeView: View {
                 }
                 .tint(.blue)
             }
-
+            
             Button(role: .destructive) {
                 habitToDelete = habit
             } label: {
@@ -419,30 +449,30 @@ struct HomeView: View {
             }
         }
     }
-
+    
     // MARK: - Reorder handler
-
+    
     private func handleMove(indices: IndexSet, newOffset: Int, sourceArray: [Habit]) {
         var working = sourceArray
         working.move(fromOffsets: indices, toOffset: newOffset)
-
+        
         for (idx, habit) in working.enumerated() {
             habit.sortOrder = idx
         }
-
+        
         do {
             try context.save()
         } catch {
             print("Reorder save error:", error)
         }
     }
-
+    
     // MARK: - Actions
-
+    
     private func toggleToday(_ habit: Habit) {
         let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-
+        let today = todayStartOfDay
+        
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
             if let log = habit.logs.first(where: { cal.startOfDay(for: $0.date) == today }) {
                 log.completed.toggle()
@@ -451,17 +481,17 @@ struct HomeView: View {
                 context.insert(log)
             }
         }
-
+        
         GlowTheme.tapHaptic()
         try? context.save()
     }
-
+    
     private func toggleArchive(_ habit: Habit, archived: Bool) {
         habit.isArchived = archived
         do { try context.save() } catch {
             print("SwiftData save error:", error)
         }
-
+        
         Task {
             if archived {
                 await NotificationManager.cancelNotifications(for: habit)
@@ -473,9 +503,9 @@ struct HomeView: View {
             }
         }
     }
-
+    
     // MARK: - Helpers
-
+    
     /// Default reminder time when creating a new practice (8:00 PM local).
     private static func defaultReminderTime() -> Date {
         let cal = Calendar.current
@@ -486,6 +516,7 @@ struct HomeView: View {
         return now
     }
 }
+
 
 // MARK: - SidebarHandleButton
 // Small frosted circle in the top-left to open the sidebar.
@@ -1010,10 +1041,27 @@ private struct HabitRowGlass: View {
 private struct HeroCardGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    let done: Int
-    let total: Int
-    let percent: Double
+    // MARK: inputs
+    // done / total drive the ring % math
+    // bonus + allDone are just for display ("(+2 bonus)")
+    let done: Int        // scheduled completed
+    let total: Int       // scheduled total
+    let percent: Double  // can be > 1.0 now
+    let bonus: Int       // extra unscheduled completions
+    let allDone: Int     // done + bonus
 
+    // MARK: derived display text
+    // If bonus == 0  → "6 of 6 complete"
+    // If bonus  > 0  → "8 of 6 complete (+2 bonus)"
+    private var statusLine: String {
+        if bonus > 0 {
+            return "\(allDone) of \(total) complete (+\(bonus) bonus)"
+        } else {
+            return "\(done) of \(total) complete"
+        }
+    }
+
+    // MARK: colors
     private var primaryTextColor: Color {
         switch colorScheme {
         case .light: return GlowTheme.textPrimary
@@ -1058,8 +1106,11 @@ private struct HeroCardGlass: View {
             )
     }
 
+    // MARK: body
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
+
+            // donut
             ZStack {
                 Circle()
                     .stroke(ringTrackColor, lineWidth: 14)
@@ -1079,12 +1130,14 @@ private struct HeroCardGlass: View {
             }
             .frame(width: 76, height: 76)
 
+            // text block you pasted ✅
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today")
                     .font(.headline)
                     .foregroundStyle(primaryTextColor)
 
-                Text("\(done) of \(total) complete")
+                // "8 of 6 complete (+2 bonus)" or "6 of 6 complete"
+                Text(statusLine)
                     .font(.subheadline.monospacedDigit())
                     .foregroundStyle(secondaryTextColor)
             }
@@ -1101,7 +1154,6 @@ private struct HeroCardGlass: View {
         )
     }
 }
-
 // MARK: - SchedulePicker / DayChip / Habit accent helpers
 
 struct SchedulePicker: View {
