@@ -283,7 +283,8 @@ private struct MonthHeatmap: View {
             grid
             summary
         }
-        .padding(.vertical, 8)
+        .padding(.top, 12)
+        .padding(.bottom, 16)
         .padding(.horizontal, 12)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
