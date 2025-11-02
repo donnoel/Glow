@@ -1398,7 +1398,7 @@ private struct HeroCardGlass: View {
             // right side text block
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today")
-                    .font(.headline)
+                    .font(.title3.weight(.semibold))
                     .foregroundStyle(primaryTextColor)
 
                 Text(statusLine)
