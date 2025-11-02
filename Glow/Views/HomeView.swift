@@ -492,7 +492,7 @@ struct HomeView: View {
                 }
             } else {
                 if !completedToday.isEmpty {
-                    Section("Completed Today") {
+                    Section("Wins Today") {
                         ForEach(completedToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
@@ -507,7 +507,7 @@ struct HomeView: View {
                 }
                 
                 if !dueButNotDoneToday.isEmpty {
-                    Section("Due Today") {
+                    Section("Up Next") {
                         ForEach(dueButNotDoneToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
@@ -522,7 +522,7 @@ struct HomeView: View {
                 }
                 
                 if !notDueToday.isEmpty {
-                    Section("Not Today") {
+                    Section("Saved for Later") {
                         ForEach(notDueToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
