@@ -78,7 +78,7 @@ struct HomeView: View {
     private var notDueToday: [Habit] {
         activeHabits
             .filter { !$0.schedule.isScheduled(on: todayStartOfDay) }
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted { $0.sortOrder < $1.sortOrder  }
     }
     
     // Completed today even though they were NOT scheduled today.
