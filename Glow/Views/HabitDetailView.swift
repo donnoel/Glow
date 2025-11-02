@@ -5,141 +5,186 @@ struct HabitDetailView: View {
     let habit: Habit
     @State private var monthAnchor: Date = .now
 
-    // Reuse the same accent color this habit has in HomeView rows
     private var habitTint: Color {
         habit.accentColor
     }
 
     var body: some View {
-        List {
-            headerSection
-            weekSection
-            recentSection
-            heatmapSection
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+
+                // HEADER / STREAKS
+                headerSection
+                    .padding(.top, 8) // slight breathing under nav bar
+
+                // RECENT
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Recent")
+                        .font(.headline)
+                        .foregroundStyle(GlowTheme.textPrimary)
+
+                    RecentDaysStrip(logs: habit.logs, days: 14, tint: habitTint)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(GlowTheme.bgSurface)
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
+                        )
+                        .shadow(
+                            color: Color.black.opacity(0.15),
+                            radius: 20, y: 10
+                        )
+                }
+
+                // WEEK
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("This Week")
+                        .font(.headline)
+                        .foregroundStyle(GlowTheme.textPrimary)
+
+                    WeeklyProgressRing(percent: weeklyPercent(from: habit.logs), tint: habitTint)
+                        .frame(height: 120)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .fill(habitTint.opacity(0.08))
+                                        .blendMode(.plusLighter)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(
+                                            habitTint.opacity(0.28),
+                                            lineWidth: 1
+                                        )
+                                )
+                                .shadow(
+                                    color: Color.black.opacity(0.4),
+                                    radius: 20, y: 10
+                                )
+                        )
+                }
+
+                // MONTHLY
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Monthly")
+                        .font(.headline)
+                        .foregroundStyle(GlowTheme.textPrimary)
+
+                    MonthHeatmap(
+                        habit: habit,
+                        month: monthAnchor,
+                        tint: habitTint,
+                        onPrev: {
+                            monthAnchor = Calendar.current.date(
+                                byAdding: .month,
+                                value: -1,
+                                to: monthAnchor
+                            )!
+                        },
+                        onNext: {
+                            monthAnchor = Calendar.current.date(
+                                byAdding: .month,
+                                value: 1,
+                                to: monthAnchor
+                            )!
+                        }
+                    )
+                }
+
+                // >>> THIS IS THE MAGIC LINE <<<
+                // This guarantees we ALWAYS get comfy air below the calendar
+                Spacer(minLength: 32)
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 24) // keeps it off the home bar / bottom edge
         }
         .navigationTitle("Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 
+    // MARK: - Header / Streaks (unchanged layout, just pulled into VStack world)
     // MARK: - Header / Streaks
     private var headerSection: some View {
         let s = computeStreaks(from: habit.logs)
-        return Section {
-            VStack(alignment: .leading, spacing: 12) {
-                // top row: tinted icon chip + title
-                HStack(alignment: .center, spacing: 12) {
-                    ZStack {
-                        Circle()
-                            .fill(
-                                habitTint.opacity(0.18)
-                            )
-                            .overlay(
-                                Circle()
-                                    .stroke(
-                                        habitTint.opacity(0.4),
-                                        lineWidth: 1
-                                    )
-                            )
-                            .frame(width: 40, height: 40)
 
-                        Image(systemName: habit.iconName)
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(habitTint)
-                    }
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center, spacing: 12) {
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(habit.title)
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(GlowTheme.textPrimary)
-
-                        // mini status line under title
-                        HStack(spacing: 12) {
-                            Label {
-                                Text("\(s.current)d streak")
-                                    .monospacedDigit()
-                            } icon: {
-                                Image(systemName: "flame.fill")
-                            }
-
-                            Label {
-                                Text("best \(s.best)d")
-                                    .monospacedDigit()
-                            } icon: {
-                                Image(systemName: "trophy.fill")
-                            }
-                        }
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(GlowTheme.textSecondary)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel("Current streak \(s.current) days. Best streak \(s.best) days.")
-                    }
-
-                    Spacer(minLength: 8)
-                }
-            }
-            .padding(.vertical, 8)
-        }
-    }
-
-    // MARK: - Recent Activity strip (moved up)
-    private var recentSection: some View {
-        Section("Recent") {
-            RecentDaysStrip(logs: habit.logs, days: 14, tint: habitTint)
-                .listRowInsets(EdgeInsets())
-        }
-    }
-
-    // MARK: - Weekly Ring
-    private var weekSection: some View {
-        Section("This Week") {
-            WeeklyProgressRing(percent: weeklyPercent(from: habit.logs), tint: habitTint)
-                .frame(height: 120)
-                .frame(maxWidth: .infinity, alignment: .center)
-                .padding(16)
-                .background(
-                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                        .fill(.ultraThinMaterial)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(
-                                    habitTint.opacity(0.08)
-                                )
-                                .blendMode(.plusLighter)
+                // icon bubble
+                ZStack {
+                    Circle()
+                        .fill(
+                            habitTint.opacity(0.18)
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            Circle()
                                 .stroke(
-                                    habitTint
-                                        .opacity(0.28),
+                                    habitTint.opacity(0.4),
                                     lineWidth: 1
                                 )
                         )
-                        .shadow(
-                            color: Color.black.opacity(0.4),
-                            radius: 20, y: 10
-                        )
-                )
-                .listRowInsets(EdgeInsets())
-        }
-    }
+                        .frame(width: 40, height: 40)
 
-    // MARK: - Monthly Heatmap
-    private var heatmapSection: some View {
-        Section("Monthly") {
-            MonthHeatmap(
-                habit: habit,
-                month: monthAnchor,
-                tint: habitTint,
-                onPrev: {
-                    monthAnchor = Calendar.current.date(byAdding: .month, value: -1, to: monthAnchor)!
-                },
-                onNext: {
-                    monthAnchor = Calendar.current.date(byAdding: .month, value: 1, to: monthAnchor)!
+                    Image(systemName: habit.iconName)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(habitTint)
                 }
-            )
-            .listRowInsets(EdgeInsets())
-        }
-    }
 
+                // title + streaks
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(habit.title)
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(GlowTheme.textPrimary)
+
+                    HStack(spacing: 12) {
+                        Label {
+                            Text("\(s.current)d streak")
+                                .monospacedDigit()
+                        } icon: {
+                            Image(systemName: "flame.fill")
+                        }
+
+                        Label {
+                            Text("best \(s.best)d")
+                                .monospacedDigit()
+                        } icon: {
+                            Image(systemName: "trophy.fill")
+                        }
+                    }
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(GlowTheme.textSecondary)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("Current streak \(s.current) days. Best streak \(s.best) days.")
+                }
+
+                Spacer(minLength: 8)
+            }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(GlowTheme.bgSurface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
+        )
+        .shadow(
+            color: Color.black.opacity(0.15),
+            radius: 20,
+            y: 10
+        )
+    }
     // MARK: - Helpers
     private func weeklyPercent(from logs: [HabitLog]) -> Double {
         let cal = Calendar.current
@@ -163,7 +208,7 @@ struct HabitDetailView: View {
     }
 }
 
-// MARK: - WeeklyProgressRing
+// MARK: - WeeklyProgressRing (unchanged)
 private struct WeeklyProgressRing: View {
     let percent: Double
     let tint: Color
@@ -191,7 +236,7 @@ private struct WeeklyProgressRing: View {
     }
 }
 
-// MARK: - RecentDaysStrip
+// MARK: - RecentDaysStrip (unchanged)
 private struct RecentDaysStrip: View {
     let logs: [HabitLog]
     let days: Int
@@ -225,11 +270,10 @@ private struct RecentDaysStrip: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .center)
-        .padding(.vertical, 8)
     }
 }
 
-// MARK: - MonthHeatmap
+// MARK: - MonthHeatmap (mostly unchanged, just standalone)
 private struct MonthHeatmap: View {
     let habit: Habit
     let month: Date
@@ -243,7 +287,6 @@ private struct MonthHeatmap: View {
         month.formatted(.dateTime.year().month(.wide))
     }
 
-    // stable 7x6 grid
     private var gridDates: [[Date?]] {
         let first = cal.date(from: cal.dateComponents([.year, .month], from: month))!
         let range = cal.range(of: .day, in: .month, for: first)!
@@ -294,10 +337,13 @@ private struct MonthHeatmap: View {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
         )
+        .shadow(
+            color: Color.black.opacity(0.15),
+            radius: 20, y: 10
+        )
         .accessibilityElement(children: .contain)
     }
 
-    // header row (month + chevrons)
     private var header: some View {
         HStack {
             Button(action: onPrev) {
@@ -392,7 +438,7 @@ private struct MonthHeatmap: View {
         .font(.footnote)
         .foregroundStyle(GlowTheme.textSecondary)
         .padding(.top, 6)
-        .padding(.horizontal, 4)   // safe inside the rounded rect
+        .padding(.horizontal, 4)
         .padding(.bottom, 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
@@ -401,7 +447,7 @@ private struct MonthHeatmap: View {
     }
 }
 
-// MARK: - DayCell
+// MARK: - DayCell (unchanged)
 private struct DayCell: View {
     let date: Date?
     let isToday: Bool
