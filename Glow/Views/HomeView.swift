@@ -37,6 +37,9 @@ struct HomeView: View {
     // Fires every 30s so we can notice when the day boundary changes.
     private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
     
+    @State private var highlightTodayCard = false
+    @State private var lastPercent: Double = 0.0
+    
     // MARK: - Derived Collections
     
     private var activeHabits: [Habit] {
@@ -465,6 +468,8 @@ struct HomeView: View {
                 // Add some top padding here so the hero visually sits just under
                 // that floating chrome instead of jammed into the status bar.
                 HeroCardGlass(
+                    highlightTodayCard: $highlightTodayCard,
+                    lastPercent: $lastPercent,
                     done: todayCompletion.done,
                     total: todayCompletion.total,
                     percent: todayCompletion.percent,
@@ -1271,24 +1276,47 @@ private struct HabitRowGlass: View {
 }
 
 // MARK: - HeroCardGlass
-// same hero vibe, this is your "Today" card
+// This is the "Today" summary card at the top of Home
 
 private struct HeroCardGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    // pulse animation for the percent label
-    @State private var pulse = false
+    // spotlight animation bindings from parent
+    @Binding var highlightTodayCard: Bool
+    @Binding var lastPercent: Double
 
-    // MARK: inputs
-    // done / total drive the ring % math
-    // bonus + allDone are just for display ("(+2 bonus)")
-    let done: Int        // scheduled completed
-    let total: Int       // scheduled total
-    let percent: Double  // can be > 1.0 now
-    let bonus: Int       // extra unscheduled completions
-    let allDone: Int     // done + bonus
+    // progress inputs
+    let done: Int
+    let total: Int
+    let percent: Double    // can be > 1.0 now
+    let bonus: Int
+    let allDone: Int
 
-    // MARK: derived display text
+    // headline / subheadline colors
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : GlowTheme.textPrimary
+    }
+
+    private var secondaryTextColor: Color {
+        colorScheme == .dark
+        ? Color.white.opacity(0.7)
+        : GlowTheme.textSecondary
+    }
+
+    // frosted glass card background (no shadow; shadow comes from spotlight state)
+    private var cardBackground: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(
+                        Color.white.opacity(colorScheme == .dark ? 0.18 : 0.4),
+                        lineWidth: 1
+                    )
+                    .blendMode(.plusLighter)
+            )
+    }
+
     // If bonus == 0  → "6 of 6 complete"
     // If bonus  > 0  → "8 of 6 complete (+2 bonus)"
     private var statusLine: String {
@@ -1299,125 +1327,107 @@ private struct HeroCardGlass: View {
         }
     }
 
-    // MARK: colors
-    private var primaryTextColor: Color {
-        switch colorScheme {
-        case .light: return GlowTheme.textPrimary
-        case .dark:  return .white
-        @unknown default: return GlowTheme.textPrimary
-        }
-    }
-
-    private var secondaryTextColor: Color {
-        switch colorScheme {
-        case .light: return GlowTheme.textSecondary
-        case .dark:  return Color.white.opacity(0.7)
-        @unknown default: return GlowTheme.textSecondary
-        }
-    }
-
-    private var ringTrackColor: Color {
-        colorScheme == .dark
-        ? Color.white.opacity(0.18)
-        : GlowTheme.borderMuted.opacity(0.45)
-    }
-
-    private var ringProgressColor: Color {
-        GlowTheme.accentPrimary
-    }
-
-    // glass background for the whole card
-    private var glassCardBackground: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(.regularMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(
-                        Color.white
-                            .opacity(colorScheme == .dark ? 0.15 : 0.6),
-                        lineWidth: colorScheme == .dark ? 0.5 : 1
-                    )
-                    .blendMode(.plusLighter)
-            )
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.07),
-                radius: 24,
-                y: 12
-            )
-    }
-
-    // tiny helper to kick the pulse animation
-    private func triggerPulse() {
-        pulse = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-            pulse = false
-        }
-    }
-
-    // MARK: body
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
 
-            // donut
-            ZStack {
-                Circle()
-                    .stroke(ringTrackColor, lineWidth: 14)
+            // LEFT: circular progress ring
+            ProgressRingView(percent: percent)
+                .frame(width: 88, height: 88)
 
-                Circle()
-                    .trim(from: 0, to: max(0, min(1, percent)))
-                    .stroke(
-                        ringProgressColor,
-                        style: StrokeStyle(lineWidth: 14, lineCap: .round)
-                    )
-                    .rotationEffect(.degrees(-90))
-                    .animation(.easeInOut(duration: 0.3), value: percent)
-
-                Text("\(Int(percent * 100))%")
-                    .font(.headline.monospacedDigit())
-                    .foregroundStyle(primaryTextColor)
-                    .scaleEffect(pulse ? 1.07 : 1.0)
-                    .animation(
-                        .spring(response: 0.3, dampingFraction: 0.6),
-                        value: pulse
-                    )
-                    // fire whenever percent changes
-                    .onChange(of: percent) { newValue in
-                        if newValue > 1.0 {
-                            triggerPulse()
-                        }
-                    }
-                    // also fire on first appear if already >100%
-                    .onAppear {
-                        if percent > 1.0 {
-                            triggerPulse()
-                        }
-                    }
-            }
-            .frame(width: 76, height: 76)
-
-            // right side text block
+            // RIGHT: text block
             VStack(alignment: .leading, spacing: 4) {
+
+                // ⬆️ make JUST this more authoritative
                 Text("Today")
-                    .font(.title3.weight(.semibold))
+                    .font(.title.weight(.semibold)) // bigger than before
                     .foregroundStyle(primaryTextColor)
 
+                // ⬇️ push this back down so it's supportive, not shouting
                 Text(statusLine)
-                    .font(.subheadline.monospacedDigit())
+                    .font(.subheadline)             // smaller again
+                    .monospacedDigit()
                     .foregroundStyle(secondaryTextColor)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: 8)
         }
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
-        .background(glassCardBackground)
+        .background(cardBackground)
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+
+        // spotlight / bump when percent changes
+        .scaleEffect(highlightTodayCard ? 1.03 : 1.0)
+        .shadow(
+            color: highlightTodayCard
+                ? Color.black.opacity(0.28)
+                : Color.black.opacity(0.12),
+            radius: highlightTodayCard ? 28 : 20,
+            y: highlightTodayCard ? 16 : 10
+        )
+        .animation(
+            .spring(
+                response: 0.4,
+                dampingFraction: 0.7,
+                blendDuration: 0.2
+            ),
+            value: highlightTodayCard
+        )
+
+        // Track % changes -> pulse for ~10 seconds
+        .onChange(of: percent) { newValue in
+            guard newValue != lastPercent else { return }
+            lastPercent = newValue
+
+            highlightTodayCard = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                highlightTodayCard = false
+            }
+        }
+
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Today \(done) of \(total) practices complete, \(Int(percent * 100)) percent."
+            "Today \(statusLine), \(Int(percent * 100)) percent."
         )
     }
 }
+
+// MARK: - ProgressRingView
+// Simple circular ring that matches the hero card
+
+private struct ProgressRingView: View {
+    let percent: Double
+
+    // Clamp lower bound at 0 just in case
+    private var clampedPercent: Double {
+        max(0.0, percent)
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 12)
+
+            Circle()
+                .trim(from: 0, to: min(1.0, clampedPercent))
+                .stroke(
+                    GlowTheme.accentPrimary,
+                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.easeInOut(duration: 0.3), value: clampedPercent)
+
+            Text("\(Int(clampedPercent * 100))%")
+                .font(.headline.monospacedDigit())
+                .foregroundStyle(GlowTheme.textPrimary)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(Int(clampedPercent * 100)) percent complete today")
+    }
+}
+
 // MARK: - SchedulePicker / DayChip / Habit accent helpers
 
 struct SchedulePicker: View {
