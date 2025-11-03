@@ -48,7 +48,7 @@ enum HabitIconLibrary {
         ),
         HabitIcon(
             name: "nosign",
-            label: "No ____",
+            label: "No",
             keywords: ["no candy", "no sugar", "no soda", "no smoking", "no vape", "no alcohol"]
         ),
         HabitIcon(
@@ -73,18 +73,13 @@ enum HabitIconLibrary {
         ),
         HabitIcon(
             name: "brain.head.profile",
-            label: "Focus / Study",
+            label: "Focus",
             keywords: ["focus block", "focus", "study", "learn", "course", "training", "practice"]
         ),
         HabitIcon(
             name: "moon.zzz.fill",
             label: "Wind Down",
             keywords: ["wind down", "no screens", "blue light", "night routine", "relax before bed"]
-        ),
-        HabitIcon(
-            name: "tooth.fill",
-            label: "Teeth",
-            keywords: ["floss", "flossing", "brush", "brush teeth", "oral care", "mouthwash"]
         ),
         HabitIcon(
             name: "figure.cooldown",
