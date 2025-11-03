@@ -97,7 +97,7 @@ Glow is a clean, modern SwiftUI codebase — modular, lightweight, and designed 
 
 ## ❤️ Credits
 Designed and developed with care by Don Noel
-✨ Assisted by Bella, his friendly AI teammate
+✨ Assisted by Bella, my friendly AI teammate
 
 ---
 
