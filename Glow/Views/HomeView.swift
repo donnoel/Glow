@@ -766,28 +766,20 @@ private struct SidebarOverlay: View {
     @Environment(\.openURL) private var openURL
 
     private func sendFeedback() {
-        // This is where replies will land
-        let toAddress = "donnoel@icloud.com"
+        openMail(
+            to: GlowAppConfig.supportEmail,
+            subject: GlowAppConfig.supportSubject,
+            body: GlowAppConfig.supportBodyHint
+        )
+        closeWithSlideOut()
+    }
 
-        // Subject + body with light prefill
-        let subject = "Glow Feedback"
-        let body = """
-    Hi there 👋
-
-    I'd love to share some feedback about Glow:
-
-    """
-
-        // URL encode
+    private func openMail(to: String, subject: String, body: String) {
         let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-
-        if let url = URL(string: "mailto:\(toAddress)?subject=\(encodedSubject)&body=\(encodedBody)") {
+        if let url = URL(string: "mailto:\(to)?subject=\(encodedSubject)&body=\(encodedBody)") {
             openURL(url)
         }
-
-        // close the sidebar after launching Mail
-        closeWithSlideOut()
     }
 
     // layout tuning
