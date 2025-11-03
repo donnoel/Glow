@@ -251,16 +251,15 @@ private struct RecentDaysStrip: View {
         )
 
         HStack(spacing: 6) {
-            ForEach((0..<days).reversed(), id: \.self) { offset in
-                let cellDate = cal.startOfDay(for: cal.date(byAdding: .day, value: -offset, to: Date())!)
+            // 0 = today, 1 = yesterday, etc.
+            ForEach(0..<days, id: \.self) { offset in
+                let cellDate = cal.startOfDay(
+                    for: cal.date(byAdding: .day, value: -offset, to: Date())!
+                )
                 let done = completed.contains(cellDate)
 
                 RoundedRectangle(cornerRadius: 4)
-                    .fill(
-                        done
-                        ? tint
-                        : GlowTheme.borderMuted.opacity(0.6)
-                    )
+                    .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
                     .frame(width: 16, height: 16)
                     .accessibilityLabel(
                         done
@@ -269,7 +268,7 @@ private struct RecentDaysStrip: View {
                     )
             }
         }
-        .frame(maxWidth: .infinity, alignment: .center)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
