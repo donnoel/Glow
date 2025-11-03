@@ -476,7 +476,7 @@ struct HomeView: View {
                     bonus: bonusCompletedToday.count,
                     allDone: todayCompletion.done + bonusCompletedToday.count
                 )
-                .padding(.top, 36) // slightly tighter to status bar (8pt less)
+                .padding(.top, 64) // sits lower, avoids overlap with chrome
                 .listRowInsets(
                     EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
                 )
@@ -1271,14 +1271,15 @@ private struct HabitRowGlass: View {
 // MARK: - HeroCardGlass
 private struct HeroCardGlass: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    // spotlight bindings (you’re already passing these in)
+    // spotlight bindings
     @Binding var highlightTodayCard: Bool
     @Binding var lastPercent: Double
 
     // celebration state
     @State private var overdriveActive = false
-    @State private var sweepPhase: Double = 0   // drives the comet spin
+    @State private var sheenOffset: CGFloat = -200
 
     // progress inputs
     let done: Int
@@ -1297,17 +1298,52 @@ private struct HeroCardGlass: View {
         : GlowTheme.textSecondary
     }
 
+    // glass card base + optional celebration layer
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(
-                        Color.white.opacity(colorScheme == .dark ? 0.18 : 0.4),
-                        lineWidth: 1
-                    )
-                    .blendMode(.plusLighter)
-            )
+        ZStack {
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .stroke(
+                            Color.white.opacity(colorScheme == .dark ? 0.18 : 0.4),
+                            lineWidth: 1
+                        )
+                        .blendMode(.plusLighter)
+                )
+
+            if overdriveActive {
+                // soft accent bloom
+                RadialGradient(
+                    colors: [
+                        GlowTheme.accentPrimary.opacity(0.35),
+                        .clear
+                    ],
+                    center: .topLeading,
+                    startRadius: 12,
+                    endRadius: 180
+                )
+                .blendMode(.screen)
+                .allowsHitTesting(false)
+
+                // single sheen swipe
+                LinearGradient(
+                    colors: [
+                        .clear,
+                        Color.white.opacity(0.35),
+                        .clear
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+                .frame(height: 160)
+                .rotationEffect(.degrees(18))
+                .offset(x: sheenOffset)
+                .blur(radius: 18)
+                .allowsHitTesting(false)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
     }
 
     private var statusLine: String {
@@ -1325,7 +1361,7 @@ private struct HeroCardGlass: View {
             ProgressRingView(
                 percent: percent,
                 overdriveActive: overdriveActive,
-                sweepPhase: sweepPhase
+                sweepPhase: 0 // we don’t need to drive this from outside
             )
             .frame(width: 88, height: 88)
 
@@ -1352,9 +1388,9 @@ private struct HeroCardGlass: View {
             radius: 32,
             y: 20
         )
-        .onChange(of: percent) { newValue in
-            // only fire when we cross 100%
-            if lastPercent <= 1.0 && newValue > 1.0 {
+        .onChange(of: percent) { oldValue, newValue in
+            // only celebrate when we cross the 1.0 boundary
+            if oldValue <= 1.0 && newValue > 1.0 {
                 startOverdrive()
             }
             lastPercent = newValue
@@ -1367,15 +1403,34 @@ private struct HeroCardGlass: View {
 
     // MARK: - celebration
     private func startOverdrive() {
-        overdriveActive = true
+        // accessibility-friendly short version
+        if reduceMotion {
+            withAnimation(.easeOut(duration: 0.25)) {
+                overdriveActive = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                overdriveActive = false
+            }
+            return
+        }
 
-        // kick the sweep off — the ring will attach the repeating animation
-        sweepPhase = 360
+        // turn the glow on
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.85)) {
+            overdriveActive = true
+        }
 
-        // stop showing the flare after ~10s
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-            overdriveActive = false
-            sweepPhase = 0
+        // run a single sheen sweep
+        sheenOffset = -200
+        withAnimation(.easeInOut(duration: 1.3)) {
+            sheenOffset = 200
+        }
+
+        // keep the glow for ~10s like you wanted
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0) {
+            withAnimation(.easeInOut(duration: 0.8)) {
+                overdriveActive = false
+                sheenOffset = -200
+            }
         }
     }
 }
