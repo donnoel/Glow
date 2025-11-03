@@ -497,7 +497,7 @@ struct HomeView: View {
                 }
             } else {
                 if !completedToday.isEmpty {
-                    Section("Wins Today") {
+                    Section("Your Wins Today") {
                         ForEach(completedToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
@@ -1276,23 +1276,24 @@ private struct HabitRowGlass: View {
 }
 
 // MARK: - HeroCardGlass
-// This is the "Today" summary card at the top of Home
-
 private struct HeroCardGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    // spotlight animation bindings from parent
+    // spotlight bindings (you’re already passing these in)
     @Binding var highlightTodayCard: Bool
     @Binding var lastPercent: Double
+
+    // celebration state
+    @State private var overdriveActive = false
+    @State private var sweepPhase: Double = 0   // drives the comet spin
 
     // progress inputs
     let done: Int
     let total: Int
-    let percent: Double    // can be > 1.0 now
+    let percent: Double    // can be > 1.0
     let bonus: Int
     let allDone: Int
 
-    // headline / subheadline colors
     private var primaryTextColor: Color {
         colorScheme == .dark ? .white : GlowTheme.textPrimary
     }
@@ -1303,7 +1304,6 @@ private struct HeroCardGlass: View {
         : GlowTheme.textSecondary
     }
 
-    // frosted glass card background (no shadow; shadow comes from spotlight state)
     private var cardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(.ultraThinMaterial)
@@ -1317,8 +1317,6 @@ private struct HeroCardGlass: View {
             )
     }
 
-    // If bonus == 0  → "6 of 6 complete"
-    // If bonus  > 0  → "8 of 6 complete (+2 bonus)"
     private var statusLine: String {
         if bonus > 0 {
             return "\(allDone) of \(total) complete (+\(bonus) bonus)"
@@ -1330,25 +1328,24 @@ private struct HeroCardGlass: View {
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
 
-            // LEFT: circular progress ring
-            ProgressRingView(percent: percent)
-                .frame(width: 88, height: 88)
+            // LEFT: ring
+            ProgressRingView(
+                percent: percent,
+                overdriveActive: overdriveActive,
+                sweepPhase: sweepPhase
+            )
+            .frame(width: 88, height: 88)
 
-            // RIGHT: text block
+            // RIGHT: text
             VStack(alignment: .leading, spacing: 4) {
-
-                // ⬆️ make JUST this more authoritative
                 Text("Today")
-                    .font(.title.weight(.semibold)) // bigger than before
+                    .font(.title.weight(.semibold))
                     .foregroundStyle(primaryTextColor)
 
-                // ⬇️ push this back down so it's supportive, not shouting
                 Text(statusLine)
-                    .font(.subheadline)             // smaller again
+                    .font(.subheadline)
                     .monospacedDigit()
                     .foregroundStyle(secondaryTextColor)
-                    .lineLimit(nil)
-                    .fixedSize(horizontal: false, vertical: true)
             }
 
             Spacer(minLength: 8)
@@ -1357,71 +1354,86 @@ private struct HeroCardGlass: View {
         .padding(.horizontal, 16)
         .background(cardBackground)
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-
-        // spotlight / bump when percent changes
-        .scaleEffect(highlightTodayCard ? 1.03 : 1.0)
         .shadow(
-            color: highlightTodayCard
-                ? Color.black.opacity(0.28)
-                : Color.black.opacity(0.12),
-            radius: highlightTodayCard ? 28 : 20,
-            y: highlightTodayCard ? 16 : 10
+            color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.12),
+            radius: 32,
+            y: 20
         )
-        .animation(
-            .spring(
-                response: 0.4,
-                dampingFraction: 0.7,
-                blendDuration: 0.2
-            ),
-            value: highlightTodayCard
-        )
-
-        // Track % changes -> pulse for ~10 seconds
         .onChange(of: percent) { newValue in
-            guard newValue != lastPercent else { return }
-            lastPercent = newValue
-
-            highlightTodayCard = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
-                highlightTodayCard = false
+            // only fire when we cross 100%
+            if lastPercent <= 1.0 && newValue > 1.0 {
+                startOverdrive()
             }
+            lastPercent = newValue
         }
-
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "Today \(statusLine), \(Int(percent * 100)) percent."
         )
     }
+
+    // MARK: - celebration
+    private func startOverdrive() {
+        overdriveActive = true
+
+        // kick the sweep off — the ring will attach the repeating animation
+        sweepPhase = 360
+
+        // stop showing the flare after ~10s
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+            overdriveActive = false
+            sweepPhase = 0
+        }
+    }
 }
 
 // MARK: - ProgressRingView
-// Simple circular ring that matches the hero card
-
 private struct ProgressRingView: View {
     let percent: Double
+    let overdriveActive: Bool
+    let sweepPhase: Double // kept for signature
 
-    // Clamp lower bound at 0 just in case
+    @State private var breathe: Bool = false
+
     private var clampedPercent: Double {
         max(0.0, percent)
     }
 
     var body: some View {
         ZStack {
+            // base
             Circle()
-                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 12)
+                .stroke(GlowTheme.borderMuted.opacity(0.35), lineWidth: 12)
 
+            // main progress ring
             Circle()
                 .trim(from: 0, to: min(1.0, clampedPercent))
                 .stroke(
-                    GlowTheme.accentPrimary,
+                    // 👉 deeper pulse now
+                    GlowTheme.accentPrimary.opacity(breathe ? 1.0 : 0.4),
                     style: StrokeStyle(lineWidth: 12, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.3), value: clampedPercent)
+                .scaleEffect(breathe ? 1.03 : 1.0)     // subtle “exhale”
+                .animation(.easeInOut(duration: 0.25), value: clampedPercent)
+                .animation(
+                    overdriveActive
+                    ? .easeInOut(duration: 1.3).repeatForever(autoreverses: true)
+                    : .default,
+                    value: breathe
+                )
 
             Text("\(Int(clampedPercent * 100))%")
                 .font(.headline.monospacedDigit())
                 .foregroundStyle(GlowTheme.textPrimary)
+        }
+        .onChange(of: overdriveActive) { isOn in
+            breathe = isOn
+        }
+        .onAppear {
+            if overdriveActive {
+                breathe = true
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(Int(clampedPercent * 100)) percent complete today")
