@@ -910,12 +910,13 @@ private struct SidebarOverlay: View {
             .padding(.vertical, verticalInset)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fill(.thinMaterial)
                     // softer frost wash, slightly lighter than before
+                    .opacity(0.93)
                     .overlay(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(colorScheme == .dark ? 0.05 : 0.20),
+                                Color.white.opacity(colorScheme == .dark ? 0.03 : 0.14),
                                 Color.white.opacity(0.00)
                             ],
                             startPoint: .top,
@@ -928,14 +929,14 @@ private struct SidebarOverlay: View {
                         RoundedRectangle(cornerRadius: 28, style: .continuous)
                             .stroke(
                                 Color.white
-                                    .opacity(colorScheme == .dark ? 0.16 : 0.30),
+                                    .opacity(colorScheme == .dark ? 0.12 : 0.22),
                                 lineWidth: 0.75
                             )
                             .blendMode(.plusLighter)
                     )
-                    // deeper drop shadow for lift, but slightly wider + softer
+                    // softer drop shadow for lift, but slightly wider + softer
                     .shadow(
-                        color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.15),
+                        color: Color.black.opacity(colorScheme == .dark ? 0.5 : 0.08),
                         radius: 40,
                         y: 20
                     )
@@ -1139,11 +1140,11 @@ private struct SidebarRow: View {
         Button(action: tap) {
             HStack(spacing: 14) {
                 Image(systemName: icon)
-                    .font(.system(size: iconSize, weight: .semibold))
+                    .font(.system(size: iconSize, weight: .medium))
                     .foregroundStyle(fgColor)
 
                 Text(label)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundStyle(fgColor)
 
                 Spacer(minLength: 0)
