@@ -527,7 +527,7 @@ struct HomeView: View {
                 }
                 
                 if !notDueToday.isEmpty {
-                    Section("Saved for Later") {
+                    Section("On the Horizon") {
                         ForEach(notDueToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
