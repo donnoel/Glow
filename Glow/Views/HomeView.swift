@@ -577,9 +577,15 @@ struct HomeView: View {
     
     @ViewBuilder
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
-        NavigationLink {
-            HabitDetailView(habit: habit)
-        } label: {
+        ZStack {
+            NavigationLink {
+                HabitDetailView(habit: habit)
+            } label: {
+                EmptyView()
+            }
+            .opacity(0)
+            .accessibilityHidden(true)
+
             HabitRowGlass(habit: habit) {
                 toggleToday(habit)
             }
@@ -593,7 +599,7 @@ struct HomeView: View {
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
-            
+
             if isArchived {
                 Button {
                     toggleArchive(habit, archived: false)
@@ -608,7 +614,7 @@ struct HomeView: View {
                 }
                 .tint(.blue)
             }
-            
+
             Button(role: .destructive) {
                 habitToDelete = habit
             } label: {
