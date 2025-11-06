@@ -569,6 +569,7 @@ struct HomeView: View {
             }
         }
         .listSectionSeparator(.hidden)
+        .listSectionSpacing(.custom(12))
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
@@ -1399,9 +1400,9 @@ private struct HeroCardGlass: View {
         .background(cardBackground)
         .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.12),
-            radius: 32,
-            y: 20
+            color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.09),
+            radius: 30,
+            y: 18
         )
         .onChange(of: percent) { oldValue, newValue in
             // only celebrate when we cross the 1.0 boundary
