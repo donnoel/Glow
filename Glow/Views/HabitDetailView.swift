@@ -236,7 +236,7 @@ private struct WeeklyProgressRing: View {
     }
 }
 
-// MARK: - RecentDaysStrip (unchanged)
+// MARK: - RecentDaysStrip
 private struct RecentDaysStrip: View {
     let logs: [HabitLog]
     let days: Int
@@ -250,25 +250,31 @@ private struct RecentDaysStrip: View {
                 .map { cal.startOfDay(for: $0.date) }
         )
 
-        HStack(spacing: 6) {
-            // 0 = today, 1 = yesterday, etc.
-            ForEach(0..<days, id: \.self) { offset in
-                let cellDate = cal.startOfDay(
-                    for: cal.date(byAdding: .day, value: -offset, to: Date())!
-                )
-                let done = completed.contains(cellDate)
+        GeometryReader { geo in
+            let totalWidth = geo.size.width
+            let spacing: CGFloat = 6
+            let count = CGFloat(days)
+            let itemSize = max(16, (totalWidth - (spacing * (count - 1))) / count)
 
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
-                    .frame(width: 16, height: 16)
-                    .accessibilityLabel(
-                        done
-                        ? "Completed on \(cellDate.formatted(date: .abbreviated, time: .omitted))"
-                        : "Missed on \(cellDate.formatted(date: .abbreviated, time: .omitted))"
-                    )
+            VStack {
+                Spacer(minLength: 0)
+                HStack(spacing: spacing) {
+                    ForEach(0..<days, id: \.self) { offset in
+                        let cellDate = cal.startOfDay(
+                            for: cal.date(byAdding: .day, value: -offset, to: Date())!
+                        )
+                        let done = completed.contains(cellDate)
+
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
+                            .frame(width: itemSize, height: itemSize)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                Spacer(minLength: 0)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(height: 28)
     }
 }
 
