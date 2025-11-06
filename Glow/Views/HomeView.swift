@@ -569,7 +569,7 @@ struct HomeView: View {
             }
         }
         .listSectionSeparator(.hidden)
-        .listSectionSpacing(.custom(12))
+        .listSectionSpacing(.custom(10))
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
     }
@@ -823,6 +823,18 @@ private struct SidebarOverlay: View {
                     }
 
                     SidebarRow(
+                        icon: "person.crop.circle",
+                        label: "You",
+                        isSelected: selectedTab == .settings,
+                        colorScheme: colorScheme,
+                        iconSize: 19
+                    ) {
+                        selectedTab = .settings
+                        closeWithSlideOut()
+                        NotificationCenter.default.post(name: .glowShowYou, object: nil)
+                    }
+
+                    SidebarRow(
                         icon: "chart.bar",
                         label: "Trends",
                         isSelected: selectedTab == .progress,
@@ -832,18 +844,6 @@ private struct SidebarOverlay: View {
                         selectedTab = .progress
                         closeWithSlideOut()
                         NotificationCenter.default.post(name: .glowShowTrends, object: nil)
-                    }
-
-                    SidebarRow(
-                        icon: "gearshape.fill",
-                        label: "You",
-                        isSelected: selectedTab == .settings,
-                        colorScheme: colorScheme,
-                        iconSize: 19
-                    ) {
-                        selectedTab = .settings
-                        closeWithSlideOut()
-                        NotificationCenter.default.post(name: .glowShowYou, object: nil)
                     }
                 }
                 .padding(.top, 20)
@@ -1312,10 +1312,10 @@ private struct HeroCardGlass: View {
     // glass card base + optional celebration layer
     private var cardBackground: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
                         .stroke(
                             Color.white.opacity(colorScheme == .dark ? 0.18 : 0.4),
                             lineWidth: 1
@@ -1354,7 +1354,7 @@ private struct HeroCardGlass: View {
                 .allowsHitTesting(false)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
     }
 
     private var statusLine: String {
@@ -1398,7 +1398,7 @@ private struct HeroCardGlass: View {
         .padding(.vertical, 16)
         .padding(.horizontal, 16)
         .background(cardBackground)
-        .contentShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         .shadow(
             color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.09),
             radius: 30,
