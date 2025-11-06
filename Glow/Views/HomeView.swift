@@ -1351,7 +1351,7 @@ private struct HeroCardGlass: View {
 
     private var statusLine: String {
         if bonus > 0 {
-            return "\(allDone) of \(total) complete (+\(bonus) bonus)"
+            return "\(allDone) of \(total) complete\n+\(bonus) you're glowing!"
         } else {
             return "\(done) of \(total) complete"
         }
