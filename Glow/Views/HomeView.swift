@@ -780,7 +780,7 @@ private struct SidebarOverlay: View {
     private func openMail(to: String, subject: String, body: String) {
         let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = URL(string: "mailto:\(to)?subject=\(encodedSubject)&body=\(encodedBody)") {
+        if let url = GlowAppConfig.feedbackMailURL() {
             openURL(url)
         }
     }
