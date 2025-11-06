@@ -7,7 +7,10 @@ import Combine
 struct HomeView: View {
     @Environment(\.modelContext) private var context
     
-    @Query(sort: [SortDescriptor(\Habit.createdAt, order: .reverse)])
+    @Query(sort: [
+        SortDescriptor(\Habit.sortOrder, order: .forward),
+        SortDescriptor(\Habit.createdAt, order: .reverse)
+    ])
     private var habits: [Habit]
     
     // Add Sheet / New Practice fields
