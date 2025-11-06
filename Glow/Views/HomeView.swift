@@ -430,7 +430,7 @@ struct HomeView: View {
                         )
                         
                         context.insert(h)
-                        try? context.save()
+                        context.saveSafely()
                         
                         if newReminderEnabled {
                             Task {
@@ -650,7 +650,7 @@ struct HomeView: View {
         }
         
         GlowTheme.tapHaptic()
-        try? context.save()
+        context.saveSafely()
     }
     
     private func toggleArchive(_ habit: Habit, archived: Bool) {
@@ -780,7 +780,7 @@ private struct SidebarOverlay: View {
     private func openMail(to: String, subject: String, body: String) {
         let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = GlowAppConfig.feedbackMailURL() {
+        if let url = URL(string: "mailto:\(to)?subject=\(encodedSubject)&body=\(encodedBody)") {
             openURL(url)
         }
     }
