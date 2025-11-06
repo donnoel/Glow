@@ -1460,17 +1460,17 @@ private struct ProgressRingView: View {
             Circle()
                 .trim(from: 0, to: min(1.0, clampedPercent))
                 .stroke(
-                    // 👉 deeper pulse now
                     GlowTheme.accentPrimary.opacity(breathe ? 1.0 : 0.4),
                     style: StrokeStyle(lineWidth: 12, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .scaleEffect(breathe ? 1.03 : 1.0)     // subtle “exhale”
+                .scaleEffect(breathe ? 1.03 : 1.0)
+                // animate percent changes
                 .animation(.easeInOut(duration: 0.25), value: clampedPercent)
+                // animate the breathing itself
                 .animation(
-                    overdriveActive
-                    ? .easeInOut(duration: 1.3).repeatForever(autoreverses: true)
-                    : .default,
+                    .easeInOut(duration: overdriveActive ? 0.9 : 1.4)
+                        .repeatForever(autoreverses: true),
                     value: breathe
                 )
 
@@ -1478,16 +1478,16 @@ private struct ProgressRingView: View {
                 .font(.headline.monospacedDigit())
                 .foregroundStyle(GlowTheme.textPrimary)
         }
-        .onChange(of: overdriveActive) { isOn in
-            breathe = isOn
-        }
         .onAppear {
-            if overdriveActive {
+            // always breathe
+            breathe = true
+        }
+        .onChange(of: overdriveActive) { isOn in
+            // when we go into overdrive (100%+), just speed up the same pulse
+            if isOn {
                 breathe = true
             }
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(Int(clampedPercent * 100)) percent complete today")
     }
 }
 
