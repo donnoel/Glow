@@ -1439,6 +1439,7 @@ private struct HeroCardGlass: View {
 }
 
 // MARK: - ProgressRingView
+// MARK: - ProgressRingView
 private struct ProgressRingView: View {
     let percent: Double
     let overdriveActive: Bool
@@ -1451,12 +1452,16 @@ private struct ProgressRingView: View {
     }
 
     var body: some View {
+        // pick the right scale based on state
+        let idleScale: CGFloat = 1.015   // subtle all the time
+        let overScale: CGFloat = 1.03    // a bit more when celebrating
+
         ZStack {
-            // base
+            // base ring
             Circle()
                 .stroke(GlowTheme.borderMuted.opacity(0.35), lineWidth: 12)
 
-            // main progress ring
+            // progress
             Circle()
                 .trim(from: 0, to: min(1.0, clampedPercent))
                 .stroke(
@@ -1464,12 +1469,12 @@ private struct ProgressRingView: View {
                     style: StrokeStyle(lineWidth: 12, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-                .scaleEffect(breathe ? 1.03 : 1.0)
+                .scaleEffect(breathe ? (overdriveActive ? overScale : idleScale) : 1.0)
                 // animate percent changes
                 .animation(.easeInOut(duration: 0.25), value: clampedPercent)
                 // animate the breathing itself
                 .animation(
-                    .easeInOut(duration: overdriveActive ? 0.9 : 1.4)
+                    .easeInOut(duration: overdriveActive ? 0.9 : 2.2)
                         .repeatForever(autoreverses: true),
                     value: breathe
                 )
@@ -1479,18 +1484,18 @@ private struct ProgressRingView: View {
                 .foregroundStyle(GlowTheme.textPrimary)
         }
         .onAppear {
-            // always breathe
+            // always breathe, just slower when idle
             breathe = true
         }
         .onChange(of: overdriveActive) { isOn in
-            // when we go into overdrive (100%+), just speed up the same pulse
+            // when we hit >100%, we keep breathing — the animation above
+            // will just speed up and use the bigger scale
             if isOn {
                 breathe = true
             }
         }
     }
 }
-
 // MARK: - SchedulePicker / DayChip / Habit accent helpers
 
 struct SchedulePicker: View {
