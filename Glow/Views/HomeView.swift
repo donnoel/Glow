@@ -1283,6 +1283,7 @@ private struct HeroCardGlass: View {
     // celebration state
     @State private var overdriveActive = false
     @State private var sheenOffset: CGFloat = -200
+    @State private var showBonusGlow = false
 
     // progress inputs
     let done: Int
@@ -1369,16 +1370,21 @@ private struct HeroCardGlass: View {
             .frame(width: 88, height: 88)
 
             // RIGHT: text
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Today")
                     .font(.title.weight(.semibold))
                     .foregroundStyle(primaryTextColor)
 
                 Text(statusLine)
-                    .font(.subheadline)
-                    .monospacedDigit()
+                    .font(.footnote)
                     .foregroundStyle(secondaryTextColor)
+                    .multilineTextAlignment(.leading)
+                    .lineSpacing(1)
+                    .opacity(showBonusGlow ? 1.0 : 0.55)
+                    .scaleEffect(showBonusGlow ? 1.0 : 0.995, anchor: .leading)
+                    .animation(.easeInOut(duration: 0.85), value: showBonusGlow)
             }
+            .padding(.top, 2)
 
             Spacer(minLength: 8)
         }
@@ -1397,6 +1403,16 @@ private struct HeroCardGlass: View {
                 startOverdrive()
             }
             lastPercent = newValue
+        }
+        .onChange(of: bonus) { _, newValue in
+            if newValue > 0 {
+                pulseBonus()
+            }
+        }
+        .onAppear {
+            if bonus > 0 {
+                pulseBonus()
+            }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
@@ -1433,6 +1449,17 @@ private struct HeroCardGlass: View {
             withAnimation(.easeInOut(duration: 0.8)) {
                 overdriveActive = false
                 sheenOffset = -200
+            }
+        }
+    }
+
+    private func pulseBonus() {
+        withAnimation(.easeInOut(duration: 0.85)) {
+            showBonusGlow = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.95) {
+            withAnimation(.easeInOut(duration: 0.85)) {
+                showBonusGlow = false
             }
         }
     }
