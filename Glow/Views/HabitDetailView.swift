@@ -247,7 +247,7 @@ private struct RecentDaysStrip: View {
     let logs: [HabitLog]
     let days: Int
     let tint: Color
-    
+
     var body: some View {
         let cal = Calendar.current
         let completed = Set(
@@ -255,31 +255,28 @@ private struct RecentDaysStrip: View {
                 .filter { $0.completed }
                 .map { cal.startOfDay(for: $0.date) }
         )
-        
+
         GeometryReader { geo in
             let today = cal.startOfDay(for: Date())
             let totalWidth = geo.size.width
             let spacing: CGFloat = 6
             let count = CGFloat(days)
             let itemSize = max(16, (totalWidth - (spacing * (count - 1))) / count)
-            
-            VStack {
-                Spacer(minLength: 0)
-                HStack(spacing: spacing) {
-                    ForEach(0..<days, id: \.self) { offset in
-                        let base = cal.date(byAdding: .day, value: -offset, to: today) ?? today
-                        let cellDate = cal.startOfDay(for: base)
-                        let done = completed.contains(cellDate)
-                        
-                        RoundedRectangle(cornerRadius: 4, style: .continuous)
-                            .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
-                            .frame(width: itemSize, height: itemSize)
-                    }
+
+            HStack(spacing: spacing) {
+                ForEach(0..<days, id: \.self) { offset in
+                    let base = cal.date(byAdding: .day, value: -offset, to: today) ?? today
+                    let cellDate = cal.startOfDay(for: base)
+                    let done = completed.contains(cellDate)
+
+                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+                        .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
+                        .frame(width: itemSize, height: itemSize)
                 }
-                .frame(maxWidth: .infinity, alignment: .center)
-                Spacer(minLength: 0)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
+        .frame(height: 44)
     }
 }
 
