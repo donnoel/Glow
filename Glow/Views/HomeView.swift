@@ -28,6 +28,9 @@ struct HomeView: View {
     @State private var habitToDelete: Habit?
     @State private var monthCache: [String: MonthHeatmapModel] = [:]
     
+    // Share
+    @State private var showShare = false
+    
     // Day rollover watcher
     @State private var todayAnchor: Date = Calendar.current.startOfDay(for: Date())
     
@@ -325,6 +328,10 @@ struct HomeView: View {
                 .transition(.identity)
             }
         }
+        // share sheet for the new button
+        .sheet(isPresented: $showShare) {
+            ShareSheet(activityItems: ["I’m tracking my practices in Glow ✨"])
+        }
     }
     
     // MARK: - Home Root View with Chrome Overlay
@@ -340,6 +347,10 @@ struct HomeView: View {
                             GlowTheme.tapHaptic()
                         }
                         Spacer()
+                        // 👇 NEW SHARE BUTTON (same size/style as add)
+                        NavShareButton {
+                            showShare = true
+                        }
                         NavAddButton {
                             // reset form state when + is tapped
                             newTitle = ""
@@ -454,8 +465,6 @@ struct HomeView: View {
     }
     
     // MARK: - Midnight / new-day watcher
-    /// Called periodically to see if the calendar day rolled over.
-    /// If it did, we update `todayAnchor`, which triggers the view to recompute.
     private func checkForNewDay() {
         let cal = Calendar.current
         let startOfNow = cal.startOfDay(for: Date())
@@ -470,8 +479,6 @@ struct HomeView: View {
         List {
             // HERO
             Section {
-                // Add some top padding here so the hero visually sits just under
-                // that floating chrome instead of jammed into the status bar.
                 HeroCardGlass(
                     highlightTodayCard: $highlightTodayCard,
                     lastPercent: $lastPercent,
@@ -481,7 +488,7 @@ struct HomeView: View {
                     bonus: bonusCompletedToday.count,
                     allDone: todayCompletion.done + bonusCompletedToday.count
                 )
-                .padding(.top, 64) // sits lower, avoids overlap with chrome
+                .padding(.top, 64)
                 .listRowInsets(
                     EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
                 )
@@ -562,7 +569,7 @@ struct HomeView: View {
                 }
             }
             
-            // comfy bottom spacer so last row never slams into bottom edge
+            // comfy bottom spacer
             Section {
                 Color.clear
                     .frame(height: 48)
@@ -576,7 +583,7 @@ struct HomeView: View {
         .scrollContentBackground(.hidden)
     }
     
-    // MARK: - Row builder (NavigationLink wrapper with our glass row content)
+    // MARK: - Row builder
     
     @ViewBuilder
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
@@ -629,7 +636,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Row helpers (moved out of rowCell)
+    // MARK: - Row helpers
 
     private func handleMove(indices: IndexSet, newOffset: Int, sourceArray: [Habit]) {
         var working = sourceArray
@@ -749,6 +756,35 @@ struct HomeView: View {
             }
         }
     }
+
+    // MARK: - NavShareButton (new)
+    private struct NavShareButton: View {
+        @Environment(\.colorScheme) private var colorScheme
+        let action: () -> Void
+
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: "square.and.arrow.up.circle") // <- circle variant
+                    .font(.system(size: 27, weight: .semibold)) // a hair under the + (29)
+                    .foregroundStyle(
+                        colorScheme == .dark
+                        ? GlowTheme.accentPrimary.opacity(0.75)
+                        : GlowTheme.textSecondary
+                    )
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .shadow(
+                                color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                                radius: 20, y: 10
+                            )
+                    )
+            }
+            .accessibilityLabel("Share")
+        }
+    }
+
     // MARK: - Static helpers
 
     /// Default reminder time when creating a new practice (8:00 PM local).
@@ -760,4 +796,16 @@ struct HomeView: View {
         }
         return now
     }
+}
+
+// MARK: - ShareSheet helper
+
+private struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
