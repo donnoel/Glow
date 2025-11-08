@@ -693,8 +693,6 @@ struct HomeView: View {
 
 
 // MARK: - SidebarHandleButton
-// Small frosted circle in the top-left to open the sidebar.
-
 private struct SidebarHandleButton: View {
     @Environment(\.colorScheme) private var colorScheme
     let action: () -> Void
@@ -723,8 +721,6 @@ private struct SidebarHandleButton: View {
 }
 
 // MARK: - NavAddButton
-// (unchanged visuals, still our floating +)
-
 private struct NavAddButton: View {
     @Environment(\.colorScheme) private var colorScheme
     let action: () -> Void
@@ -738,8 +734,10 @@ private struct NavAddButton: View {
                 .background(
                     Circle()
                         .fill(.ultraThinMaterial)
-                        .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
-                                radius: 20, y: 10)
+                        .shadow(
+                            color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                            radius: 20, y: 10
+                        )
                 )
         }
     }
@@ -754,8 +752,6 @@ private struct NavAddButton: View {
 }
 
 // MARK: - HabitRowGlass
-// (unchanged except we keep the gorgeous tinted glass rows)
-
 private struct HabitRowGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
@@ -764,7 +760,6 @@ private struct HabitRowGlass: View {
 
     @State private var tappedBounce = false
 
-    // did user complete this habit today?
     private var doneToday: Bool {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
@@ -868,151 +863,7 @@ private struct HabitRowGlass: View {
     }
 }
 
-// MARK: - SchedulePicker / DayChip / Habit accent helpers
-
-struct SchedulePicker: View {
-    @Binding var selection: HabitSchedule
-
-    @State private var isCustom: Bool = false
-    @State private var setDays: Set<Weekday> = Set(Weekday.allCases)
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle(isOn: Binding(
-                    get: { !isCustom },
-                    set: { newValue in
-                        isCustom = !newValue
-                        updateSelection()
-                    }
-                )) {
-                    Text("Every day")
-                        .foregroundStyle(GlowTheme.textPrimary)
-                }
-                .toggleStyle(.switch)
-
-                if isCustom {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Which days?")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(GlowTheme.textPrimary)
-
-                        HStack(spacing: 8) {
-                            ForEach(Weekday.allCases, id: \.self) { day in
-                                let active = setDays.contains(day)
-
-                                DayChip(
-                                    label: shortLabel(for: day),
-                                    active: active
-                                ) {
-                                    if active {
-                                        setDays.remove(day)
-                                    } else {
-                                        setDays.insert(day)
-                                    }
-                                    updateSelection()
-                                }
-                                .accessibilityLabel("Toggle \(fullLabel(for: day))")
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                }
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(GlowTheme.bgSurface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
-            )
-        }
-        .onAppear {
-            isCustom = (selection.kind == .custom)
-            setDays = selection.days
-        }
-    }
-
-    private func updateSelection() {
-        if isCustom {
-            selection = .weekdays(Array(setDays))
-        } else {
-            selection = .daily
-            setDays = Set(Weekday.allCases)
-        }
-    }
-
-    private func shortLabel(for day: Weekday) -> String {
-        switch day {
-        case .sun: return "S"
-        case .mon: return "M"
-        case .tue: return "T"
-        case .wed: return "W"
-        case .thu: return "Th"
-        case .fri: return "F"
-        case .sat: return "S"
-        }
-    }
-
-    private func fullLabel(for day: Weekday) -> String {
-        switch day {
-        case .sun: return "Sunday"
-        case .mon: return "Monday"
-        case .tue: return "Tuesday"
-        case .wed: return "Wednesday"
-        case .thu: return "Thursday"
-        case .fri: return "Friday"
-        case .sat: return "Saturday"
-        }
-    }
-}
-
-private struct DayChip: View {
-    let label: String
-    let active: Bool
-    let onTap: () -> Void
-
-    var body: some View {
-        Button(action: onTap) {
-            Text(label)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(
-                    active
-                    ? GlowTheme.accentPrimary
-                    : GlowTheme.textPrimary
-                )
-                .frame(minWidth: 32, minHeight: 32)
-                .background(
-                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                        .fill(
-                            active
-                            ? GlowTheme.accentPrimary.opacity(0.15)
-                            : GlowTheme.borderMuted.opacity(0.15)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(
-                                    active
-                                    ? GlowTheme.accentPrimary
-                                    : GlowTheme.borderMuted.opacity(0.4),
-                                    lineWidth: active ? 2 : 1
-                                )
-                        )
-                )
-        }
-        .buttonStyle(.plain)
-        .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .frame(maxWidth: .infinity)
-        .accessibilityAddTraits(
-            active ? [.isSelected] : []
-        )
-    }
-}
-
 // MARK: - Habit accent helper
-
 extension Habit {
     var accentColorName: String {
         switch abs(id.hashValue) % 10 {
@@ -1039,7 +890,6 @@ extension Notification.Name {
 }
 
 extension Habit {
-    /// Minimal stand-in habit so we can reuse StreakEngine at the global level.
     static var placeholder: Habit {
         Habit(
             title: "Any Habit",
@@ -1055,191 +905,18 @@ extension Habit {
     }
 }
 
-// MARK: - AboutGlowView
-// Lightweight "About" sheet. Lives in a card so it feels like Glow voice, not Settings.app.
-
-private struct AboutGlowView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
-
-    // Fake version for now — you can wire this to Bundle.main later
-    private let appVersion = "1.0 (Beta)"
-
-    private var glassCardBackground: some View {
-        RoundedRectangle(cornerRadius: 24, style: .continuous)
-            .fill(.ultraThinMaterial)
-            .overlay(
-                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                    .stroke(
-                        Color.white
-                            .opacity(colorScheme == .dark ? 0.18 : 0.4),
-                        lineWidth: 1
-                    )
-                    .blendMode(.plusLighter)
-            )
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.7 : 0.12),
-                radius: 32,
-                y: 20
-            )
-    }
-
-    var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
-
-                    // Glow identity + version
-                    VStack(spacing: 12) {
-                        Image(systemName: "sparkles")
-                            .font(.system(size: 32, weight: .semibold))
-                            .foregroundStyle(GlowTheme.accentPrimary)
-
-                        Text("Glow")
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(
-                                colorScheme == .dark ? .white : GlowTheme.textPrimary
-                            )
-
-                        Text("Version \(appVersion)")
-                            .font(.footnote.monospacedDigit())
-                            .foregroundStyle(
-                                colorScheme == .dark
-                                ? Color.white.opacity(0.6)
-                                : GlowTheme.textSecondary
-                            )
-                    }
-                    .frame(maxWidth: .infinity)
-
-                    // Mission card
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Why Glow exists")
-                            .font(.headline)
-                            .foregroundStyle(
-                                colorScheme == .dark ? .white : GlowTheme.textPrimary
-                            )
-
-                        Text(
-                            "Glow helps you show up for yourself every day. Not with guilt, not with streak anxiety — just gentle momentum.\n\nYou pick the practices that matter. Glow tracks them, celebrates the small wins, and keeps the rhythm going."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(
-                            colorScheme == .dark
-                            ? Color.white.opacity(0.8)
-                            : GlowTheme.textSecondary
-                        )
-                        .multilineTextAlignment(.leading)
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(glassCardBackground)
-
-                    // Privacy card
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Your data")
-                            .font(.headline)
-                            .foregroundStyle(
-                                colorScheme == .dark ? .white : GlowTheme.textPrimary
-                            )
-
-                        Text(
-                            "Your habits are yours. Glow keeps your practices on your device.\n\nWe’re working on optional iCloud sync so you can see them on iPad without creating an account."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(
-                            colorScheme == .dark
-                            ? Color.white.opacity(0.8)
-                            : GlowTheme.textSecondary
-                        )
-                        .multilineTextAlignment(.leading)
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(glassCardBackground)
-
-                    // Credits / contact card
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Made with care")
-                            .font(.headline)
-                            .foregroundStyle(
-                                colorScheme == .dark ? .white : GlowTheme.textPrimary
-                            )
-
-                        Text(
-                            "Glow is being crafted by a tiny team that really cares about daily habits, mental energy, and showing up.\n\nWe’d love to hear what’s working (and what’s not)."
-                        )
-                        .font(.subheadline)
-                        .foregroundStyle(
-                            colorScheme == .dark
-                            ? Color.white.opacity(0.8)
-                            : GlowTheme.textSecondary
-                        )
-                        .multilineTextAlignment(.leading)
-
-                        Button {
-                            if let url = URL(string: "mailto:donnoel@icloud.com?subject=Glow%20Feedback") {
-                                UIApplication.shared.open(url)
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 15, weight: .semibold))
-                                Text("Send Feedback")
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            .foregroundStyle(GlowTheme.accentPrimary)
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(
-                                        GlowTheme.accentPrimary.opacity(
-                                            colorScheme == .dark ? 0.18 : 0.12
-                                        )
-                                    )
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Send feedback about Glow")
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(glassCardBackground)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 40)
-            }
-            .navigationTitle("About Glow")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .font(.body.weight(.semibold))
-                }
-            }
-        }
-    }
-}
-
 // MARK: - YouView
-// Personal "You" sheet surfaced from the sidebar
-
 private struct YouView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
-    // 🔥 live data coming in from HomeView
     let currentStreak: Int
     let bestStreak: Int
     let favoriteTitle: String
-    let favoriteHits: Int      // e.g. "9" times in window
-    let favoriteWindow: Int    // e.g. "14" days window
-    let checkInTime: Date      // e.g. ~8:15pm
+    let favoriteHits: Int
+    let favoriteWindow: Int
+    let checkInTime: Date
 
-    // small formatter for the usual check-in time ("8:15 PM")
     private var checkInTimeString: String {
         let f = DateFormatter()
         f.dateStyle = .none
@@ -1247,15 +924,13 @@ private struct YouView: View {
         return f.string(from: checkInTime)
     }
 
-    // shared glass background
     private var glassCardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(.ultraThinMaterial)
             .overlay(
                 RoundedRectangle(cornerRadius: 24, style: .continuous)
                     .stroke(
-                        Color.white
-                            .opacity(colorScheme == .dark ? 0.18 : 0.4),
+                        Color.white.opacity(colorScheme == .dark ? 0.18 : 0.4),
                         lineWidth: 1
                     )
                     .blendMode(.plusLighter)
@@ -1271,8 +946,6 @@ private struct YouView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-
-                    // MARK: Greeting / headline
                     VStack(spacing: 8) {
                         Text("Hi there 👋")
                             .font(.title2.weight(.semibold))
@@ -1292,16 +965,13 @@ private struct YouView: View {
                     }
                     .frame(maxWidth: .infinity)
 
-                    // MARK: Right now card (REAL DATA ⭐)
                     VStack(alignment: .leading, spacing: 16) {
-
                         Text("Right now")
                             .font(.headline)
                             .foregroundStyle(
                                 colorScheme == .dark ? .white : GlowTheme.textPrimary
                             )
 
-                        // streak row
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             Image(systemName: "flame.fill")
                                 .foregroundStyle(GlowTheme.accentPrimary)
@@ -1323,7 +993,6 @@ private struct YouView: View {
                             }
                         }
 
-                        // most consistent habit row
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             Image(systemName: "heart.fill")
                                 .foregroundStyle(.pink)
@@ -1345,7 +1014,6 @@ private struct YouView: View {
                             }
                         }
 
-                        // check-in time row
                         HStack(alignment: .firstTextBaseline, spacing: 12) {
                             Image(systemName: "clock.fill")
                                 .foregroundStyle(GlowTheme.accentPrimary)
@@ -1371,7 +1039,6 @@ private struct YouView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(glassCardBackground)
 
-                    // MARK: Future card / roadmap vibes
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Coming soon")
                             .font(.headline)
