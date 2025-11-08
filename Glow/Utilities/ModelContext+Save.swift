@@ -11,4 +11,17 @@ extension ModelContext {
             #endif
         }
     }
+
+    @discardableResult
+    func saveSafelyReturningSuccess(file: StaticString = #fileID, line: UInt = #line) -> Bool {
+        do {
+            try self.save()
+            return true
+        } catch {
+            #if DEBUG
+            print("⚠️ SwiftData save failed at \(file):\(line) – \(error)")
+            #endif
+            return false
+        }
+    }
 }
