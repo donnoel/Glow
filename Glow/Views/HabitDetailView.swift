@@ -84,18 +84,14 @@ struct HabitDetailView: View {
                         month: monthAnchor,
                         tint: habitTint,
                         onPrev: {
-                            monthAnchor = Calendar.current.date(
-                                byAdding: .month,
-                                value: -1,
-                                to: monthAnchor
-                            )!
+                            if let prev = Calendar.current.date(byAdding: .month, value: -1, to: monthAnchor) {
+                                monthAnchor = prev
+                            }
                         },
                         onNext: {
-                            monthAnchor = Calendar.current.date(
-                                byAdding: .month,
-                                value: 1,
-                                to: monthAnchor
-                            )!
+                            if let next = Calendar.current.date(byAdding: .month, value: 1, to: monthAnchor) {
+                                monthAnchor = next
+                            }
                         }
                     )
                 }
@@ -188,7 +184,13 @@ struct HabitDetailView: View {
     // MARK: - Helpers
     private func weeklyPercent(from logs: [HabitLog]) -> Double {
         let cal = Calendar.current
-        let start = cal.startOfDay(for: cal.date(byAdding: .day, value: -6, to: Date())!)
+        let today = cal.startOfDay(for: Date())
+
+        // today + previous 6 days = 7
+        guard let start = cal.date(byAdding: .day, value: -6, to: today) else {
+            return 0.0
+        }
+
         let completed = Set(
             logs
                 .filter { $0.completed && $0.date >= start }
@@ -197,9 +199,13 @@ struct HabitDetailView: View {
 
         var hits = 0
         for i in 0..<7 {
-            let d = cal.startOfDay(for: cal.date(byAdding: .day, value: -i, to: Date())!)
-            if completed.contains(d) { hits += 1 }
+            guard let day = cal.date(byAdding: .day, value: -i, to: today) else { continue }
+            let d = cal.startOfDay(for: day)
+            if completed.contains(d) {
+                hits += 1
+            }
         }
+
         return Double(hits) / 7.0
     }
 
@@ -241,7 +247,7 @@ private struct RecentDaysStrip: View {
     let logs: [HabitLog]
     let days: Int
     let tint: Color
-
+    
     var body: some View {
         let cal = Calendar.current
         let completed = Set(
@@ -249,22 +255,22 @@ private struct RecentDaysStrip: View {
                 .filter { $0.completed }
                 .map { cal.startOfDay(for: $0.date) }
         )
-
+        
         GeometryReader { geo in
+            let today = cal.startOfDay(for: Date())
             let totalWidth = geo.size.width
             let spacing: CGFloat = 6
             let count = CGFloat(days)
             let itemSize = max(16, (totalWidth - (spacing * (count - 1))) / count)
-
+            
             VStack {
                 Spacer(minLength: 0)
                 HStack(spacing: spacing) {
                     ForEach(0..<days, id: \.self) { offset in
-                        let cellDate = cal.startOfDay(
-                            for: cal.date(byAdding: .day, value: -offset, to: Date())!
-                        )
+                        let base = cal.date(byAdding: .day, value: -offset, to: today) ?? today
+                        let cellDate = cal.startOfDay(for: base)
                         let done = completed.contains(cellDate)
-
+                        
                         RoundedRectangle(cornerRadius: 4, style: .continuous)
                             .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
                             .frame(width: itemSize, height: itemSize)
@@ -274,7 +280,6 @@ private struct RecentDaysStrip: View {
                 Spacer(minLength: 0)
             }
         }
-        .frame(height: 28)
     }
 }
 
@@ -285,45 +290,55 @@ private struct MonthHeatmap: View {
     let tint: Color
     let onPrev: () -> Void
     let onNext: () -> Void
-
+    
     private var cal: Calendar { Calendar.current }
-
+    
     private var monthTitle: String {
         month.formatted(.dateTime.year().month(.wide))
     }
-
+    
     private var gridDates: [[Date?]] {
-        let first = cal.date(from: cal.dateComponents([.year, .month], from: month))!
-        let range = cal.range(of: .day, in: .month, for: first)!
+        guard let first = cal.date(from: cal.dateComponents([.year, .month], from: month)),
+              let range = cal.range(of: .day, in: .month, for: first) else {
+            // fallback: a single empty week
+            return [Array(repeating: nil, count: 7)]
+        }
+        
         let count = range.count
-
         let firstWeekday = cal.component(.weekday, from: first) // Sun = 1
         let leadingBlanks = firstWeekday - 1
-
+        
         var cells: [Date?] = Array(repeating: nil, count: leadingBlanks)
+        
         for day in 1...count {
-            let d = cal.date(byAdding: .day, value: day - 1, to: first)!
-            cells.append(d)
+            if let d = cal.date(byAdding: .day, value: day - 1, to: first) {
+                cells.append(d)
+            }
         }
+        
+        // pad to full weeks
         while cells.count % 7 != 0 { cells.append(nil) }
         while cells.count < 42 { cells.append(nil) }
-
+        
         var weeks: [[Date?]] = []
         for i in stride(from: 0, to: cells.count, by: 7) {
-            weeks.append(Array(cells[i..<min(i+7, cells.count)]))
+            weeks.append(Array(cells[i..<min(i + 7, cells.count)]))
         }
         return weeks
     }
-
+    
     private var completedDays: Set<Date> {
-        let start = cal.date(from: cal.dateComponents([.year, .month], from: month))!
-        let end = cal.date(byAdding: DateComponents(month: 1, day: 0), to: start)!
+        guard let start = cal.date(from: cal.dateComponents([.year, .month], from: month)),
+              let end = cal.date(byAdding: DateComponents(month: 1, day: 0), to: start) else {
+            return []
+        }
+
         let normalized = habit.logs
             .filter { $0.completed && $0.date >= start && $0.date < end }
             .map { cal.startOfDay(for: $0.date) }
         return Set(normalized)
     }
-
+    
     var body: some View {
         VStack(spacing: 8) {
             header
@@ -348,7 +363,7 @@ private struct MonthHeatmap: View {
         )
         .accessibilityElement(children: .contain)
     }
-
+    
     private var header: some View {
         HStack {
             Button(action: onPrev) {
@@ -356,15 +371,15 @@ private struct MonthHeatmap: View {
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
-
+            
             Spacer()
-
+            
             Text(monthTitle)
                 .font(.headline)
                 .foregroundStyle(GlowTheme.textPrimary)
-
+            
             Spacer()
-
+            
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
             }
@@ -373,7 +388,7 @@ private struct MonthHeatmap: View {
         }
         .accessibilityLabel("Month navigation")
     }
-
+    
     private var weekdayHeader: some View {
         HStack {
             ForEach(["S","M","T","W","Th","F","S"], id: \.self) { d in
@@ -384,7 +399,7 @@ private struct MonthHeatmap: View {
             }
         }
     }
-
+    
     private var grid: some View {
         let today = cal.startOfDay(for: .now)
         return VStack(spacing: 6) {
@@ -405,26 +420,26 @@ private struct MonthHeatmap: View {
             }
         }
     }
-
+    
     private var summary: some View {
         let totalDaysInMonth = gridDates
             .flatMap { $0 }
             .compactMap { $0 }
             .filter { cal.isDate($0, equalTo: month, toGranularity: .month) }
-
+        
         let doneCount = totalDaysInMonth.filter {
             completedDays.contains(cal.startOfDay(for: $0))
         }.count
-
+        
         let pct = totalDaysInMonth.isEmpty
-            ? 0
-            : Int((Double(doneCount) / Double(totalDaysInMonth.count)) * 100.0)
-
+        ? 0
+        : Int((Double(doneCount) / Double(totalDaysInMonth.count)) * 100.0)
+        
         let inMonthLogs = habit.logs.filter {
             cal.isDate($0.date, equalTo: month, toGranularity: .month) && $0.completed
         }
         let monthStreak = StreakEngine.computeStreaks(logs: inMonthLogs).current
-
+        
         return HStack(spacing: 0) {
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
@@ -432,7 +447,7 @@ private struct MonthHeatmap: View {
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-
+            
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
                 Text("Streak \(monthStreak)")
@@ -459,7 +474,7 @@ private struct DayCell: View {
     let isInMonth: Bool
     let done: Bool
     let tint: Color
-
+    
     var body: some View {
         ZStack {
             if let _ = date {
@@ -492,27 +507,27 @@ private struct DayCell: View {
         .accessibilityHidden(date == nil)
         .accessibilityLabel(accessibilityLabel)
     }
-
+    
     private var fillStyle: some ShapeStyle {
         guard date != nil else { return Color.clear }
         if !isInMonth {
             return GlowTheme.borderMuted.opacity(0.08)
         }
         return done
-            ? tint.opacity(0.85)
-            : GlowTheme.borderMuted.opacity(0.15)
+        ? tint.opacity(0.85)
+        : GlowTheme.borderMuted.opacity(0.15)
     }
-
+    
     private var dateLabel: String {
         guard let d = date else { return "" }
         return Calendar.current.component(.day, from: d).description
     }
-
+    
     private var accessibilityLabel: String {
         guard let d = date else { return "" }
         let formatted = d.formatted(date: .abbreviated, time: .omitted)
         return done
-            ? "Completed on \(formatted)"
-            : "Not completed on \(formatted)"
+        ? "Completed on \(formatted)"
+        : "Not completed on \(formatted)"
     }
 }
