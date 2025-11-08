@@ -7,7 +7,7 @@ struct IconPickerRow: View {
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 12) {
+            LazyHStack(spacing: 12) {
                 ForEach(HabitIconLibrary.all, id: \.id) { icon in
                     IconChip(
                         symbolName: icon.name,
@@ -20,7 +20,6 @@ struct IconPickerRow: View {
             }
             .padding(.vertical, 4)
         }
-        .accessibilityElement(children: .contain)
         .accessibilityLabel("Choose icon")
     }
 }
@@ -30,6 +29,7 @@ private struct IconChip: View {
     let label: String
     let isSelected: Bool
     let onTap: () -> Void
+    let tint: Color = GlowTheme.accentPrimary
 
     var body: some View {
         Button(action: onTap) {
@@ -37,14 +37,14 @@ private struct IconChip: View {
                 ZStack {
                     Circle()
                         .fill(isSelected
-                              ? GlowTheme.accentPrimary.opacity(0.15)
+                              ? tint.opacity(0.15)
                               : GlowTheme.borderMuted.opacity(0.15)
                         )
                         .overlay(
                             Circle()
                                 .stroke(
                                     isSelected
-                                    ? GlowTheme.accentPrimary
+                                    ? tint
                                     : GlowTheme.borderMuted.opacity(0.4),
                                     lineWidth: isSelected ? 2 : 1
                                 )
@@ -55,7 +55,7 @@ private struct IconChip: View {
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(
                             isSelected
-                            ? GlowTheme.accentPrimary
+                            ? tint
                             : GlowTheme.textPrimary
                         )
                         .accessibilityHidden(true)
