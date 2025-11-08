@@ -53,9 +53,8 @@ struct TrendsView: View {
     /// How many of the last 7 days did the user complete *anything*?
     private var weeklyActiveDaysCount: Int {
         let cal = Calendar.current
-        let start = cal.startOfDay(
-            for: cal.date(byAdding: .day, value: -6, to: now)!
-        )
+        let today = cal.startOfDay(for: now)
+        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
 
         let completedDays = Set(
             habits
@@ -230,9 +229,8 @@ struct TrendsView: View {
     /// % of last 7 days this habit was completed.
     private func percentLast7Days(for habit: Habit) -> Int {
         let cal = Calendar.current
-        let start = cal.startOfDay(
-            for: cal.date(byAdding: .day, value: -6, to: now)!
-        )
+        let today = cal.startOfDay(for: now)
+        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
 
         let completedDays = Set(
             habit.logs
@@ -241,7 +239,6 @@ struct TrendsView: View {
         )
 
         let count = completedDays.count
-        // denominator is always 7 for now
         let pct = (Double(count) / 7.0) * 100.0
         return Int(pct.rounded())
     }
@@ -340,11 +337,8 @@ private struct WeeklyActivityStrip: View {
 
     private var daysData: [(date: Date, didAnything: Bool)] {
         let cal = Calendar.current
-        let now = Date()
-
-        let start = cal.startOfDay(
-            for: cal.date(byAdding: .day, value: -6, to: now)!
-        )
+        let today = cal.startOfDay(for: Date())
+        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
 
         var map: [Date: Bool] = [:]
 
@@ -359,9 +353,8 @@ private struct WeeklyActivityStrip: View {
 
         // oldest → newest
         return (0..<7).reversed().map { offset in
-            let d = cal.startOfDay(
-                for: cal.date(byAdding: .day, value: -offset, to: now)!
-            )
+            let base = cal.date(byAdding: .day, value: -offset, to: today) ?? today
+            let d = cal.startOfDay(for: base)
             return (date: d, didAnything: map[d] ?? false)
         }
     }
@@ -408,10 +401,14 @@ private struct WeeklyActivityStrip: View {
         .accessibilityLabel("Weekly activity. Most recent day is on the right.")
     }
 
-    private func shortWeekday(for date: Date) -> String {
+    private static let weekdayFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "E"
-        return f.string(from: date)
+        return f
+    }()
+
+    private func shortWeekday(for date: Date) -> String {
+        WeeklyActivityStrip.weekdayFormatter.string(from: date)
     }
 }
 
