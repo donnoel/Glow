@@ -19,12 +19,14 @@ enum GlowTheme {
     static func tapHaptic() {
         #if os(iOS)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        #else
+        // Haptics not available on this platform
         #endif
     }
 
     // Hero gradient (not currently applied to cards in M10, but we keep it
     // around for future dashboard widgets or marketing moments)
-    static var heroGradient: LinearGradient {
+    static let heroGradient: LinearGradient = {
         LinearGradient(
             colors: [
                 accentPrimary.opacity(0.55),
@@ -33,7 +35,7 @@ enum GlowTheme {
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
-    }
+    }()
 }
 
 // MARK: - View helpers
@@ -48,5 +50,10 @@ extension View {
     func glowScreenBackground() -> some View {
         self
             .background(GlowTheme.bgPrimary.ignoresSafeArea())
+    }
+
+    /// Applies the surface background (for cards/lists) to the screen.
+    func glowSurfaceBackground() -> some View {
+        self.background(GlowTheme.bgSurface.ignoresSafeArea())
     }
 }
