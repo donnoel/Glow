@@ -42,9 +42,9 @@ enum NotificationManager {
 
             let trigger = UNCalendarNotificationTrigger(dateMatching: dc, repeats: true)
             let content = UNMutableNotificationContent()
-            content.title = "glow"
+            content.title = "Glow"
             content.subtitle = habit.title
-            content.body = "It’s time to complete your habit."
+            content.body = "Did you complete your practice?"
             content.sound = .default
 
             let id = "habit.\(habit.id).weekday.\(day.rawValue)"
