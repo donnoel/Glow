@@ -58,12 +58,18 @@ final class Habit {
 // MARK: - Computed helpers
 
 extension Habit {
+    private static let scheduleEncoder = JSONEncoder()
+    private static let scheduleDecoder = JSONDecoder()
+
     var schedule: HabitSchedule {
         get {
-            (try? JSONDecoder().decode(HabitSchedule.self, from: scheduleData)) ?? .daily
+            (try? Habit.scheduleDecoder.decode(HabitSchedule.self, from: scheduleData)) ?? .daily
         }
         set {
-            scheduleData = (try? JSONEncoder().encode(newValue)) ?? Data()
+            if let data = try? Habit.scheduleEncoder.encode(newValue) {
+                scheduleData = data
+            }
+            // if encoding fails, keep the existing scheduleData instead of wiping it
         }
     }
 
@@ -79,6 +85,10 @@ extension Habit {
         dc.hour = h
         dc.minute = m
         return dc
+    }
+
+    var hasValidReminder: Bool {
+        reminderEnabled && reminderHour != nil && reminderMinute != nil
     }
 
     func setReminderTime(from date: Date) {
