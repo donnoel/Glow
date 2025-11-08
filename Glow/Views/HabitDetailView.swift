@@ -3,19 +3,34 @@ import SwiftData
 
 struct HabitDetailView: View {
     let habit: Habit
-    @State private var monthAnchor: Date = .now
+    /// If the parent (HomeView) already built the month model, we can reuse it and avoid doing it during the push.
+    let prewarmedMonth: MonthHeatmapModel?
+
+    @State private var monthAnchor: Date
+
+    init(habit: Habit, prewarmedMonth: MonthHeatmapModel? = nil) {
+        self.habit = habit
+        self.prewarmedMonth = prewarmedMonth
+        // if we got a prewarmed month, start on that month so we don't recompute
+        self._monthAnchor = State(initialValue: prewarmedMonth?.month ?? .now)
+    }
 
     private var habitTint: Color {
         habit.accentColor
     }
 
+    private var logs: [HabitLog] {
+        habit.logs
+    }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
+            // make this lazy so we don't eagerly layout everything below the fold
+            LazyVStack(alignment: .leading, spacing: 24) {
 
                 // HEADER / STREAKS
                 headerSection
-                    .padding(.top, 8) // slight breathing under nav bar
+                    .padding(.top, 8)
 
                 // RECENT
                 VStack(alignment: .leading, spacing: 8) {
@@ -23,22 +38,11 @@ struct HabitDetailView: View {
                         .font(.headline)
                         .foregroundStyle(GlowTheme.textPrimary)
 
-                    RecentDaysStrip(logs: habit.logs, days: 14, tint: habitTint)
+                    RecentDaysStrip(logs: logs, days: 14, tint: habitTint)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 8)
                         .padding(.horizontal, 16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .fill(GlowTheme.bgSurface)
-                        )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
-                        )
-                        .shadow(
-                            color: Color.black.opacity(0.15),
-                            radius: 20, y: 10
-                        )
+                        .glowSurfaceCard(cornerRadius: 16)
                 }
 
                 // WEEK
@@ -47,7 +51,7 @@ struct HabitDetailView: View {
                         .font(.headline)
                         .foregroundStyle(GlowTheme.textPrimary)
 
-                    WeeklyProgressRing(percent: weeklyPercent(from: habit.logs), tint: habitTint)
+                    WeeklyProgressRing(percent: weeklyPercent(from: logs), tint: habitTint)
                         .frame(height: 120)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(16)
@@ -61,10 +65,7 @@ struct HabitDetailView: View {
                                 )
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(
-                                            habitTint.opacity(0.28),
-                                            lineWidth: 1
-                                        )
+                                        .stroke(habitTint.opacity(0.28), lineWidth: 1)
                                 )
                                 .shadow(
                                     color: Color.black.opacity(0.4),
@@ -83,6 +84,7 @@ struct HabitDetailView: View {
                         habit: habit,
                         month: monthAnchor,
                         tint: habitTint,
+                        prewarmed: prewarmedMonth,
                         onPrev: {
                             if let prev = Calendar.current.date(byAdding: .month, value: -1, to: monthAnchor) {
                                 monthAnchor = prev
@@ -96,22 +98,20 @@ struct HabitDetailView: View {
                     )
                 }
 
-                // >>> THIS IS THE MAGIC LINE <<<
-                // This guarantees we ALWAYS get comfy air below the calendar
+                // comfy bottom air
                 Spacer(minLength: 32)
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 24) // keeps it off the home bar / bottom edge
+            .padding(.bottom, 24)
         }
         .navigationTitle("Details")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 
-    // MARK: - Header / Streaks (unchanged layout, just pulled into VStack world)
     // MARK: - Header / Streaks
     private var headerSection: some View {
-        let s = computeStreaks(from: habit.logs)
+        let streaks = computeStreaks(from: logs)
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
@@ -119,15 +119,10 @@ struct HabitDetailView: View {
                 // icon bubble
                 ZStack {
                     Circle()
-                        .fill(
-                            habitTint.opacity(0.18)
-                        )
+                        .fill(habitTint.opacity(0.18))
                         .overlay(
                             Circle()
-                                .stroke(
-                                    habitTint.opacity(0.4),
-                                    lineWidth: 1
-                                )
+                                .stroke(habitTint.opacity(0.4), lineWidth: 1)
                         )
                         .frame(width: 40, height: 40)
 
@@ -144,14 +139,14 @@ struct HabitDetailView: View {
 
                     HStack(spacing: 12) {
                         Label {
-                            Text("\(s.current)d streak")
+                            Text("\(streaks.current)d streak")
                                 .monospacedDigit()
                         } icon: {
                             Image(systemName: "flame.fill")
                         }
 
                         Label {
-                            Text("best \(s.best)d")
+                            Text("best \(streaks.best)d")
                                 .monospacedDigit()
                         } icon: {
                             Image(systemName: "trophy.fill")
@@ -160,27 +155,16 @@ struct HabitDetailView: View {
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(GlowTheme.textSecondary)
                     .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Current streak \(s.current) days. Best streak \(s.best) days.")
+                    .accessibilityLabel("Current streak \(streaks.current) days. Best streak \(streaks.best) days.")
                 }
 
                 Spacer(minLength: 8)
             }
         }
         .padding(16)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(GlowTheme.bgSurface)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
-        )
-        .shadow(
-            color: Color.black.opacity(0.15),
-            radius: 20,
-            y: 10
-        )
+        .glowSurfaceCard(cornerRadius: 20)
     }
+
     // MARK: - Helpers
     private func weeklyPercent(from logs: [HabitLog]) -> Double {
         let cal = Calendar.current
@@ -244,20 +228,30 @@ private struct WeeklyProgressRing: View {
 
 // MARK: - RecentDaysStrip
 private struct RecentDaysStrip: View {
-    let logs: [HabitLog]
     let days: Int
     let tint: Color
+    private let calendar: Calendar
+    private let today: Date
+    private let completed: Set<Date>
 
-    var body: some View {
+    init(logs: [HabitLog], days: Int, tint: Color) {
+        self.days = days
+        self.tint = tint
         let cal = Calendar.current
-        let completed = Set(
+        self.calendar = cal
+        let today = cal.startOfDay(for: Date())
+        self.today = today
+
+        let completedSet = Set(
             logs
                 .filter { $0.completed }
                 .map { cal.startOfDay(for: $0.date) }
         )
+        self.completed = completedSet
+    }
 
+    var body: some View {
         GeometryReader { geo in
-            let today = cal.startOfDay(for: Date())
             let totalWidth = geo.size.width
             let spacing: CGFloat = 6
             let count = CGFloat(days)
@@ -265,8 +259,8 @@ private struct RecentDaysStrip: View {
 
             HStack(spacing: spacing) {
                 ForEach(0..<days, id: \.self) { offset in
-                    let base = cal.date(byAdding: .day, value: -offset, to: today) ?? today
-                    let cellDate = cal.startOfDay(for: base)
+                    let base = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
+                    let cellDate = calendar.startOfDay(for: base)
                     let done = completed.contains(cellDate)
 
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
@@ -280,60 +274,31 @@ private struct RecentDaysStrip: View {
     }
 }
 
-// MARK: - MonthHeatmap (mostly unchanged, just standalone)
+// MARK: - MonthHeatmap
 private struct MonthHeatmap: View {
-    let habit: Habit
-    let month: Date
+    let model: MonthHeatmapModel
     let tint: Color
     let onPrev: () -> Void
     let onNext: () -> Void
-    
-    private var cal: Calendar { Calendar.current }
-    
-    private var monthTitle: String {
-        month.formatted(.dateTime.year().month(.wide))
-    }
-    
-    private var gridDates: [[Date?]] {
-        guard let first = cal.date(from: cal.dateComponents([.year, .month], from: month)),
-              let range = cal.range(of: .day, in: .month, for: first) else {
-            // fallback: a single empty week
-            return [Array(repeating: nil, count: 7)]
-        }
-        
-        let count = range.count
-        let firstWeekday = cal.component(.weekday, from: first) // Sun = 1
-        let leadingBlanks = firstWeekday - 1
-        
-        var cells: [Date?] = Array(repeating: nil, count: leadingBlanks)
-        
-        for day in 1...count {
-            if let d = cal.date(byAdding: .day, value: day - 1, to: first) {
-                cells.append(d)
-            }
-        }
-        
-        // pad to full weeks
-        while cells.count % 7 != 0 { cells.append(nil) }
-        while cells.count < 42 { cells.append(nil) }
-        
-        var weeks: [[Date?]] = []
-        for i in stride(from: 0, to: cells.count, by: 7) {
-            weeks.append(Array(cells[i..<min(i + 7, cells.count)]))
-        }
-        return weeks
-    }
-    
-    private var completedDays: Set<Date> {
-        guard let start = cal.date(from: cal.dateComponents([.year, .month], from: month)),
-              let end = cal.date(byAdding: DateComponents(month: 1, day: 0), to: start) else {
-            return []
-        }
 
-        let normalized = habit.logs
-            .filter { $0.completed && $0.date >= start && $0.date < end }
-            .map { cal.startOfDay(for: $0.date) }
-        return Set(normalized)
+    init(
+        habit: Habit,
+        month: Date,
+        tint: Color,
+        prewarmed: MonthHeatmapModel? = nil,
+        onPrev: @escaping () -> Void,
+        onNext: @escaping () -> Void
+    ) {
+        let cal = Calendar.current
+        if let pre = prewarmed,
+           cal.isDate(pre.month, equalTo: month, toGranularity: .month) {
+            self.model = pre
+        } else {
+            self.model = MonthHeatmapModel(habit: habit, month: month)
+        }
+        self.tint = tint
+        self.onPrev = onPrev
+        self.onNext = onNext
     }
     
     var body: some View {
@@ -371,7 +336,7 @@ private struct MonthHeatmap: View {
             
             Spacer()
             
-            Text(monthTitle)
+            Text(model.monthTitle)
                 .font(.headline)
                 .foregroundStyle(GlowTheme.textPrimary)
             
@@ -388,7 +353,7 @@ private struct MonthHeatmap: View {
     
     private var weekdayHeader: some View {
         HStack {
-            ForEach(["S","M","T","W","Th","F","S"], id: \.self) { d in
+            ForEach(model.weekdays, id: \.self) { d in
                 Text(d)
                     .font(.caption2)
                     .foregroundStyle(GlowTheme.textSecondary)
@@ -398,17 +363,16 @@ private struct MonthHeatmap: View {
     }
     
     private var grid: some View {
-        let today = cal.startOfDay(for: .now)
-        return VStack(spacing: 6) {
-            ForEach(0..<gridDates.count, id: \.self) { row in
+        VStack(spacing: 6) {
+            ForEach(0..<model.gridDates.count, id: \.self) { row in
                 HStack(spacing: 6) {
                     ForEach(0..<7, id: \.self) { col in
-                        let cellDate = gridDates[row][col]
+                        let cellDate = model.gridDates[row][col]
                         DayCell(
                             date: cellDate,
-                            isToday: cellDate.map { cal.startOfDay(for: $0) == today } ?? false,
-                            isInMonth: cellDate.map { cal.isDate($0, equalTo: month, toGranularity: .month) } ?? false,
-                            done: cellDate.map { completedDays.contains(cal.startOfDay(for: $0)) } ?? false,
+                            isToday: cellDate.map { model.isToday($0) } ?? false,
+                            isInMonth: cellDate.map { model.isInMonth($0) } ?? false,
+                            done: cellDate.map { model.isCompleted($0) } ?? false,
                             tint: tint
                         )
                         .frame(maxWidth: .infinity)
@@ -419,35 +383,17 @@ private struct MonthHeatmap: View {
     }
     
     private var summary: some View {
-        let totalDaysInMonth = gridDates
-            .flatMap { $0 }
-            .compactMap { $0 }
-            .filter { cal.isDate($0, equalTo: month, toGranularity: .month) }
-        
-        let doneCount = totalDaysInMonth.filter {
-            completedDays.contains(cal.startOfDay(for: $0))
-        }.count
-        
-        let pct = totalDaysInMonth.isEmpty
-        ? 0
-        : Int((Double(doneCount) / Double(totalDaysInMonth.count)) * 100.0)
-        
-        let inMonthLogs = habit.logs.filter {
-            cal.isDate($0.date, equalTo: month, toGranularity: .month) && $0.completed
-        }
-        let monthStreak = StreakEngine.computeStreaks(logs: inMonthLogs).current
-        
-        return HStack(spacing: 0) {
+        HStack(spacing: 0) {
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
-                Text("\(pct)% this month")
+                Text("\(model.pct)% this month")
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
-                Text("Streak \(monthStreak)")
+                Text("Streak \(model.monthStreak)")
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -459,12 +405,113 @@ private struct MonthHeatmap: View {
         .padding(.bottom, 4)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Month completion \(pct) percent. Current month streak \(monthStreak) days."
+            "Month completion \(model.pct) percent. Current month streak \(model.monthStreak) days."
         )
     }
 }
 
-// MARK: - DayCell (unchanged)
+// MARK: - MonthHeatmapModel
+/// Made this internal (no `private`) so we can pass it in from HomeView.
+struct MonthHeatmapModel {
+    let cal: Calendar
+    let month: Date
+    let monthTitle: String
+    let gridDates: [[Date?]]
+    let completedDays: Set<Date>
+    let totalDaysInMonth: [Date]
+    let pct: Int
+    let monthStreak: Int
+    let today: Date
+    let weekdays: [String] = ["S","M","T","W","Th","F","S"]
+
+    init(habit: Habit, month: Date) {
+        let cal = Calendar.current
+        self.cal = cal
+        self.month = month
+        self.today = cal.startOfDay(for: .now)
+        self.monthTitle = month.formatted(.dateTime.year().month(.wide))
+
+        let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: month))
+        let daysRange = startOfMonth.flatMap { cal.range(of: .day, in: .month, for: $0) }
+
+        if let start = startOfMonth, let range = daysRange {
+            let firstWeekday = cal.component(.weekday, from: start)
+            let leadingBlanks = firstWeekday - 1
+
+            var cells: [Date?] = Array(repeating: nil, count: leadingBlanks)
+
+            for day in 1...range.count {
+                if let d = cal.date(byAdding: .day, value: day - 1, to: start) {
+                    cells.append(d)
+                }
+            }
+
+            while cells.count % 7 != 0 { cells.append(nil) }
+            while cells.count < 42 { cells.append(nil) }
+
+            var weeks: [[Date?]] = []
+            for i in stride(from: 0, to: cells.count, by: 7) {
+                weeks.append(Array(cells[i..<min(i + 7, cells.count)]))
+            }
+            self.gridDates = weeks
+        } else {
+            self.gridDates = [Array(repeating: nil, count: 7)]
+        }
+
+        // completed days (local first)
+        let completedDaysLocal: Set<Date>
+        if let start = startOfMonth,
+           let end = cal.date(byAdding: DateComponents(month: 1, day: 0), to: start) {
+
+            let normalized = habit.logs
+                .filter { $0.completed && $0.date >= start && $0.date < end }
+                .map { cal.startOfDay(for: $0.date) }
+
+            completedDaysLocal = Set(normalized)
+        } else {
+            completedDaysLocal = []
+        }
+
+        let monthDates = self.gridDates
+            .flatMap { $0 }
+            .compactMap { $0 }
+            .filter { cal.isDate($0, equalTo: month, toGranularity: .month) }
+
+        let pctLocal: Int
+        if monthDates.isEmpty {
+            pctLocal = 0
+        } else {
+            let doneCount = monthDates.filter {
+                completedDaysLocal.contains(cal.startOfDay(for: $0))
+            }.count
+            pctLocal = Int((Double(doneCount) / Double(monthDates.count)) * 100.0)
+        }
+
+        let inMonthLogs = habit.logs.filter {
+            cal.isDate($0.date, equalTo: month, toGranularity: .month) && $0.completed
+        }
+        let monthStreakLocal = StreakEngine.computeStreaks(logs: inMonthLogs).current
+
+        self.completedDays = completedDaysLocal
+        self.totalDaysInMonth = monthDates
+        self.pct = pctLocal
+        self.monthStreak = monthStreakLocal
+    }
+
+    func isToday(_ date: Date) -> Bool {
+        cal.startOfDay(for: date) == today
+    }
+
+    func isInMonth(_ date: Date) -> Bool {
+        cal.isDate(date, equalTo: month, toGranularity: .month)
+    }
+
+    func isCompleted(_ date: Date) -> Bool {
+        completedDays.contains(cal.startOfDay(for: date))
+    }
+}
+
+// MARK: - DayCell
 private struct DayCell: View {
     let date: Date?
     let isToday: Bool
@@ -480,9 +527,7 @@ private struct DayCell: View {
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .strokeBorder(
-                                isToday
-                                ? GlowTheme.textPrimary.opacity(0.35)
-                                : .clear,
+                                isToday ? GlowTheme.textPrimary.opacity(0.35) : .clear,
                                 lineWidth: 1
                             )
                     )
@@ -526,5 +571,25 @@ private struct DayCell: View {
         return done
         ? "Completed on \(formatted)"
         : "Not completed on \(formatted)"
+    }
+}
+
+// MARK: - Shared Card Style
+private extension View {
+    func glowSurfaceCard(cornerRadius: CGFloat) -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(GlowTheme.bgSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
+            )
+            .shadow(
+                color: Color.black.opacity(0.15),
+                radius: 20,
+                y: 10
+            )
     }
 }

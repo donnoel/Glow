@@ -26,6 +26,7 @@ struct HomeView: View {
     // Edit / Delete state
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
+    @State private var monthCache: [String: MonthHeatmapModel] = [:]
     
     // Day rollover watcher
     @State private var todayAnchor: Date = Calendar.current.startOfDay(for: Date())
@@ -92,7 +93,7 @@ struct HomeView: View {
     private var bonusCompletedToday: [Habit] {
         let cal = Calendar.current
         let todayStart = todayStartOfDay
-
+        
         return notDueToday.filter { habit in
             habit.logs.contains { log in
                 cal.startOfDay(for: log.date) == todayStart && log.completed
@@ -110,7 +111,7 @@ struct HomeView: View {
         let totalScheduled = scheduledTodayHabits.count          // how many you "owe" today
         let doneScheduled = completedToday.count                 // how many of those you actually did
         let bonus = bonusCompletedToday.count                    // extra wins not scheduled today
-
+        
         // percent can go above 1.0 now because we include bonus
         let percentValue: Double
         if totalScheduled == 0 {
@@ -121,7 +122,7 @@ struct HomeView: View {
         } else {
             percentValue = Double(doneScheduled + bonus) / Double(totalScheduled)
         }
-
+        
         return (
             done: doneScheduled,
             total: totalScheduled,
@@ -135,30 +136,30 @@ struct HomeView: View {
         todayAnchor
     }
     // MARK: - "You" summaries feeding YouView
-
+    
     /// All logs, flattened from all habits.
     private var allLogs: [HabitLog] {
         habits.flatMap { $0.logs }
     }
-
+    
     /// Current streak and best streak *across all habits*.
     /// We treat a "day counts" if you completed ANY habit that day.
     private var globalStreak: (current: Int, best: Int) {
         let cal = Calendar.current
-
+        
         // collect all UNIQUE days where you completed something
         let groupedByDay = Dictionary(grouping: allLogs.filter { $0.completed }) {
             cal.startOfDay(for: $0.date)
         }
-
+        
         // Turn those days into fake HabitLogs so we can reuse StreakEngine
         let synthetic: [HabitLog] = groupedByDay.keys.map { day in
             HabitLog(date: day, completed: true, habit: Habit.placeholder)
         }
-
+        
         return StreakEngine.computeStreaks(logs: synthetic)
     }
-
+    
     /// Which habit is "most consistent" in the last 14 days?
     /// We'll look at each habit and count how many distinct days it was completed.
     private var mostConsistentHabit: (title: String, hits: Int, window: Int) {
@@ -167,10 +168,10 @@ struct HomeView: View {
         let windowStart = cal.startOfDay(
             for: cal.date(byAdding: .day, value: -windowDays + 1, to: Date())!
         )
-
+        
         var bestTitle: String = "—"
         var bestHits = 0
-
+        
         for h in habits {
             // unique days this habit was done in that window
             let daysHit = Set(
@@ -178,16 +179,16 @@ struct HomeView: View {
                     .filter { $0.completed && $0.date >= windowStart }
                     .map { cal.startOfDay(for: $0.date) }
             )
-
+            
             if daysHit.count > bestHits {
                 bestHits = daysHit.count
                 bestTitle = h.title
             }
         }
-
+        
         return (title: bestTitle, hits: bestHits, window: windowDays)
     }
-
+    
     /// Rough guess of "when you usually check in":
     /// We'll average all active reminder times, fallback to ~8pm.
     private var typicalCheckInTime: Date {
@@ -203,7 +204,7 @@ struct HomeView: View {
                 of: Date()
             )
         }
-
+        
         // Fallback if you have no reminders set anywhere
         guard !times.isEmpty else {
             return Calendar.current.date(
@@ -213,18 +214,18 @@ struct HomeView: View {
                 of: Date()
             ) ?? Date()
         }
-
+        
         // Average the minutes after midnight (so 9:30am = 570 mins, etc)
         let cal = Calendar.current
         let minutesArray = times.map { t in
             let comps = cal.dateComponents([.hour, .minute], from: t)
             return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
         }
-
+        
         let avgMins = minutesArray.reduce(0, +) / minutesArray.count
         let avgHour = avgMins / 60
         let avgMinute = avgMins % 60
-
+        
         return cal.date(
             bySettingHour: avgHour,
             minute: avgMinute,
@@ -280,9 +281,10 @@ struct HomeView: View {
             .onReceive(dayTimer) { _ in
                 checkForNewDay()
             }
-
+            .onAppear { prewarmMonthCache() }
+            
             // 👇👇 ADD THESE TWO HERE, still chained to the NavigationStack 👇👇
-
+            
             .sheet(isPresented: $showTrends) {
                 TrendsView()
             }
@@ -308,9 +310,9 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: .glowShowYou)) { _ in
                 showYou = true
             }
-
+            
             // 👆👆 END OF NEW BIT 👆👆
-
+            
             if showSidebar {
                 SidebarOverlay(
                     selectedTab: $selectedTab,
@@ -580,13 +582,16 @@ struct HomeView: View {
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
         ZStack {
             NavigationLink {
-                HabitDetailView(habit: habit)
+                HabitDetailView(
+                    habit: habit,
+                    prewarmedMonth: monthCache[habit.id]
+                )
             } label: {
                 EmptyView()
             }
             .opacity(0)
             .accessibilityHidden(true)
-
+            
             HabitRowGlass(habit: habit) {
                 toggleToday(habit)
             }
@@ -600,7 +605,7 @@ struct HomeView: View {
             } label: {
                 Label("Edit", systemImage: "pencil")
             }
-
+            
             if isArchived {
                 Button {
                     toggleArchive(habit, archived: false)
@@ -615,7 +620,7 @@ struct HomeView: View {
                 }
                 .tint(.blue)
             }
-
+            
             Button(role: .destructive) {
                 habitToDelete = habit
             } label: {
@@ -623,9 +628,9 @@ struct HomeView: View {
             }
         }
     }
-    
-    // MARK: - Reorder handler
-    
+
+    // MARK: - Row helpers (moved out of rowCell)
+
     private func handleMove(indices: IndexSet, newOffset: Int, sourceArray: [Habit]) {
         var working = sourceArray
         working.move(fromOffsets: indices, toOffset: newOffset)
@@ -640,9 +645,7 @@ struct HomeView: View {
             print("Reorder save error:", error)
         }
     }
-    
-    // MARK: - Actions
-    
+
     private func toggleToday(_ habit: Habit) {
         let cal = Calendar.current
         let today = todayStartOfDay
@@ -659,7 +662,7 @@ struct HomeView: View {
         GlowTheme.tapHaptic()
         context.saveSafely()
     }
-    
+
     private func toggleArchive(_ habit: Habit, archived: Bool) {
         habit.isArchived = archived
         do { try context.save() } catch {
@@ -677,9 +680,77 @@ struct HomeView: View {
             }
         }
     }
+
+    private func prewarmMonthCache() {
+        let now = Date()
+        for habit in activeHabits {
+            if monthCache[habit.id] == nil {
+                monthCache[habit.id] = MonthHeatmapModel(habit: habit, month: now)
+            }
+        }
+    }
     
-    // MARK: - Helpers
     
+    // MARK: - SidebarHandleButton
+    private struct SidebarHandleButton: View {
+        @Environment(\.colorScheme) private var colorScheme
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: "line.3.horizontal")
+                    .font(.system(size: 29, weight: .semibold))
+                    .foregroundStyle(
+                        colorScheme == .dark
+                        ? GlowTheme.accentPrimary
+                        : GlowTheme.textPrimary
+                    )
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .shadow(
+                                color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                                radius: 20, y: 10
+                            )
+                    )
+            }
+            .accessibilityLabel("Menu")
+        }
+    }
+    
+    // MARK: - NavAddButton
+    private struct NavAddButton: View {
+        @Environment(\.colorScheme) private var colorScheme
+        let action: () -> Void
+        
+        var body: some View {
+            Button(action: action) {
+                Image(systemName: "plus.circle.fill")
+                    .font(.system(size: 29, weight: .semibold))
+                    .foregroundStyle(navIconColor)
+                    .padding(10)
+                    .background(
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .shadow(
+                                color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
+                                radius: 20, y: 10
+                            )
+                    )
+            }
+        }
+        
+        private var navIconColor: Color {
+            switch colorScheme {
+            case .light: return GlowTheme.textPrimary
+            case .dark:  return GlowTheme.accentPrimary
+            @unknown default: return GlowTheme.accentPrimary
+            }
+        }
+    }
+    // MARK: - Static helpers
+
     /// Default reminder time when creating a new practice (8:00 PM local).
     private static func defaultReminderTime() -> Date {
         let cal = Calendar.current
@@ -688,65 +759,5 @@ struct HomeView: View {
             return eightPM
         }
         return now
-    }
-}
-
-
-// MARK: - SidebarHandleButton
-private struct SidebarHandleButton: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "line.3.horizontal")
-                .font(.system(size: 29, weight: .semibold))
-                .foregroundStyle(
-                    colorScheme == .dark
-                    ? GlowTheme.accentPrimary
-                    : GlowTheme.textPrimary
-                )
-                .padding(10)
-                .background(
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .shadow(
-                            color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
-                            radius: 20, y: 10
-                        )
-                )
-        }
-        .accessibilityLabel("Menu")
-    }
-}
-
-// MARK: - NavAddButton
-private struct NavAddButton: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: "plus.circle.fill")
-                .font(.system(size: 29, weight: .semibold))
-                .foregroundStyle(navIconColor)
-                .padding(10)
-                .background(
-                    Circle()
-                        .fill(.ultraThinMaterial)
-                        .shadow(
-                            color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
-                            radius: 20, y: 10
-                        )
-                )
-        }
-    }
-
-    private var navIconColor: Color {
-        switch colorScheme {
-        case .light: return GlowTheme.textPrimary
-        case .dark:  return GlowTheme.accentPrimary
-        @unknown default: return GlowTheme.accentPrimary
-        }
     }
 }
