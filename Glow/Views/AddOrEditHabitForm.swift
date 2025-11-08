@@ -50,7 +50,7 @@ struct AddOrEditHabitForm: View {
                 Section("Details") {
                     TextField("Title", text: $title)
                         .textInputAutocapitalization(.words)
-                        .onChange(of: title) { newValue in
+                        .onChange(of: title) { _, newValue in
                             guard mode == .add else { return }
                             let freshGuess = Habit.guessIconName(for: newValue)
 
@@ -120,14 +120,14 @@ struct AddOrEditHabitForm: View {
         case .add:
             let newHabit = createHabit(from: trimmed)
             context.insert(newHabit)
-            try? context.save()
+            context.saveSafelyReturningSuccess()
             await applyNotificationsAfterAdd(for: newHabit)
 
         case .edit:
             guard let habit else { break }
             let wasEnabled = habit.reminderEnabled
             update(habit: habit, with: trimmed)
-            try? context.save()
+            context.saveSafelyReturningSuccess()
             await applyNotificationsAfterEdit(for: habit, wasEnabled: wasEnabled)
         }
 
@@ -199,9 +199,11 @@ struct AddOrEditHabitForm: View {
     // MARK: - Helpers
 
     private func nextSortOrder() -> Int {
-        let descriptor = FetchDescriptor<Habit>()
-        let allHabits = (try? context.fetch(descriptor)) ?? []
-        let maxOrder = (allHabits.map { $0.sortOrder }.max() ?? 9_998)
+        var descriptor = FetchDescriptor<Habit>()
+        descriptor.sortBy = [SortDescriptor(\Habit.sortOrder, order: .reverse)]
+        descriptor.fetchLimit = 1
+        let topHabit = (try? context.fetch(descriptor))?.first
+        let maxOrder = topHabit?.sortOrder ?? 9_998
         return maxOrder + 1
     }
 
