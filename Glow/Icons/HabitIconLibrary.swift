@@ -4,12 +4,13 @@ import Foundation
 enum HabitIconLibrary {
 
     struct HabitIcon: Identifiable, Hashable {
-        let id = UUID()
+        var id: String { name }
         let name: String        // SF Symbol name
         let label: String       // Human-readable label
-        let keywords: [String]  // Words/phrases that should trigger this icon
+        let keywords: [String]  // Words/phrases that should trigger this icon (lowercased)
     }
 
+    // NOTE: order matters – the first matching icon wins.
     static let all: [HabitIcon] = [
         HabitIcon(
             name: "drop.fill",
@@ -93,18 +94,32 @@ enum HabitIconLibrary {
         )
     ]
 
+    private static func matches(_ title: String, icon: HabitIcon) -> Bool {
+        let lower = title.lowercased()
+        return icon.keywords.contains { key in
+            lower.contains(key)
+        }
+    }
+
     /// Returns the best-fit SF Symbol name for a given habit title.
     static func guessIcon(for title: String) -> String {
-        let lower = title.lowercased()
-
-        // 1. Exact-ish keyword match
+        // 1. library-driven match (first win)
         for icon in all {
-            if icon.keywords.contains(where: { lower.contains($0) }) {
+            if matches(title, icon: icon) {
                 return icon.name
             }
         }
 
-        // 2. Tiny heuristics for common words that may not be in keywords
+        let lower = title.lowercased()
+
+        // 2. additional simple heuristics that aren’t in the library yet
+        if lower.contains("journal") || lower.contains("gratitude") {
+            return "pencil.and.list.clipboard"
+        }
+        if lower.contains("meditate") || lower.contains("breathe") || lower.contains("breathing") {
+            return "leaf.fill"
+        }
+
         if lower.contains("drink") || lower.contains("water") {
             return "drop.fill"
         }
