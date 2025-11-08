@@ -14,12 +14,9 @@ enum GlowAppConfig {
         components.scheme = "mailto"
         components.path = supportEmail
 
-        let subject = supportSubject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let body = supportBodyHint.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-
         components.queryItems = [
-            URLQueryItem(name: "subject", value: subject),
-            URLQueryItem(name: "body", value: body)
+            URLQueryItem(name: "subject", value: supportSubject),
+            URLQueryItem(name: "body", value: supportBodyHint)
         ]
 
         return components.url
