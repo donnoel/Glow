@@ -2,30 +2,19 @@ import SwiftUI
 import SwiftData
 
 struct HabitDetailView: View {
-    let habit: Habit
-    /// If the parent (HomeView) already built the month model, we can reuse it and avoid doing it during the push.
-    let prewarmedMonth: MonthHeatmapModel?
-
-    @State private var monthAnchor: Date
+    @StateObject private var viewModel: HabitDetailViewModel
 
     init(habit: Habit, prewarmedMonth: MonthHeatmapModel? = nil) {
-        self.habit = habit
-        self.prewarmedMonth = prewarmedMonth
-        // if we got a prewarmed month, start on that month so we don't recompute
-        self._monthAnchor = State(initialValue: prewarmedMonth?.month ?? .now)
-    }
-
-    private var habitTint: Color {
-        habit.accentColor
-    }
-
-    private var logs: [HabitLog] {
-        habit.logs
+        _viewModel = StateObject(
+            wrappedValue: HabitDetailViewModel(
+                habit: habit,
+                prewarmedMonth: prewarmedMonth
+            )
+        )
     }
 
     var body: some View {
         ScrollView {
-            // make this lazy so we don't eagerly layout everything below the fold
             LazyVStack(alignment: .leading, spacing: 24) {
 
                 // HEADER / STREAKS
@@ -38,11 +27,15 @@ struct HabitDetailView: View {
                         .font(.headline)
                         .foregroundStyle(GlowTheme.textPrimary)
 
-                    RecentDaysStrip(logs: logs, days: 14, tint: habitTint)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 16)
-                        .glowSurfaceCard(cornerRadius: 16)
+                    RecentDaysStrip(
+                        logs: viewModel.logs,
+                        days: 14,
+                        tint: viewModel.habitTint
+                    )
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .glowSurfaceCard(cornerRadius: 16)
                 }
 
                 // WEEK
@@ -51,27 +44,30 @@ struct HabitDetailView: View {
                         .font(.headline)
                         .foregroundStyle(GlowTheme.textPrimary)
 
-                    WeeklyProgressRing(percent: weeklyPercent(from: logs), tint: habitTint)
-                        .frame(height: 120)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(habitTint.opacity(0.08))
-                                        .blendMode(.plusLighter)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(habitTint.opacity(0.28), lineWidth: 1)
-                                )
-                                .shadow(
-                                    color: Color.black.opacity(0.4),
-                                    radius: 20, y: 10
-                                )
-                        )
+                    WeeklyProgressRing(
+                        percent: viewModel.weeklyPercent(),
+                        tint: viewModel.habitTint
+                    )
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(16)
+                    .background(
+                        RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .fill(viewModel.habitTint.opacity(0.08))
+                                    .blendMode(.plusLighter)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                    .stroke(viewModel.habitTint.opacity(0.28), lineWidth: 1)
+                            )
+                            .shadow(
+                                color: Color.black.opacity(0.4),
+                                radius: 20, y: 10
+                            )
+                    )
                 }
 
                 // MONTHLY
@@ -81,24 +77,15 @@ struct HabitDetailView: View {
                         .foregroundStyle(GlowTheme.textPrimary)
 
                     MonthHeatmap(
-                        habit: habit,
-                        month: monthAnchor,
-                        tint: habitTint,
-                        prewarmed: prewarmedMonth,
-                        onPrev: {
-                            if let prev = Calendar.current.date(byAdding: .month, value: -1, to: monthAnchor) {
-                                monthAnchor = prev
-                            }
-                        },
-                        onNext: {
-                            if let next = Calendar.current.date(byAdding: .month, value: 1, to: monthAnchor) {
-                                monthAnchor = next
-                            }
-                        }
+                        habit: viewModel.habit,
+                        month: viewModel.monthAnchor,
+                        tint: viewModel.habitTint,
+                        prewarmed: viewModel.prewarmedMonth,
+                        onPrev: { viewModel.goToPreviousMonth() },
+                        onNext: { viewModel.goToNextMonth() }
                     )
                 }
 
-                // comfy bottom air
                 Spacer(minLength: 32)
             }
             .padding(.horizontal, 16)
@@ -111,7 +98,7 @@ struct HabitDetailView: View {
 
     // MARK: - Header / Streaks
     private var headerSection: some View {
-        let streaks = computeStreaks(from: logs)
+        let streaks = viewModel.streaks()
 
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
@@ -119,21 +106,21 @@ struct HabitDetailView: View {
                 // icon bubble
                 ZStack {
                     Circle()
-                        .fill(habitTint.opacity(0.18))
+                        .fill(viewModel.habitTint.opacity(0.18))
                         .overlay(
                             Circle()
-                                .stroke(habitTint.opacity(0.4), lineWidth: 1)
+                                .stroke(viewModel.habitTint.opacity(0.4), lineWidth: 1)
                         )
                         .frame(width: 40, height: 40)
 
-                    Image(systemName: habit.iconName)
+                    Image(systemName: viewModel.habit.iconName)
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(habitTint)
+                        .foregroundStyle(viewModel.habitTint)
                 }
 
                 // title + streaks
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(habit.title)
+                    Text(viewModel.habit.title)
                         .font(.headline.weight(.semibold))
                         .foregroundStyle(GlowTheme.textPrimary)
 
@@ -163,38 +150,6 @@ struct HabitDetailView: View {
         }
         .padding(16)
         .glowSurfaceCard(cornerRadius: 20)
-    }
-
-    // MARK: - Helpers
-    private func weeklyPercent(from logs: [HabitLog]) -> Double {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-
-        // today + previous 6 days = 7
-        guard let start = cal.date(byAdding: .day, value: -6, to: today) else {
-            return 0.0
-        }
-
-        let completed = Set(
-            logs
-                .filter { $0.completed && $0.date >= start }
-                .map { cal.startOfDay(for: $0.date) }
-        )
-
-        var hits = 0
-        for i in 0..<7 {
-            guard let day = cal.date(byAdding: .day, value: -i, to: today) else { continue }
-            let d = cal.startOfDay(for: day)
-            if completed.contains(d) {
-                hits += 1
-            }
-        }
-
-        return Double(hits) / 7.0
-    }
-
-    private func computeStreaks(from logs: [HabitLog]) -> (current: Int, best: Int) {
-        StreakEngine.computeStreaks(logs: logs)
     }
 }
 
@@ -411,7 +366,6 @@ private struct MonthHeatmap: View {
 }
 
 // MARK: - MonthHeatmapModel
-/// Made this internal (no `private`) so we can pass it in from HomeView.
 struct MonthHeatmapModel {
     let cal: Calendar
     let month: Date
