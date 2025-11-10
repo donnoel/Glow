@@ -119,18 +119,17 @@ Glow has been tuned for speed and efficiency:
 
 ## 🧩 Roadmap
 
-- [ ] iCloud Sync via SwiftData  
-- [ ] WidgetKit support  
+- [ ] iPad optimized
 - [ ] watchOS companion app  
 - [ ] Shared Habits (“Glow Circles”)  
-- [ ] Local notifications and richer reminder control  
+ 
 
 ---
 
 ## ❤️ Credits
 
 Built with care by Don Noel  
-Assisted by Bella, your AI teammate and design collaborator  
+Assisted by Bella, my AI teammate and design collaborator  
 
 ---
 
