@@ -18,10 +18,9 @@ struct TodayProgressEntry: TimelineEntry {
     let total: Int
 }
 
-// 2) Where the widget gets its data (for now: hardcoded)
+// 2) Where the widget gets its data
 struct TodayProgressProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodayProgressEntry {
-        // placeholder can stay fake
         TodayProgressEntry(date: Date(), done: 2, total: 3)
     }
 
@@ -39,17 +38,26 @@ struct TodayProgressProvider: TimelineProvider {
     }
 }
 
-// 3) What the widget looks like (home screen version)
+// 3) What the widget looks like
 struct TodayProgressWidgetView: View {
     @Environment(\.widgetFamily) private var family
     var entry: TodayProgressEntry
 
+    // Glow-ish palette — gentle but colorful
     private let glowAccent = Color(red: 0.63, green: 0.24, blue: 0.93)
+    private let glowSoft = Color(red: 0.96, green: 0.92, blue: 1.0)
 
-    // convenience
     private var percent: Double {
         guard entry.total > 0 else { return 0 }
         return Double(entry.done) / Double(entry.total)
+    }
+
+    private var statusTitle: String {
+        if entry.total > 0 && entry.done >= entry.total {
+            return "You’re glowing ✨"
+        } else {
+            return "Keep going"
+        }
     }
 
     var body: some View {
@@ -65,62 +73,69 @@ struct TodayProgressWidgetView: View {
         }
     }
 
-    private var statusTitle: String {
-        if entry.total > 0 && entry.done >= entry.total {
-            return "You’re glowing ✨"
-        } else {
-            return "Keep going"
-        }
-    }
-
-    // MARK: - Home screen (small / medium)
+    // MARK: - Medium / regular home widget
     private var mainView: some View {
         ZStack {
-            // subtle background so it feels more "Glow"
-            LinearGradient(
-                colors: [Color.white, Color.white.opacity(0.35)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .center) {
-                    // app badge
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [glowSoft, Color.white],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            VStack(alignment: .leading, spacing: 12) {
+                // top bar
+                HStack(spacing: 10) {
                     ZStack {
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
-                            .fill(Color.purple.opacity(0.25))
-                        Image(systemName: "sparkles")
-                            .foregroundStyle(Color.purple)
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(glowAccent.opacity(0.16))
+                        Image(systemName: "leaf.fill")
+                            .foregroundStyle(glowAccent)
                             .font(.system(size: 13, weight: .semibold))
                     }
-                    .frame(width: 26, height: 26)
+                    .frame(width: 28, height: 28)
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Today’s progress")
-                            .font(.caption)
+                    VStack(alignment: .leading, spacing: 1) {
+                        // small, quiet label so it doesn't fight the status line
+                        Text("Glow • Today")
+                            .font(.caption2)
                             .foregroundStyle(.secondary)
                         Text(statusTitle)
-                            .font(.headline)
+                            .font(.headline.weight(.semibold))
                             .foregroundStyle(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
+
                     Spacer()
+
+                    // pill for the count
                     Text("\(entry.done)/\(entry.total)")
-                        .font(.caption)
+                        .font(.caption.weight(.semibold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(
+                            Capsule()
+                                .fill(Color.white.opacity(0.6))
+                        )
                         .foregroundStyle(.secondary)
                 }
 
                 // progress bar
                 GeometryReader { geo in
+                    let progressWidth = max(7, geo.size.width * percent)
                     ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 999)
-                            .fill(Color.black.opacity(0.05))
-                            .frame(height: 6)
-                        RoundedRectangle(cornerRadius: 999)
-                            .fill(Color.purple)
-                            .frame(width: max(6, geo.size.width * percent), height: 6)
-                            .animation(.easeOut(duration: 0.25), value: percent)
+                        Capsule()
+                            .fill(Color.black.opacity(0.04))
+                        Capsule()
+                            .fill(glowAccent)
+                            .frame(width: progressWidth)
                     }
+                    .frame(height: 7)
+                    .mask(Capsule())
                 }
-                .frame(height: 6)
+                .frame(height: 7)
 
                 if entry.total == 0 {
                     Text("No practices scheduled")
@@ -128,51 +143,55 @@ struct TodayProgressWidgetView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding()
+            .padding(.horizontal, 3)
+            .padding(.vertical, 4)
         }
         .applyWidgetBackground()
     }
 
+    // MARK: - Small home widget
     private var compactMainView: some View {
         ZStack {
-            LinearGradient(
-                colors: [Color.white, Color.white.opacity(0.2)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            VStack(alignment: .leading, spacing: 6) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [glowSoft, Color.white],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Today")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text("\(entry.done)/\(entry.total)")
-                        .font(.caption2)
+                        .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
+
                 Text(statusTitle)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .minimumScaleFactor(0.75)
 
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 999)
-                        .fill(Color.black.opacity(0.05))
-                        .frame(height: 5)
-                    RoundedRectangle(cornerRadius: 999)
-                        .fill(Color.purple)
-                        .frame(width: nil, height: 5)
-                        .overlay(
-                            GeometryReader { geo in
-                                RoundedRectangle(cornerRadius: 999)
-                                    .fill(Color.purple)
-                                    .frame(width: max(5, geo.size.width * percent))
-                            }
-                        )
+                GeometryReader { geo in
+                    let progressWidth = max(5, geo.size.width * percent)
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.black.opacity(0.04))
+                        Capsule()
+                            .fill(glowAccent)
+                            .frame(width: progressWidth)
+                    }
+                    .frame(height: 5)
+                    .mask(Capsule())
                 }
                 .frame(height: 5)
             }
-            .padding(10)
+            .padding(.horizontal, 3)
+            .padding(.vertical, 4)
         }
         .applyWidgetBackground()
     }
@@ -180,7 +199,7 @@ struct TodayProgressWidgetView: View {
     // MARK: - Lock screen rectangular
     private var rectangularView: some View {
         HStack {
-            Text("Today")
+            Text("Glow")
             Spacer()
             Text("\(entry.done)/\(entry.total)")
         }
@@ -195,7 +214,7 @@ struct TodayProgressWidgetView: View {
 
             Circle()
                 .trim(from: 0, to: entry.total > 0 ? CGFloat(percent) : 0)
-                .stroke(.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .stroke(glowAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 
             Text("\(entry.done)")
