@@ -135,7 +135,7 @@ Assisted by Bella, my AI teammate and design collaborator
 
 ## 📄 License
 
-MIT License — free to fork, learn, remix, and glow brighter.
+MIT License
 
 ---
 
