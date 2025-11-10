@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5AA2D2B32EC2824000162A86 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AA2D2B22EC2824000162A86 /* WidgetKit.framework */; };
+		5AA2D2B52EC2824000162A86 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AA2D2B42EC2824000162A86 /* SwiftUI.framework */; };
+		5AA2D2C42EC2824100162A86 /* GlowWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		5A402FE32EB27B0500C855A9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,12 +27,36 @@
 			remoteGlobalIDString = 5A402FD02EB27B0400C855A9;
 			remoteInfo = Glow;
 		};
+		5AA2D2C22EC2824100162A86 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5A402FC92EB27B0400C855A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5AA2D2AF2EC2824000162A86;
+			remoteInfo = GlowWidgetExtensionExtension;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5AA2D2C92EC2824100162A86 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5AA2D2C42EC2824100162A86 /* GlowWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		5A402FD12EB27B0400C855A9 /* Glow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A402FE22EB27B0500C855A9 /* GlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A402FEC2EB27B0500C855A9 /* GlowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GlowWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5AA2D2B22EC2824000162A86 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		5AA2D2B42EC2824000162A86 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -36,6 +66,13 @@
 				Info.plist,
 			);
 			target = 5A402FD02EB27B0400C855A9 /* Glow */;
+		};
+		5AA2D2C82EC2824100162A86 /* Exceptions for "GlowWidgetExtension" folder in "GlowWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5AA2D2AF2EC2824000162A86 /* GlowWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -56,6 +93,14 @@
 		5A402FEF2EB27B0500C855A9 /* GlowUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = GlowUITests;
+			sourceTree = "<group>";
+		};
+		5AA2D2B62EC2824000162A86 /* GlowWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5AA2D2C82EC2824100162A86 /* Exceptions for "GlowWidgetExtension" folder in "GlowWidgetExtension" target */,
+			);
+			path = GlowWidgetExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -82,6 +127,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5AA2D2AD2EC2824000162A86 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5AA2D2B52EC2824000162A86 /* SwiftUI.framework in Frameworks */,
+				5AA2D2B32EC2824000162A86 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -91,6 +145,8 @@
 				5A402FD32EB27B0400C855A9 /* Glow */,
 				5A402FE52EB27B0500C855A9 /* GlowTests */,
 				5A402FEF2EB27B0500C855A9 /* GlowUITests */,
+				5AA2D2B62EC2824000162A86 /* GlowWidgetExtension */,
+				5AA2D2B12EC2824000162A86 /* Frameworks */,
 				5A402FD22EB27B0400C855A9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -101,8 +157,18 @@
 				5A402FD12EB27B0400C855A9 /* Glow.app */,
 				5A402FE22EB27B0500C855A9 /* GlowTests.xctest */,
 				5A402FEC2EB27B0500C855A9 /* GlowUITests.xctest */,
+				5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5AA2D2B12EC2824000162A86 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5AA2D2B22EC2824000162A86 /* WidgetKit.framework */,
+				5AA2D2B42EC2824000162A86 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -115,10 +181,12 @@
 				5A402FCD2EB27B0400C855A9 /* Sources */,
 				5A402FCE2EB27B0400C855A9 /* Frameworks */,
 				5A402FCF2EB27B0400C855A9 /* Resources */,
+				5AA2D2C92EC2824100162A86 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5AA2D2C32EC2824100162A86 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				5A402FD32EB27B0400C855A9 /* Glow */,
@@ -176,6 +244,28 @@
 			productReference = 5A402FEC2EB27B0500C855A9 /* GlowUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		5AA2D2AF2EC2824000162A86 /* GlowWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5AA2D2C52EC2824100162A86 /* Build configuration list for PBXNativeTarget "GlowWidgetExtension" */;
+			buildPhases = (
+				5AA2D2AC2EC2824000162A86 /* Sources */,
+				5AA2D2AD2EC2824000162A86 /* Frameworks */,
+				5AA2D2AE2EC2824000162A86 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5AA2D2B62EC2824000162A86 /* GlowWidgetExtension */,
+			);
+			name = GlowWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = GlowWidgetExtensionExtension;
+			productReference = 5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -183,7 +273,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2600;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2610;
 				TargetAttributes = {
 					5A402FD02EB27B0400C855A9 = {
@@ -196,6 +286,9 @@
 					5A402FEB2EB27B0500C855A9 = {
 						CreatedOnToolsVersion = 26.0.1;
 						TestTargetID = 5A402FD02EB27B0400C855A9;
+					};
+					5AA2D2AF2EC2824000162A86 = {
+						CreatedOnToolsVersion = 26.1;
 					};
 				};
 			};
@@ -216,6 +309,7 @@
 				5A402FD02EB27B0400C855A9 /* Glow */,
 				5A402FE12EB27B0500C855A9 /* GlowTests */,
 				5A402FEB2EB27B0500C855A9 /* GlowUITests */,
+				5AA2D2AF2EC2824000162A86 /* GlowWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -236,6 +330,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5A402FEA2EB27B0500C855A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5AA2D2AE2EC2824000162A86 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -266,6 +367,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5AA2D2AC2EC2824000162A86 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -278,6 +386,11 @@
 			isa = PBXTargetDependency;
 			target = 5A402FD02EB27B0400C855A9 /* Glow */;
 			targetProxy = 5A402FED2EB27B0500C855A9 /* PBXContainerItemProxy */;
+		};
+		5AA2D2C32EC2824100162A86 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5AA2D2AF2EC2824000162A86 /* GlowWidgetExtension */;
+			targetProxy = 5AA2D2C22EC2824100162A86 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -587,6 +700,70 @@
 			};
 			name = Release;
 		};
+		5AA2D2C62EC2824100162A86 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = GlowWidgetExtension/GlowWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H7LG8SK72M;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GlowWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GlowWidgetExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = movie.Glow.GlowWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5AA2D2C72EC2824100162A86 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = GlowWidgetExtension/GlowWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H7LG8SK72M;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = GlowWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = GlowWidgetExtension;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = movie.Glow.GlowWidgetExtension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -622,6 +799,15 @@
 			buildConfigurations = (
 				5A402FFE2EB27B0500C855A9 /* Debug */,
 				5A402FFF2EB27B0500C855A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5AA2D2C52EC2824100162A86 /* Build configuration list for PBXNativeTarget "GlowWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5AA2D2C62EC2824100162A86 /* Debug */,
+				5AA2D2C72EC2824100162A86 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

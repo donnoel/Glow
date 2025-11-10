@@ -308,11 +308,14 @@ struct HomeView: View {
                     done: viewModel.todayCompletion.done,
                     total: viewModel.todayCompletion.total,
                     percent: viewModel.todayCompletion.percent,
-                    // 👇 only show bonus once today's scheduled practices are done
                     bonus: canShowBonus ? viewModel.bonusCompletedToday.count : 0,
                     allDone: viewModel.todayCompletion.done
                         + (canShowBonus ? viewModel.bonusCompletedToday.count : 0)
                 )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Today’s progress")
+                .accessibilityValue("\(viewModel.todayCompletion.done) of \(viewModel.todayCompletion.total) practices completed")
+                
                 .padding(.top, 64)
                 .listRowInsets(
                     EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
@@ -328,6 +331,7 @@ struct HomeView: View {
                         systemImage: "sparkles",
                         description: Text("Tap + to add your first practice")
                     )
+                    .accessibilityAddTraits(.isHeader)
                     .frame(maxWidth: .infinity, minHeight: 200)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -544,6 +548,7 @@ struct HomeView: View {
                     )
             }
             .accessibilityLabel("Menu")
+            .accessibilityHint("Opens Glow navigation")
         }
     }
 
@@ -566,6 +571,8 @@ struct HomeView: View {
                             )
                     )
             }
+                    .accessibilityLabel("Add practice")
+                    .accessibilityHint("Create a new practice")
         }
 
         private var navIconColor: Color {
@@ -600,7 +607,8 @@ struct HomeView: View {
                             )
                     )
             }
-            .accessibilityLabel("Share")
+            .accessibilityLabel("Share Glow")
+            .accessibilityHint("Opens the system share sheet")
         }
     }
 

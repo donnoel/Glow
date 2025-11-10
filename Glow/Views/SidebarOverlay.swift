@@ -79,6 +79,7 @@ struct SidebarOverlay: View {
                         closeWithSlideOut()
                         NotificationCenter.default.post(name: .glowShowReminders, object: nil)
                     }
+                    .accessibilityHint("Shows all practices with reminders")
 
                     SidebarRow(
                         icon: "archivebox.fill",
@@ -90,6 +91,7 @@ struct SidebarOverlay: View {
                         closeWithSlideOut()
                         NotificationCenter.default.post(name: .glowShowArchive, object: nil)
                     }
+                    .accessibilityHint("Shows your archived practices")
                 }
 
                 sidebarDivider

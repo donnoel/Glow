@@ -90,6 +90,7 @@ final class HomeViewModel: ObservableObject {
         } else {
             percentValue = Double(doneScheduled + bonus) / Double(totalScheduled)
         }
+        SharedProgressStore.saveToday(done: doneScheduled, total: totalScheduled)
 
         return (doneScheduled, totalScheduled, percentValue)
     }

@@ -110,6 +110,8 @@ struct HabitRowGlass: View {
         .background(glassCapsule)
         .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
         .accessibilityElement(children: .combine)
+        .accessibilityLabel(habit.title)
+        .accessibilityValue(doneToday ? "Completed today" : "Not completed today")
         .accessibilityHint("Double tap for details")
     }
 }
