@@ -65,3 +65,27 @@ Glow’s design follows Apple’s Human Interface Guidelines and a few personal 
 Glow is a clean, modular SwiftUI codebase that demonstrates Apple-native best practices — perfect for learning or contributing.
 
 ### Project Structure
+
+Glow/
+├── Models/
+│   ├── Habit.swift
+│   ├── HabitLog.swift
+│   ├── HabitStore.swift
+│   ├── StreakEngine.swift
+├── Views/
+│   ├── HomeView.swift
+│   ├── HabitDetailView.swift
+│   ├── AddHabitView.swift
+│   ├── Components/
+│   │   ├── ProgressRingView.swift
+│   │   ├── GlassCard.swift
+│   │   ├── QuickActionsBar.swift
+│   │   └── MetricCard.swift
+├── Theme/
+│   ├── GlowTheme.swift
+│   ├── GlowPalette.swift
+│   └── GlowTypography.swift
+├── Utilities/
+│   ├── DateHelpers.swift
+│   └── EnvironmentKeys.swift
+└── GlowApp.swift
