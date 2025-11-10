@@ -7,10 +7,27 @@ Build better habits. Celebrate your wins. Feel your progress.
 
 ---
 
+## 🌈 Screenshots & Visuals
+
+<p align="center">
+  <img src="Assets/glow-home-light.png" width="280" alt="Glow Home Screen Light Mode" />
+  <img src="Assets/glow-home-dark.png" width="280" alt="Glow Home Screen Dark Mode" />
+  <img src="Assets/glow-detail.png" width="280" alt="Glow Habit Detail View" />
+</p>
+
+<p align="center">
+  <em>Glassy. Calm. Delightfully Apple-native.</em>
+</p>
+
+> Replace the image paths above with your actual screenshots (recommended width: 280–320px each).  
+> You can export them directly from Xcode Previews or your simulator.
+
+---
+
 ## 🌟 What is Glow?
 
 Glow is a mindful habit-tracking experience designed for people who want growth without pressure.  
-It helps you track your daily practices, build meaningful streaks, and celebrate progress — all wrapped in a smooth, glassy interface.
+It helps you track your daily practices, build meaningful streaks, and celebrate progress — all wrapped in a smooth, glassy, Apple-native interface.
 
 Glow isn’t about chasing numbers.  
 It’s about reflection, momentum, and feeling good about the small wins that add up over time.
@@ -62,81 +79,6 @@ Glow’s design follows Apple’s Human Interface Guidelines and a few personal 
 
 ## 👩‍💻 For Developers
 
-Glow is a clean, modular SwiftUI codebase.
+Glow is a clean, modular SwiftUI codebase that demonstrates Apple-native best practices — perfect for learning or contributing.
 
 ### Project Structure
-
-Glow/
-├── Models/
-│   ├── Habit.swift
-│   ├── HabitLog.swift
-│   ├── HabitStore.swift
-│   ├── StreakEngine.swift
-├── Views/
-│   ├── HomeView.swift
-│   ├── HabitDetailView.swift
-│   ├── AddHabitView.swift
-│   ├── Components/
-│   │   ├── ProgressRingView.swift
-│   │   ├── GlassCard.swift
-│   │   ├── QuickActionsBar.swift
-│   │   └── MetricCard.swift
-├── Theme/
-│   ├── GlowTheme.swift
-│   ├── GlowPalette.swift
-│   └── GlowTypography.swift
-├── Utilities/
-│   ├── DateHelpers.swift
-│   └── EnvironmentKeys.swift
-└── GlowApp.swift
-
-### Core Components
-- GlowTheme — centralized color and material system with light/dark awareness  
-- ProgressRingView — smooth animated ring for daily progress  
-- HabitDetailView — optimized with precomputed heatmaps and lazy rendering  
-- QuickActionsBar — keyboard-aware toolbar with New / Filter / Refresh actions  
-- StreakEngine — lightweight streak computation engine, built for performance  
-
-### Developer Highlights
-- Zero third-party dependencies  
-- Fully Apple-native (SwiftUI, Combine, SwiftData)  
-- Modular design — easy to extend or integrate into your own apps  
-- Optimized with `@StateObject` and memoized calculations for performance  
-- Adheres to Apple’s Human Interface Guidelines  
-
----
-
-## ⚡️ Performance Engineering
-
-Glow has been tuned for speed and efficiency:
-- Uses `LazyVStack` and memoized date grids to reduce re-renders  
-- Caches calendar computations in MonthHeatmap  
-- Shares blur and material layers between cards for lower GPU cost  
-- Smooth 60fps animation target across macOS and iOS  
-- Instruments-verified: minimal layout thrash and memory footprint
-
----
-
-## 🧩 Roadmap
-
-- [ ] iPad optimized
-- [ ] watchOS companion app  
-- [ ] Shared Habits (“Glow Circles”)  
- 
-
----
-
-## ❤️ Credits
-
-Built with care by Don Noel  
-Assisted by Bella, my AI teammate and design collaborator  
-
----
-
-## 📄 License
-
-MIT License
-
----
-
-> Every tap should feel like a breath. Every win should feel like a smile.
