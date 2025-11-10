@@ -2,7 +2,7 @@ import WidgetKit
 import SwiftUI
 
 // read today's progress from the shared app group
-private let appGroupID = "icloud.movie.Glow"
+private let appGroupID = "group.movie.Glow"
 
 private func loadTodayProgress() -> (done: Int, total: Int) {
     let defaults = UserDefaults(suiteName: appGroupID)
@@ -44,6 +44,12 @@ struct TodayProgressWidgetView: View {
     @Environment(\.widgetFamily) private var family
     var entry: TodayProgressEntry
 
+    // convenience
+    private var percent: Double {
+        guard entry.total > 0 else { return 0 }
+        return Double(entry.done) / Double(entry.total)
+    }
+
     var body: some View {
         switch family {
         case .accessoryRectangular:
@@ -55,23 +61,52 @@ struct TodayProgressWidgetView: View {
         }
     }
 
+    // MARK: - Home screen (small / medium)
     private var mainView: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text("Today")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text("\(entry.done) of \(entry.total)")
-                .font(.title2).bold()
-            if entry.total > 0 && entry.done >= entry.total {
-                Text("You’re glowing ✨")
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Today")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(entry.done)/\(entry.total)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
+            Text(
+                entry.total > 0 && entry.done >= entry.total
+                ? "You’re glowing ✨"
+                : "Keep going"
+            )
+            .font(.headline)
+
+            // progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 999)
+                        .fill(.primary.opacity(0.08))
+                        .frame(height: 6)
+
+                    RoundedRectangle(cornerRadius: 999)
+                        .fill(.primary.opacity(0.35))
+                        .frame(width: max(6, geo.size.width * percent), height: 6)
+                        .animation(.easeOut(duration: 0.25), value: percent)
+                }
+            }
+            .frame(height: 6)
+
+            if entry.total == 0 {
+                Text("No practices scheduled")
                     .font(.footnote)
-                    .foregroundStyle(.green)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding()
         .applyWidgetBackground()
     }
 
+    // MARK: - Lock screen rectangular
     private var rectangularView: some View {
         HStack {
             Text("Today")
@@ -81,9 +116,17 @@ struct TodayProgressWidgetView: View {
         .applyWidgetBackground()
     }
 
+    // MARK: - Lock screen circular
     private var circularView: some View {
         ZStack {
-            Circle().stroke(.secondary, lineWidth: 2)
+            Circle()
+                .stroke(.secondary.opacity(0.35), lineWidth: 3)
+
+            Circle()
+                .trim(from: 0, to: entry.total > 0 ? CGFloat(percent) : 0)
+                .stroke(.primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+
             Text("\(entry.done)")
                 .font(.caption2)
         }

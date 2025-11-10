@@ -1,16 +1,26 @@
 import Foundation
+import WidgetKit
 
 struct SharedProgressStore {
-    // 👇 use the exact app group you just created
-    static let appGroupID = "group.com.donnoel.GlowShared"
 
-    private static var defaults: UserDefaults? {
+    // 👇 THIS is your real group
+    static let appGroupID = "group.movie.Glow"
+
+    private static var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupID)
     }
 
-    /// Save today's numbers so the widget can read them.
     static func saveToday(done: Int, total: Int) {
-        defaults?.set(done, forKey: "today_done")
-        defaults?.set(total, forKey: "today_total")
+        guard let defaults = sharedDefaults else {
+            print("SharedProgressStore ❌ could not open app group defaults: \(appGroupID)")
+            return
+        }
+
+        defaults.set(done, forKey: "today_done")
+        defaults.set(total, forKey: "today_total")
+
+        print("SharedProgressStore ✅ saved done=\(done) total=\(total) to app group")
+
+        WidgetCenter.shared.reloadAllTimelines()
     }
 }

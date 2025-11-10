@@ -17,10 +17,14 @@ final class HomeViewModel: ObservableObject {
     // MARK: - Inputs
     func updateHabits(_ habits: [Habit]) {
         self.habits = habits
+        // when habits change, push real numbers to the widget
+        pushProgressToWidget()
     }
 
     func advanceToToday(_ date: Date) {
         self.todayStartOfDay = Calendar.current.startOfDay(for: date)
+        // when the day rolls over, push fresh numbers
+        pushProgressToWidget()
     }
 
     // MARK: - Derived Collections
@@ -90,10 +94,11 @@ final class HomeViewModel: ObservableObject {
         } else {
             percentValue = Double(doneScheduled + bonus) / Double(totalScheduled)
         }
-        SharedProgressStore.saveToday(done: doneScheduled, total: totalScheduled)
 
+        // 👇 no saving here anymore
         return (doneScheduled, totalScheduled, percentValue)
     }
+
     /// True when the user has completed all practices that were actually scheduled for today.
     var isTodayComplete: Bool {
         todayCompletion.total > 0 && todayCompletion.done >= todayCompletion.total
@@ -189,5 +194,11 @@ final class HomeViewModel: ObservableObject {
             second: 0,
             of: Date()
         ) ?? Date()
+    }
+
+    // MARK: - Widget sync
+    private func pushProgressToWidget() {
+        let tc = todayCompletion
+        SharedProgressStore.saveToday(done: tc.done, total: tc.total)
     }
 }

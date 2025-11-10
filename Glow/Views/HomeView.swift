@@ -494,6 +494,9 @@ struct HomeView: View {
 
         GlowTheme.tapHaptic()
         context.saveSafely()
+
+        // 👇 tell the view model to recompute and push to the widget
+        viewModel.updateHabits(Array(habits))
     }
 
     private func toggleArchive(_ habit: Habit, archived: Bool) {
