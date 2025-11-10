@@ -300,14 +300,18 @@ struct HomeView: View {
         List {
             // HERO
             Section {
+                let canShowBonus = viewModel.isTodayComplete
+
                 HeroCardGlass(
                     highlightTodayCard: $highlightTodayCard,
                     lastPercent: $lastPercent,
                     done: viewModel.todayCompletion.done,
                     total: viewModel.todayCompletion.total,
                     percent: viewModel.todayCompletion.percent,
-                    bonus: viewModel.bonusCompletedToday.count,
-                    allDone: viewModel.todayCompletion.done + viewModel.bonusCompletedToday.count
+                    // 👇 only show bonus once today's scheduled practices are done
+                    bonus: canShowBonus ? viewModel.bonusCompletedToday.count : 0,
+                    allDone: viewModel.todayCompletion.done
+                        + (canShowBonus ? viewModel.bonusCompletedToday.count : 0)
                 )
                 .padding(.top, 64)
                 .listRowInsets(

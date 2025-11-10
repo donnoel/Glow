@@ -93,6 +93,10 @@ final class HomeViewModel: ObservableObject {
 
         return (doneScheduled, totalScheduled, percentValue)
     }
+    /// True when the user has completed all practices that were actually scheduled for today.
+    var isTodayComplete: Bool {
+        todayCompletion.total > 0 && todayCompletion.done >= todayCompletion.total
+    }
 
     // MARK: - "You" summaries (moved from HomeView)
 
