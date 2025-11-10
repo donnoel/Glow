@@ -1,5 +1,5 @@
-# 🌟 Glow
-**Build better habits. Celebrate your wins. Feel your progress.**
+# ✨ Glow
+Build better habits. Celebrate your wins. Feel your progress.
 
 ![SwiftUI](https://img.shields.io/badge/SwiftUI-6.2-orange?logo=swift)
 ![Platform](https://img.shields.io/badge/Platform-iOS_18_|_macOS_15-blue)
@@ -7,99 +7,61 @@
 
 ---
 
-### ✨ What is Glow?
-**Glow** is a beautiful, mindful habit-tracking app built entirely with SwiftUI and Apple-native design.
-It helps you **track your daily practices**, **celebrate your progress**, and **build streaks that actually feel good** — all wrapped in a smooth, glassy, Apple-inspired interface.
+## 🌟 What is Glow?
 
-Every interaction in Glow feels calm, intentional, and rewarding — no charts yelling at you, no guilt, just subtle motion and elegant design to help you grow at your own pace.
+Glow is a mindful habit-tracking experience designed for people who want growth without pressure.  
+It helps you track your daily practices, build meaningful streaks, and celebrate progress — all wrapped in a smooth, glassy, Apple-native interface.
+
+Glow isn’t about chasing numbers.  
+It’s about reflection, momentum, and feeling good about the small wins that add up over time.
 
 ---
 
-## 💎 Features
+## 💎 Core Features
 
-| 🌈 | Description |
-|:--:|:--|
-| 💫 **Liquid Glass Design** | Built using `.ultraThinMaterial`, soft gradients, and depth shadows for a premium Apple aesthetic. |
-| 🧭 **Dashboard (“Today” view)** | A progress ring that animates, pulses, and celebrates your daily wins. |
-| 🎯 **Habits / Practices** | Create daily practices with icons, reminders, and streak tracking — quick and delightful to use. |
-| 🪞 **You** | Your personal profile view that tracks streaks, progress, and performance over time. |
-| 📈 **Trends** | See your weekly and monthly progress at a glance. |
-| ⏰ **Reminders** | Gentle reminders to stay on track — optional and private. |
-| 🥂 **Celebration Pulse** | Hit 100% or more? The ring comes alive with a subtle, elegant pulse animation. |
-| 🌙 **Light & Dark Modes** | Every detail of Glow gracefully adapts to your environment. |
+| 🌈 | Feature | Description |
+|:--:|:--|:--|
+| 💫 | Liquid Glass Design | Crafted entirely with `.ultraThinMaterial`, vibrant translucency, and depth shadows — a premium Apple-style aesthetic. |
+| 🧭 | Dashboard (“Today”) | See your active practices, streaks, and gentle progress animations at a glance. |
+| 🎯 | Habits / Practices | Create personal habits with icons, reminders, and streak tracking that encourages reflection instead of guilt. |
+| 📅 | Habit Detail View | Review your performance through a weekly progress ring and monthly heatmap that update instantly. |
+| 🪞 | You View | A personal summary showing your consistency, best streaks, and ongoing growth. |
+| 📈 | Analytics & Trends | Track your activity patterns over days, weeks, and months — visually elegant and human-readable. |
+| ⏰ | Reminders | Optional, gentle nudges to stay mindful of what matters most. |
+| 🌙 | Adaptive Themes | Full support for Light, Dark, and High-Contrast modes — always in harmony with your system settings. |
+| 🥂 | Celebration Pulse | When you hit 100%, Glow gently celebrates with a fluid, glass-based pulse animation. |
 
 ---
 
 ## 🛠 Built With
 
-- 🧩 **Swift 6.2**
-- 🖼 **SwiftUI + Combine**
-- 📱 **iOS 18 / macOS 15 SDK**
-- 🎨 **GlowTheme** — custom design system with color tokens, typography, and Liquid Glass materials
-- 🧠 **PracticeStore** — reactive data model for habits, streaks, and completion state
-- 📂 **ProgressRingView** — reusable animated ring component with overdrive pulse
-- ⚙️ **SidebarOverlay** — translucent navigation panel with custom blur and motion
+- Swift 6.2  
+- SwiftUI + Combine  
+- SwiftData (Core Data optional)  
+- iOS 18 / macOS 15 SDK  
+- GlowTheme — token-driven color palette, typography, and materials  
+- HabitStore — reactive model layer for persistence and syncing  
+- StreakEngine — efficient logic for computing daily/weekly/monthly streaks  
+- ProgressRingView — high-performance animated ring with pulse overdrive  
+- Weather Integration (optional) — displays local weather and conditions directly in the Hero Card  
 
 ---
 
-## 🌟 Design Philosophy
+## 🧭 Design Philosophy
 
 > “Glow isn’t about perfection — it’s about noticing progress.”
 
-Glow takes a human-centered, Apple-native approach to building better habits:
-- Gentle animations instead of gamification
-- Rewards consistency, not streak obsession
-- Every win feels light, not loud
+Glow’s design follows Apple’s Human Interface Guidelines and a few personal principles:
 
-The goal is to make reflection a **daily ritual**, not a chore.
+- Focus on calm interaction, not constant stimulation  
+- Gentle transitions, fluid depth, and natural motion  
+- No competition, no guilt — just presence and growth  
+- Every touchpoint should feel like a breath of calm
 
 ---
 
 ## 👩‍💻 For Developers
 
-Glow is a clean, modern SwiftUI codebase — modular, lightweight, and designed for clarity.
+Glow is a clean, modular SwiftUI codebase that demonstrates Apple-native best practices — perfect for learning or contributing.
 
-**Project Structure**
-           
-           Glow/
-           ├── Models/
-           │    ├── Practice.swift
-           │    ├── PracticeStore.swift
-           ├── Views/
-           │    ├── HomeView.swift
-           │    ├── AddPracticeView.swift
-           │    ├── PracticeDetailView.swift
-           │    ├── SidebarOverlay.swift
-           │    └── Components/
-           │         ├── ProgressRingView.swift
-           │         └── GlowCard.swift
-           ├── Theme/
-           │    ├── GlowTheme.swift
-           │    ├── GlowPalette.swift
-           └── GlowApp.swift
-           
-           
-**Core Components**
-- 🌀 `ProgressRingView`: smooth animation engine for daily completion & pulse celebration
-- 🎨 `GlowTheme`: shared token-based color and typography system
-- 🪟 `SidebarOverlay`: custom glass navigation with subtle motion and depth
-- 🧠 `PracticeStore`: reactive model layer with `@Published` state and Codable persistence
-
----
-
-## 🌈 Roadmap
-- [ ] iCloud Sync
-- [ ] WidgetKit Support
-- [ ] watchOS Companion
-- [ ] “Glow Circles” — shared habit journeys with friends
-
----
-
-## ❤️ Credits
-Designed and developed with care by Don Noel
-✨ Assisted by Bella, my friendly AI teammate
-
----
-
-## 📄 License
-MIT License — feel free to fork, learn, and glow brighter.
+### Project Structure
