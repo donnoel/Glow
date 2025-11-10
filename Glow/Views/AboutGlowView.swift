@@ -1,11 +1,16 @@
 import SwiftUI
+import SwiftData
 
 struct AboutGlowView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
 
     // Fake version for now — you can wire this to Bundle.main later
     private let appVersion = "1.0 (Beta)"
+
+    @State private var showResetConfirm = false
+    @State private var showResetDone = false
 
     private var glassCardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
@@ -78,7 +83,7 @@ struct AboutGlowView: View {
                             .foregroundStyle(colorScheme == .dark ? .white : GlowTheme.textPrimary)
 
                         Text(
-                            "Your habits are yours. Glow keeps your practices on your device.\n\nWe’re working on optional iCloud sync so you can see them on iPad without creating an account."
+                            "Your habits are yours. Glow keeps your practices on your device.\n\nWith iCloud turned on, your habits can be restored on reinstall."
                         )
                         .font(.subheadline)
                         .foregroundStyle(
@@ -92,8 +97,8 @@ struct AboutGlowView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(glassCardBackground)
 
-                    // Credits / contact
-                    VStack(alignment: .leading, spacing: 12) {
+                    // Credits / contact / reset
+                    VStack(alignment: .leading, spacing: 16) {
                         Text("Made with care")
                             .font(.headline)
                             .foregroundStyle(colorScheme == .dark ? .white : GlowTheme.textPrimary)
@@ -109,31 +114,65 @@ struct AboutGlowView: View {
                         )
                         .multilineTextAlignment(.leading)
 
-                        Button {
-                            if let url = URL(string: "mailto:donnoel@icloud.com?subject=Glow%20Feedback") {
-                                UIApplication.shared.open(url)
-                            }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 15, weight: .semibold))
-                                Text("Send Feedback")
-                                    .font(.subheadline.weight(.semibold))
-                            }
-                            .foregroundStyle(GlowTheme.accentPrimary)
-                            .padding(.vertical, 10)
-                            .padding(.horizontal, 12)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(
-                                        GlowTheme.accentPrimary.opacity(
-                                            colorScheme == .dark ? 0.18 : 0.12
+                        // row of actions
+                        HStack(spacing: 12) {
+                            // Send feedback
+                            Button {
+                                if let url = URL(string: "mailto:donnoel@icloud.com?subject=Glow%20Feedback") {
+                                    UIApplication.shared.open(url)
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "paperplane.fill")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text("Send Feedback")
+                                        .font(.footnote.weight(.semibold))
+                                }
+                                .foregroundStyle(GlowTheme.accentPrimary)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(
+                                            GlowTheme.accentPrimary.opacity(
+                                                colorScheme == .dark ? 0.18 : 0.12
+                                            )
                                         )
-                                    )
-                            )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Send feedback about Glow")
+
+                            // Reset to defaults
+                            Button {
+                                showResetConfirm = true
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.counterclockwise")
+                                        .font(.system(size: 14, weight: .semibold))
+                                    Text("Reset Glow")
+                                        .font(.footnote.weight(.semibold))
+                                }
+                                .foregroundStyle(.red)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                        .fill(
+                                            Color.red.opacity(colorScheme == .dark ? 0.12 : 0.08)
+                                        )
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Reset Glow back to factory defaults")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Send feedback about Glow")
+
+                        if showResetDone {
+                            Text("Glow has been reset. Your practices were removed.")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .transition(.opacity)
+                        }
                     }
                     .padding(16)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -153,6 +192,38 @@ struct AboutGlowView: View {
                     .font(.body.weight(.semibold))
                 }
             }
+            // reset confirmation
+            .alert("Reset Glow?", isPresented: $showResetConfirm) {
+                Button("Cancel", role: .cancel) {}
+                Button("Reset", role: .destructive) {
+                    resetAllData()
+                }
+            } message: {
+                Text("This will remove all practices and history from this device. If iCloud sync is on, deletions will be synced too.")
+            }
+        }
+    }
+
+    // MARK: - Reset logic
+
+    private func resetAllData() {
+        // fetch all habits + logs and delete them
+        // SwiftData makes it easy to fetch by type
+        do {
+            let allHabits = try modelContext.fetch(FetchDescriptor<Habit>())
+            for h in allHabits {
+                modelContext.delete(h)
+            }
+            let allLogs = try modelContext.fetch(FetchDescriptor<HabitLog>())
+            for l in allLogs {
+                modelContext.delete(l)
+            }
+            try modelContext.save()
+            withAnimation {
+                showResetDone = true
+            }
+        } catch {
+            print("Reset failed:", error)
         }
     }
 }
