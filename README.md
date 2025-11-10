@@ -62,7 +62,7 @@ Glow’s design follows Apple’s Human Interface Guidelines and a few personal 
 
 ## 👩‍💻 For Developers
 
-Glow is a clean, modular SwiftUI codebase that demonstrates Apple-native best practices — perfect for learning or contributing.
+Glow is a clean, modular SwiftUI codebase.
 
 ### Project Structure
 
