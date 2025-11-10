@@ -56,7 +56,17 @@ struct TodayProgressWidgetView: View {
         if entry.total > 0 && entry.done >= entry.total {
             return "You’re glowing ✨"
         } else {
-            return "Keep going"
+            return "You’re doing great 💫"
+        }
+    }
+
+    private var compactStatusTitle: String {
+        if entry.total == 0 {
+            return "Rest day"
+        } else if entry.done >= entry.total {
+            return "Glow day ✨"
+        } else {
+            return "On your way"
         }
     }
 
@@ -76,7 +86,7 @@ struct TodayProgressWidgetView: View {
     // MARK: - Medium / regular home widget
     private var mainView: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [glowSoft, Color.white],
@@ -143,8 +153,8 @@ struct TodayProgressWidgetView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.horizontal, 3)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 3)
         }
         .applyWidgetBackground()
     }
@@ -152,7 +162,7 @@ struct TodayProgressWidgetView: View {
     // MARK: - Small home widget
     private var compactMainView: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [glowSoft, Color.white],
@@ -171,7 +181,7 @@ struct TodayProgressWidgetView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                Text(statusTitle)
+                Text(compactStatusTitle)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -190,8 +200,8 @@ struct TodayProgressWidgetView: View {
                 }
                 .frame(height: 5)
             }
-            .padding(.horizontal, 3)
-            .padding(.vertical, 4)
+            .padding(.horizontal, 2)
+            .padding(.vertical, 3)
         }
         .applyWidgetBackground()
     }
