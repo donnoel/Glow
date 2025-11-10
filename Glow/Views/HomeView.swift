@@ -40,6 +40,7 @@ struct HomeView: View {
     @State private var showTrends = false
     @State private var showAbout = false
     @State private var showYou = false
+    @State private var showArchive = false
     
     // Fires every 30s so we can notice when the day boundary changes.
     private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
@@ -312,6 +313,12 @@ struct HomeView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .glowShowYou)) { _ in
                 showYou = true
+            }
+            .sheet(isPresented: $showArchive) {
+                ArchiveView()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .glowShowArchive)) { _ in
+                showArchive = true
             }
             
             // 👆👆 END OF NEW BIT 👆👆
@@ -809,3 +816,8 @@ private struct ShareSheet: UIViewControllerRepresentable {
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
+
+extension Notification.Name {
+    static let glowShowArchive = Notification.Name("glowShowArchive")
+}
+

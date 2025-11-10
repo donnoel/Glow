@@ -87,6 +87,7 @@ struct SidebarOverlay: View {
                         iconSize: 20
                     ) {
                         closeWithSlideOut()
+                        NotificationCenter.default.post(name: .glowShowArchive, object: nil)
                     }
                 }
 
