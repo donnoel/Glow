@@ -44,6 +44,8 @@ struct TodayProgressWidgetView: View {
     @Environment(\.widgetFamily) private var family
     var entry: TodayProgressEntry
 
+    private let glowAccent = Color(red: 0.63, green: 0.24, blue: 0.93)
+
     // convenience
     private var percent: Double {
         guard entry.total > 0 else { return 0 }
@@ -52,6 +54,8 @@ struct TodayProgressWidgetView: View {
 
     var body: some View {
         switch family {
+        case .systemSmall:
+            compactMainView
         case .accessoryRectangular:
             rectangularView
         case .accessoryCircular:
@@ -61,48 +65,115 @@ struct TodayProgressWidgetView: View {
         }
     }
 
+    private var statusTitle: String {
+        if entry.total > 0 && entry.done >= entry.total {
+            return "You’re glowing ✨"
+        } else {
+            return "Keep going"
+        }
+    }
+
     // MARK: - Home screen (small / medium)
     private var mainView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Today")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("\(entry.done)/\(entry.total)")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Text(
-                entry.total > 0 && entry.done >= entry.total
-                ? "You’re glowing ✨"
-                : "Keep going"
+        ZStack {
+            // subtle background so it feels more "Glow"
+            LinearGradient(
+                colors: [Color.white, Color.white.opacity(0.35)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
             )
-            .font(.headline)
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .center) {
+                    // app badge
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.purple.opacity(0.25))
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(Color.purple)
+                            .font(.system(size: 13, weight: .semibold))
+                    }
+                    .frame(width: 26, height: 26)
 
-            // progress bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 999)
-                        .fill(.primary.opacity(0.08))
-                        .frame(height: 6)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Today’s progress")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Text(statusTitle)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                    }
+                    Spacer()
+                    Text("\(entry.done)/\(entry.total)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
 
-                    RoundedRectangle(cornerRadius: 999)
-                        .fill(.primary.opacity(0.35))
-                        .frame(width: max(6, geo.size.width * percent), height: 6)
-                        .animation(.easeOut(duration: 0.25), value: percent)
+                // progress bar
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 999)
+                            .fill(Color.black.opacity(0.05))
+                            .frame(height: 6)
+                        RoundedRectangle(cornerRadius: 999)
+                            .fill(Color.purple)
+                            .frame(width: max(6, geo.size.width * percent), height: 6)
+                            .animation(.easeOut(duration: 0.25), value: percent)
+                    }
+                }
+                .frame(height: 6)
+
+                if entry.total == 0 {
+                    Text("No practices scheduled")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
-            .frame(height: 6)
-
-            if entry.total == 0 {
-                Text("No practices scheduled")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
+            .padding()
         }
-        .padding()
+        .applyWidgetBackground()
+    }
+
+    private var compactMainView: some View {
+        ZStack {
+            LinearGradient(
+                colors: [Color.white, Color.white.opacity(0.2)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    Text("Today")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text("\(entry.done)/\(entry.total)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Text(statusTitle)
+                    .font(.subheadline.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 999)
+                        .fill(Color.black.opacity(0.05))
+                        .frame(height: 5)
+                    RoundedRectangle(cornerRadius: 999)
+                        .fill(Color.purple)
+                        .frame(width: nil, height: 5)
+                        .overlay(
+                            GeometryReader { geo in
+                                RoundedRectangle(cornerRadius: 999)
+                                    .fill(Color.purple)
+                                    .frame(width: max(5, geo.size.width * percent))
+                            }
+                        )
+                }
+                .frame(height: 5)
+            }
+            .padding(10)
+        }
         .applyWidgetBackground()
     }
 
