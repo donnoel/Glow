@@ -4,6 +4,7 @@ import SwiftData
 struct ArchiveView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
+    @Environment(\.colorScheme) private var colorScheme
 
     // only archived habits
     @Query(
@@ -14,35 +15,47 @@ struct ArchiveView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                if archivedHabits.isEmpty {
-                    ContentUnavailableView(
-                        "No archived practices",
-                        systemImage: "archivebox",
-                        description: Text("Practices you archive will show up here.")
-                    )
-                } else {
-                    ForEach(archivedHabits) { habit in
-                        HStack {
-                            HabitRowGlass(habit: habit) {
-                                // no toggle from archive
-                            }
-                            .disabled(true)
+            ScrollView {
+                VStack(spacing: 16) {
+                    if archivedHabits.isEmpty {
+                        ContentUnavailableView(
+                            "No archived practices",
+                            systemImage: "archivebox",
+                            description: Text("Practices you archive will show up here.")
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 240)
+                        .background(glassCard)
+                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        .padding(.top, 8)
+                    } else {
+                        ForEach(archivedHabits) { habit in
+                            HStack(spacing: 10) {
+                                // look identical to home rows
+                                HabitRowGlass(habit: habit) {
+                                    // disabled in archive
+                                }
+                                .disabled(true)
 
-                            Button {
-                                unarchive(habit)
-                            } label: {
-                                Image(systemName: "arrow.uturn.left.circle.fill")
-                                    .imageScale(.large)
-                                    .foregroundStyle(.blue)
+                                Button {
+                                    unarchive(habit)
+                                } label: {
+                                    Image(systemName: "arrow.uturn.left.circle.fill")
+                                        .font(.system(size: 22, weight: .semibold))
+                                        .foregroundStyle(GlowTheme.accentPrimary)
+                                        .padding(6)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Unarchive \(habit.title)")
                             }
-                            .buttonStyle(.plain)
+                            .padding(.horizontal, 2)
                         }
-                        .listRowBackground(Color.clear)
+                        .padding(.top, 4)
                     }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 20)
+                .padding(.bottom, 32)
             }
-            .scrollContentBackground(.hidden)
             .background(GlowTheme.bgSurface.ignoresSafeArea())
             .navigationTitle("Archived")
             .navigationBarTitleDisplayMode(.inline)
@@ -51,9 +64,27 @@ struct ArchiveView: View {
                     Button("Done") {
                         dismiss()
                     }
+                    .font(.body.weight(.semibold))
                 }
             }
         }
+    }
+
+    private var glassCard: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .stroke(
+                        Color.white.opacity(colorScheme == .dark ? 0.15 : 0.28),
+                        lineWidth: 1
+                    )
+            )
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.08),
+                radius: 20,
+                y: 12
+            )
     }
 
     private func unarchive(_ habit: Habit) {
