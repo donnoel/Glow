@@ -89,3 +89,55 @@ Glow/
 │   ├── DateHelpers.swift
 │   └── EnvironmentKeys.swift
 └── GlowApp.swift
+
+### Core Components
+- GlowTheme — centralized color and material system with light/dark awareness  
+- ProgressRingView — smooth animated ring for daily progress  
+- HabitDetailView — optimized with precomputed heatmaps and lazy rendering  
+- QuickActionsBar — keyboard-aware toolbar with New / Filter / Refresh actions  
+- StreakEngine — lightweight streak computation engine, built for performance  
+
+### Developer Highlights
+- Zero third-party dependencies  
+- Fully Apple-native (SwiftUI, Combine, SwiftData)  
+- Modular design — easy to extend or integrate into your own apps  
+- Optimized with `@StateObject` and memoized calculations for performance  
+- Adheres to Apple’s Human Interface Guidelines  
+
+---
+
+## ⚡️ Performance Engineering
+
+Glow has been tuned for speed and efficiency:
+- Uses `LazyVStack` and memoized date grids to reduce re-renders  
+- Caches calendar computations in MonthHeatmap  
+- Shares blur and material layers between cards for lower GPU cost  
+- Smooth 60fps animation target across macOS and iOS  
+- Instruments-verified: minimal layout thrash and memory footprint
+
+---
+
+## 🧩 Roadmap
+
+- [ ] iCloud Sync via SwiftData  
+- [ ] WidgetKit support  
+- [ ] watchOS companion app  
+- [ ] Shared Habits (“Glow Circles”)  
+- [ ] Local notifications and richer reminder control  
+
+---
+
+## ❤️ Credits
+
+Built with care by Don Noel  
+Assisted by Bella, your AI teammate and design collaborator  
+
+---
+
+## 📄 License
+
+MIT License — free to fork, learn, remix, and glow brighter.
+
+---
+
+> Every tap should feel like a breath. Every win should feel like a smile.
