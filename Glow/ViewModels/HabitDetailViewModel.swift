@@ -25,7 +25,7 @@ final class HabitDetailViewModel: ObservableObject {
     }
 
     var logs: [HabitLog] {
-        habit.logs
+        habit.logs ?? []
     }
 
     // MARK: - Intent / Actions

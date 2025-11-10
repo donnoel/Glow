@@ -27,7 +27,7 @@ struct AddOrEditHabitForm: View {
         _schedule = State(initialValue: habit?.schedule ?? .daily)
         _isArchived = State(initialValue: habit?.isArchived ?? false)
 
-        let initialIcon = habit?.iconName ?? Habit.guessIconName(for: habit?.title ?? "")
+        let initialIcon = habit?.iconName ?? HabitIconLibrary.guessIcon(for: habit?.title ?? "")
         _iconName = State(initialValue: initialIcon)
 
         let cal = Calendar.current
@@ -52,15 +52,16 @@ struct AddOrEditHabitForm: View {
                         .textInputAutocapitalization(.words)
                         .onChange(of: title) { _, newValue in
                             guard mode == .add else { return }
-                            let freshGuess = Habit.guessIconName(for: newValue)
+                            let freshGuess = HabitIconLibrary.guessIcon(for: newValue)
 
-                            let userHasNotCustomizedIcon =
-                                iconName == "checkmark.circle" ||
-                                iconName == Habit.guessIconName(for: "") ||
-                                iconName == Habit.guessIconName(for: title) ||
-                                iconName == Habit.guessIconName(for: newValue)
+                            // consider the icon "not customized" if it's the default or empty
+                            let notCustomized: Bool = {
+                                if iconName == "checkmark.circle" { return true }
+                                if iconName.isEmpty { return true }
+                                return false
+                            }()
 
-                            if userHasNotCustomizedIcon {
+                            if notCustomized {
                                 iconName = freshGuess
                             }
                         }
@@ -150,7 +151,7 @@ struct AddOrEditHabitForm: View {
             reminderEnabled: remindMe,
             reminderHour: hour,
             reminderMinute: minute,
-            iconName: iconName.isEmpty ? Habit.guessIconName(for: trimmedTitle) : iconName,
+            iconName: iconName.isEmpty ? HabitIconLibrary.guessIcon(for: trimmedTitle) : iconName,
             sortOrder: sortOrder
         )
     }
@@ -159,7 +160,7 @@ struct AddOrEditHabitForm: View {
         habit.title = trimmedTitle
         habit.schedule = schedule
         habit.isArchived = isArchived
-        habit.iconName = iconName.isEmpty ? Habit.guessIconName(for: trimmedTitle) : iconName
+        habit.iconName = iconName.isEmpty ? HabitIconLibrary.guessIcon(for: trimmedTitle) : iconName
         applyReminderFields(to: habit)
     }
 

@@ -66,7 +66,7 @@ struct HomeView: View {
         let todayStart = todayStartOfDay
         
         return scheduledTodayHabits.filter { habit in
-            habit.logs.contains { log in
+            (habit.logs ?? []).contains { log in
                 cal.startOfDay(for: log.date) == todayStart && log.completed
             }
         }
@@ -78,7 +78,7 @@ struct HomeView: View {
         let todayStart = todayStartOfDay
         
         return scheduledTodayHabits.filter { habit in
-            !habit.logs.contains { log in
+            !(habit.logs ?? []).contains { log in
                 cal.startOfDay(for: log.date) == todayStart && log.completed
             }
         }
@@ -98,7 +98,7 @@ struct HomeView: View {
         let todayStart = todayStartOfDay
         
         return notDueToday.filter { habit in
-            habit.logs.contains { log in
+            (habit.logs ?? []).contains { log in
                 cal.startOfDay(for: log.date) == todayStart && log.completed
             }
         }
@@ -142,7 +142,7 @@ struct HomeView: View {
     
     /// All logs, flattened from all habits.
     private var allLogs: [HabitLog] {
-        habits.flatMap { $0.logs }
+        habits.compactMap { $0.logs }.flatMap { $0 }
     }
     
     /// Current streak and best streak *across all habits*.
@@ -178,7 +178,7 @@ struct HomeView: View {
         for h in habits {
             // unique days this habit was done in that window
             let daysHit = Set(
-                h.logs
+                (h.logs ?? [])
                     .filter { $0.completed && $0.date >= windowStart }
                     .map { cal.startOfDay(for: $0.date) }
             )
@@ -352,15 +352,15 @@ struct HomeView: View {
                             showShare = true
                         }
                         NavAddButton {
-                            // reset form state when + is tapped
-                            newTitle = ""
-                            newSchedule = .daily
-                            newIconName = Habit.guessIconName(for: newTitle)
-                            
-                            newReminderEnabled = false
-                            newReminderTime = HomeView.defaultReminderTime()
-                            
-                            showAdd = true
+                        // reset form state when + is tapped
+                        newTitle = ""
+                        newSchedule = .daily
+                        newIconName = HabitIconLibrary.guessIcon(for: newTitle)
+                        
+                        newReminderEnabled = false
+                        newReminderTime = HomeView.defaultReminderTime()
+                        
+                        showAdd = true
                         }
                         .accessibilityLabel("Add practice")
                     }
@@ -381,7 +381,7 @@ struct HomeView: View {
                     TextField("Title", text: $newTitle)
                         .textInputAutocapitalization(.words)
                         .onChange(of: newTitle) { _, newValue in
-                            let guess = Habit.guessIconName(for: newValue)
+                            let guess = HabitIconLibrary.guessIcon(for: newValue)
                             if newIconName == "checkmark.circle" || newIconName.isEmpty {
                                 newIconName = guess
                             }
@@ -437,7 +437,7 @@ struct HomeView: View {
                             reminderHour: hour,
                             reminderMinute: minute,
                             iconName: newIconName.isEmpty
-                            ? Habit.guessIconName(for: trimmed)
+                            ? HabitIconLibrary.guessIcon(for: trimmed)
                             : newIconName,
                             sortOrder: newOrder
                         )
@@ -658,7 +658,7 @@ struct HomeView: View {
         let today = todayStartOfDay
         
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-            if let log = habit.logs.first(where: { cal.startOfDay(for: $0.date) == today }) {
+            if let log = (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today }) {
                 log.completed.toggle()
             } else {
                 let log = HabitLog(date: today, completed: true, habit: habit)

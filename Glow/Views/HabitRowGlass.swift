@@ -11,7 +11,7 @@ struct HabitRowGlass: View {
     private var doneToday: Bool {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        return habit.logs.first(where: { cal.startOfDay(for: $0.date) == today })?.completed == true
+        return (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today })?.completed == true
     }
 
     private var rowTextColor: Color {

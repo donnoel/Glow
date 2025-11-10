@@ -5,8 +5,10 @@ import SwiftData
 final class HabitLog {
     private static let calendar = Calendar.current
 
-    var date: Date          // normalized to start-of-day
-    var completed: Bool
+    // give CloudKit defaults
+    var date: Date = Date()
+    var completed: Bool = false
+
     @Relationship var habit: Habit?
 
     init(date: Date, completed: Bool, habit: Habit?) {

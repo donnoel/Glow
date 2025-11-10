@@ -3,44 +3,48 @@ import SwiftData
 
 @Model
 final class Habit {
-    @Attribute(.unique) var id: String
-    var title: String
-    var createdAt: Date
+    // was: @Attribute(.unique) var id: String
+    // CloudKit doesn't support unique constraints, so drop the attribute
+    var id: String = UUID().uuidString
+
+    // add defaults so CloudKit is happy
+    var title: String = ""
+    var createdAt: Date = Date()
 
     // Archive
-    var isArchived: Bool
+    var isArchived: Bool = false
 
     // Schedule (persisted as Data)
-    var scheduleData: Data
+    // CloudKit wanted a default here too
+    var scheduleData: Data = Data()
 
     // Logs
+    // CloudKit: relationships must be optional
     @Relationship(deleteRule: .cascade, inverse: \HabitLog.habit)
-    var logs: [HabitLog] = []
+    var logs: [HabitLog]? = []
 
     // Reminders
-    var reminderEnabled: Bool
+    var reminderEnabled: Bool = false
     var reminderHour: Int?
     var reminderMinute: Int?
 
     // Per-habit icon (SF Symbol name)
-    // e.g. "wineglass", "drop.fill", "dumbbell.fill", etc.
-    var iconName: String
+    var iconName: String = "checkmark.circle"
 
-    // NEW (M11-ish): manual ordering within “today”
-    // Lower = shows higher in the list.
-    var sortOrder: Int
+    // manual ordering within “today”
+    var sortOrder: Int = 9_999
 
     init(
         id: String = UUID().uuidString,
         title: String,
-        createdAt: Date = .now,
+        createdAt: Date = Date(),
         isArchived: Bool = false,
         schedule: HabitSchedule = .daily,
         reminderEnabled: Bool = false,
         reminderHour: Int? = nil,
         reminderMinute: Int? = nil,
-        iconName: String = "checkmark.circle", // fallback if we can't guess
-        sortOrder: Int = 9_999                   // new habits drop to bottom by default
+        iconName: String = "checkmark.circle",
+        sortOrder: Int = 9_999
     ) {
         self.id = id
         self.title = title
@@ -69,7 +73,6 @@ extension Habit {
             if let data = try? Habit.scheduleEncoder.encode(newValue) {
                 scheduleData = data
             }
-            // if encoding fails, keep the existing scheduleData instead of wiping it
         }
     }
 
@@ -95,15 +98,5 @@ extension Habit {
         let comps = Calendar.current.dateComponents([.hour, .minute], from: date)
         reminderHour = comps.hour
         reminderMinute = comps.minute
-    }
-}
-
-// MARK: - Icon helper
-
-extension Habit {
-    /// Pick a default SF Symbol for a given title (“drink water” -> drop.fill).
-    /// Used when creating a brand new habit in HomeView.
-    static func guessIconName(for title: String) -> String {
-        HabitIconLibrary.guessIcon(for: title)
     }
 }

@@ -25,7 +25,7 @@ struct TrendsView: View {
     /// We'll sort by "recent %", highest first.
     private var habitStats: [HabitPerformance] {
         activeHabits.map { habit in
-            let streaks = StreakEngine.computeStreaks(logs: habit.logs)
+            let streaks = StreakEngine.computeStreaks(logs: habit.logs ?? [])
             return HabitPerformance(
                 habit: habit,
                 currentStreak: streaks.current,
@@ -44,7 +44,7 @@ struct TrendsView: View {
     /// Global streak = streak across "any habit done each day".
     /// We'll define "you showed up that day" if you completed at least one habit that day.
     private var globalStreaks: (current: Int, best: Int) {
-        let allLogs = habits.flatMap { $0.logs }
+        let allLogs = habits.compactMap { $0.logs }.flatMap { $0 }
         return StreakEngine.computeStreaks(
             logs: mergeLogsByDay(logs: allLogs)
         )
@@ -58,7 +58,8 @@ struct TrendsView: View {
 
         let completedDays = Set(
             habits
-                .flatMap { $0.logs }
+                .compactMap { $0.logs }
+                .flatMap { $0 }
                 .filter { $0.completed && $0.date >= start }
                 .map { cal.startOfDay(for: $0.date) }
         )
@@ -233,7 +234,7 @@ struct TrendsView: View {
         let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
 
         let completedDays = Set(
-            habit.logs
+            (habit.logs ?? [])
                 .filter { $0.completed && $0.date >= start }
                 .map { cal.startOfDay(for: $0.date) }
         )
@@ -343,7 +344,7 @@ private struct WeeklyActivityStrip: View {
         var map: [Date: Bool] = [:]
 
         for habit in allHabits {
-            for log in habit.logs where log.completed {
+            for log in (habit.logs ?? []) where log.completed {
                 let d = cal.startOfDay(for: log.date)
                 if d >= start {
                     map[d] = true

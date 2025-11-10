@@ -417,7 +417,7 @@ struct MonthHeatmapModel {
         if let start = startOfMonth,
            let end = cal.date(byAdding: DateComponents(month: 1, day: 0), to: start) {
 
-            let normalized = habit.logs
+            let normalized = (habit.logs ?? [])
                 .filter { $0.completed && $0.date >= start && $0.date < end }
                 .map { cal.startOfDay(for: $0.date) }
 
@@ -441,7 +441,7 @@ struct MonthHeatmapModel {
             pctLocal = Int((Double(doneCount) / Double(monthDates.count)) * 100.0)
         }
 
-        let inMonthLogs = habit.logs.filter {
+        let inMonthLogs = (habit.logs ?? []).filter {
             cal.isDate($0.date, equalTo: month, toGranularity: .month) && $0.completed
         }
         let monthStreakLocal = StreakEngine.computeStreaks(logs: inMonthLogs).current
