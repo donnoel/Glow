@@ -10,7 +10,7 @@ Build better habits. Celebrate your wins. Feel your progress.
 ## 🌟 What is Glow?
 
 Glow is a mindful habit-tracking experience designed for people who want growth without pressure.  
-It helps you track your daily practices, build meaningful streaks, and celebrate progress — all wrapped in a smooth, glassy, Apple-native interface.
+It helps you track your daily practices, build meaningful streaks, and celebrate progress — all wrapped in a smooth, glassy interface.
 
 Glow isn’t about chasing numbers.  
 It’s about reflection, momentum, and feeling good about the small wins that add up over time.
