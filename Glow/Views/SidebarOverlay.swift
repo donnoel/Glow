@@ -77,6 +77,7 @@ struct SidebarOverlay: View {
                         iconSize: 20
                     ) {
                         closeWithSlideOut()
+                        NotificationCenter.default.post(name: .glowShowReminders, object: nil)
                     }
 
                     SidebarRow(
