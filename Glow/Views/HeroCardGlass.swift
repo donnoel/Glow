@@ -234,8 +234,8 @@ private struct ProgressRingView: View {
         .onAppear {
             breathe = true
         }
-        .onChange(of: overdriveActive) { isOn in
-            if isOn {
+        .onChange(of: overdriveActive) { oldValue, newValue in
+            if newValue {
                 breathe = true
             }
         }
