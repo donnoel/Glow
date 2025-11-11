@@ -77,7 +77,10 @@ struct HabitDetailView: View {
                         .foregroundStyle(GlowTheme.textPrimary)
 
                     MonthHeatmap(
-                        model: viewModel.monthModel,
+                        model: MonthHeatmapModel(
+                            habit: viewModel.habit,
+                            month: viewModel.monthModel.month
+                        ),
                         tint: viewModel.habitTint,
                         onPrev: { viewModel.goToPreviousMonth() },
                         onNext: { viewModel.goToNextMonth() }
