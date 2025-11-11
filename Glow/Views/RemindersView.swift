@@ -1,5 +1,27 @@
 import SwiftUI
 import SwiftData
+import Combine
+
+@MainActor
+final class RemindersViewModel: ObservableObject {
+    @Published var reminderHabits: [Habit] = []
+
+    func update(from habits: [Habit]) {
+        let filtered = habits
+            .filter { !$0.isArchived }
+            .filter { $0.reminderEnabled && $0.hasValidReminder }
+            .sorted { lhs, rhs in
+                let l = lhs.reminderTimeComponents ?? DateComponents(hour: 23, minute: 59)
+                let r = rhs.reminderTimeComponents ?? DateComponents(hour: 23, minute: 59)
+                if (l.hour ?? 0) == (r.hour ?? 0) {
+                    return (l.minute ?? 0) < (r.minute ?? 0)
+                }
+                return (l.hour ?? 0) < (r.hour ?? 0)
+            }
+
+        self.reminderHabits = filtered
+    }
+}
 
 struct RemindersView: View {
     @Environment(\.dismiss) private var dismiss
@@ -12,24 +34,12 @@ struct RemindersView: View {
     ])
     private var habits: [Habit]
 
-    private var reminderHabits: [Habit] {
-        habits
-            .filter { !$0.isArchived }
-            .filter { $0.reminderEnabled && $0.hasValidReminder }
-            .sorted { lhs, rhs in
-                let l = lhs.reminderTimeComponents ?? DateComponents(hour: 23, minute: 59)
-                let r = rhs.reminderTimeComponents ?? DateComponents(hour: 23, minute: 59)
-                if (l.hour ?? 0) == (r.hour ?? 0) {
-                    return (l.minute ?? 0) < (r.minute ?? 0)
-                }
-                return (l.hour ?? 0) < (r.hour ?? 0)
-            }
-    }
+    @StateObject private var model = RemindersViewModel()
 
     var body: some View {
         NavigationStack {
             Group {
-                if reminderHabits.isEmpty {
+                if model.reminderHabits.isEmpty {
                     ContentUnavailableView(
                         "No reminders set",
                         systemImage: "bell.slash",
@@ -39,7 +49,7 @@ struct RemindersView: View {
                 } else {
                     List {
                         Section("Practice reminders") {
-                            ForEach(reminderHabits) { habit in
+                            ForEach(model.reminderHabits) { habit in
                                 ReminderRow(habit: habit)
                                     .listRowBackground(Color.clear)
                             }
@@ -61,6 +71,12 @@ struct RemindersView: View {
                     .accessibilityLabel("Close reminders")
                 }
             }
+        }
+        .onAppear {
+            model.update(from: habits)
+        }
+        .onChange(of: habits) { _, newHabits in
+            model.update(from: newHabits)
         }
     }
 }

@@ -52,6 +52,9 @@ struct AddOrEditHabitForm: View {
                         .textInputAutocapitalization(.words)
                         .onChange(of: title) { _, newValue in
                             guard mode == .add else { return }
+                            // avoid running the guesser on every keystroke like "a" or "to"
+                            guard newValue.count > 2 else { return }
+
                             let freshGuess = HabitIconLibrary.guessIcon(for: newValue)
 
                             // consider the icon "not customized" if it's the default or empty
