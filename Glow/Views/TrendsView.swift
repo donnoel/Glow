@@ -1,36 +1,42 @@
 import SwiftUI
 import SwiftData
+import Combine
 
-struct TrendsView: View {
-    @Environment(\.modelContext) private var context
+@MainActor
+final class TrendsViewModel: ObservableObject {
+    @Published var habitStats: [HabitPerformance] = []
+    @Published var globalStreaks: (current: Int, best: Int) = (0, 0)
+    @Published var weeklyActiveDaysCount: Int = 0
 
-    // Pull all habits (active + archived). We'll decide what to show.
-    @Query(sort: [SortDescriptor(\Habit.createdAt, order: .reverse)])
-    private var habits: [Habit]
-
-    // We'll talk about "last 7 days", "this month", etc. Use `Date()` as anchor.
-    @State private var now: Date = Date()
-
-    // MARK: - Derived Data
-
-    // Only consider non-archived habits for most stats.
-    private var activeHabits: [Habit] {
-        habits.filter { !$0.isArchived }
+    init(habits: [Habit], now: Date = Date()) {
+        recalc(habits: habits, now: now)
     }
 
-    /// For each habit, compute:
-    /// - streak info
-    /// - recent completion %
-    ///
-    /// We'll sort by "recent %", highest first.
-    private var habitStats: [HabitPerformance] {
-        activeHabits.map { habit in
+    func recalc(habits: [Habit], now: Date) {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: now)
+        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
+
+        // active (non-archived)
+        let activeHabits = habits.filter { !$0.isArchived }
+
+        // habit stats (uses percentLast7Days equivalent)
+        let stats: [HabitPerformance] = activeHabits.map { habit in
             let streaks = StreakEngine.computeStreaks(logs: habit.logs ?? [])
+
+            // percent of last 7 days for this habit
+            let completedDays = Set(
+                (habit.logs ?? [])
+                    .filter { $0.completed && $0.date >= start }
+                    .map { cal.startOfDay(for: $0.date) }
+            )
+            let pct = Int(((Double(completedDays.count) / 7.0) * 100.0).rounded())
+
             return HabitPerformance(
                 habit: habit,
                 currentStreak: streaks.current,
                 bestStreak: streaks.best,
-                recentPercent: percentLast7Days(for: habit)
+                recentPercent: pct
             )
         }
         .sorted { a, b in
@@ -39,23 +45,13 @@ struct TrendsView: View {
             }
             return a.recentPercent > b.recentPercent
         }
-    }
 
-    /// Global streak = streak across "any habit done each day".
-    /// We'll define "you showed up that day" if you completed at least one habit that day.
-    private var globalStreaks: (current: Int, best: Int) {
+        // global streaks (any habit per day)
         let allLogs = habits.compactMap { $0.logs }.flatMap { $0 }
-        return StreakEngine.computeStreaks(
-            logs: mergeLogsByDay(logs: allLogs)
-        )
-    }
+        let merged = Self.mergeLogsByDay(logs: allLogs)
+        let global = StreakEngine.computeStreaks(logs: merged)
 
-    /// How many of the last 7 days did the user complete *anything*?
-    private var weeklyActiveDaysCount: Int {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: now)
-        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
-
+        // weekly active count
         let completedDays = Set(
             habits
                 .compactMap { $0.logs }
@@ -64,8 +60,36 @@ struct TrendsView: View {
                 .map { cal.startOfDay(for: $0.date) }
         )
 
-        return completedDays.count
+        self.habitStats = stats
+        self.globalStreaks = (global.current, global.best)
+        self.weeklyActiveDaysCount = completedDays.count
     }
+
+    private static func mergeLogsByDay(logs: [HabitLog]) -> [HabitLog] {
+        let cal = Calendar.current
+        var byDay: [Date: HabitLog] = [:]
+
+        for log in logs where log.completed {
+            let d = cal.startOfDay(for: log.date)
+            if byDay[d] == nil {
+                byDay[d] = log
+            }
+        }
+        return Array(byDay.values)
+    }
+}
+
+struct TrendsView: View {
+    @Environment(\.modelContext) private var context
+
+    // Pull all habits (active + archived). We'll decide what to show.
+    @Query(sort: [SortDescriptor(\Habit.createdAt, order: .reverse)])
+    private var habits: [Habit]
+
+    @StateObject private var model = TrendsViewModel(habits: [])
+
+    // We'll talk about "last 7 days", "this month", etc. Use `Date()` as anchor.
+    @State private var now: Date = Date()
 
     // MARK: - Body
 
@@ -78,7 +102,7 @@ struct TrendsView: View {
                     streakHeroCard
 
                     // 2. TOP HABITS / LEADERBOARD
-                    if !habitStats.isEmpty {
+                    if !model.habitStats.isEmpty {
                         topHabitsSection
                     }
 
@@ -93,14 +117,23 @@ struct TrendsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .background(GlowBackground())
         }
+        .onAppear {
+            model.recalc(habits: Array(habits), now: now)
+        }
+        .onChange(of: habits) { _, newHabits in
+            model.recalc(habits: Array(newHabits), now: now)
+        }
+        .onChange(of: now) { _, newNow in
+            model.recalc(habits: Array(habits), now: newNow)
+        }
     }
 
     // MARK: - Sections
 
     // big proud card at the top
     private var streakHeroCard: some View {
-        let current = globalStreaks.current
-        let best = globalStreaks.best
+        let current = model.globalStreaks.current
+        let best = model.globalStreaks.best
 
         return VStack(alignment: .leading, spacing: 16) {
 
@@ -144,7 +177,7 @@ struct TrendsView: View {
 
                 // Active this week column
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(weeklyActiveDaysCount)/7")
+                    Text("\(model.weeklyActiveDaysCount)/7")
                         .font(.title2.monospacedDigit().weight(.semibold))
                         .foregroundStyle(GlowTheme.accentPrimary)
                     Text("Active this week")
@@ -175,7 +208,7 @@ struct TrendsView: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Current streak \(current) days. Best streak \(best) days. You were active \(weeklyActiveDaysCount) of the last 7 days."
+            "Current streak \(current) days. Best streak \(best) days. You were active \(model.weeklyActiveDaysCount) of the last 7 days."
         )
     }
 
@@ -188,7 +221,7 @@ struct TrendsView: View {
                 .padding(.top, 4)
 
             VStack(spacing: 10) {
-                ForEach(habitStats.prefix(5)) { stat in
+                ForEach(model.habitStats.prefix(5)) { stat in
                     HabitPerformanceRow(stat: stat)
                 }
             }
@@ -226,28 +259,11 @@ struct TrendsView: View {
         // Return them as an array so StreakEngine can reason over unique days.
         return Array(byDay.values)
     }
-
-    /// % of last 7 days this habit was completed.
-    private func percentLast7Days(for habit: Habit) -> Int {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: now)
-        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
-
-        let completedDays = Set(
-            (habit.logs ?? [])
-                .filter { $0.completed && $0.date >= start }
-                .map { cal.startOfDay(for: $0.date) }
-        )
-
-        let count = completedDays.count
-        let pct = (Double(count) / 7.0) * 100.0
-        return Int(pct.rounded())
-    }
 }
 
 // MARK: - HabitPerformance model
 
-private struct HabitPerformance: Identifiable {
+struct HabitPerformance: Identifiable {
     let habit: Habit
     let currentStreak: Int
     let bestStreak: Int
