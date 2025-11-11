@@ -9,99 +9,39 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var todayStartOfDay: Date
     @Published private(set) var habits: [Habit] = []
 
+    // MARK: - Derived (materialized)
+    @Published private(set) var activeHabits: [Habit] = []
+    @Published private(set) var archivedHabits: [Habit] = []
+    @Published private(set) var scheduledTodayHabits: [Habit] = []
+    @Published private(set) var completedToday: [Habit] = []
+    @Published private(set) var dueButNotDoneToday: [Habit] = []
+    @Published private(set) var notDueToday: [Habit] = []
+    @Published private(set) var bonusCompletedToday: [Habit] = []
+    @Published private(set) var todayCompletion: (done: Int, total: Int, percent: Double) = (0, 0, 0)
+    @Published private(set) var isTodayComplete: Bool = false
+    @Published private(set) var globalStreak: (current: Int, best: Int) = (0, 0)
+    @Published private(set) var mostConsistentHabit: (title: String, hits: Int, window: Int) = ("—", 0, 14)
+    @Published private(set) var typicalCheckInTime: Date = Date()
+
     // MARK: - Init
     init(today: Date = Calendar.current.startOfDay(for: Date())) {
         self.todayStartOfDay = today
+        recalcDerived()
     }
 
     // MARK: - Inputs
     func updateHabits(_ habits: [Habit]) {
         self.habits = habits
+        recalcDerived()
         // when habits change, push real numbers to the widget
         pushProgressToWidget()
     }
 
     func advanceToToday(_ date: Date) {
         self.todayStartOfDay = Calendar.current.startOfDay(for: date)
+        recalcDerived()
         // when the day rolls over, push fresh numbers
         pushProgressToWidget()
-    }
-
-    // MARK: - Derived Collections
-
-    var activeHabits: [Habit] {
-        habits.filter { !$0.isArchived }
-    }
-
-    var archivedHabits: [Habit] {
-        habits.filter { $0.isArchived }
-    }
-
-    /// All habits scheduled today
-    var scheduledTodayHabits: [Habit] {
-        activeHabits
-            .filter { $0.schedule.isScheduled(on: todayStartOfDay) }
-            .sorted { $0.sortOrder < $1.sortOrder }
-    }
-
-    /// Completed today (from scheduled)
-    var completedToday: [Habit] {
-        let cal = Calendar.current
-        return scheduledTodayHabits.filter { habit in
-            (habit.logs ?? []).contains { log in
-                cal.startOfDay(for: log.date) == todayStartOfDay && log.completed
-            }
-        }
-    }
-
-    /// Due today but not done
-    var dueButNotDoneToday: [Habit] {
-        let cal = Calendar.current
-        return scheduledTodayHabits.filter { habit in
-            !(habit.logs ?? []).contains { log in
-                cal.startOfDay(for: log.date) == todayStartOfDay && log.completed
-            }
-        }
-    }
-
-    /// Not scheduled today
-    var notDueToday: [Habit] {
-        activeHabits
-            .filter { !$0.schedule.isScheduled(on: todayStartOfDay) }
-            .sorted { $0.sortOrder < $1.sortOrder }
-    }
-
-    /// Completed today even though they were NOT scheduled today (bonus)
-    var bonusCompletedToday: [Habit] {
-        let cal = Calendar.current
-        return notDueToday.filter { habit in
-            (habit.logs ?? []).contains { log in
-                cal.startOfDay(for: log.date) == todayStartOfDay && log.completed
-            }
-        }
-    }
-
-    /// Hero numbers
-    var todayCompletion: (done: Int, total: Int, percent: Double) {
-        let totalScheduled = scheduledTodayHabits.count
-        let doneScheduled = completedToday.count
-        let bonus = bonusCompletedToday.count
-
-        let percentValue: Double
-        if totalScheduled == 0 {
-            // no scheduled practices today
-            percentValue = bonus == 0 ? 0.0 : Double(bonus)
-        } else {
-            percentValue = Double(doneScheduled + bonus) / Double(totalScheduled)
-        }
-
-        // 👇 no saving here anymore
-        return (doneScheduled, totalScheduled, percentValue)
-    }
-
-    /// True when the user has completed all practices that were actually scheduled for today.
-    var isTodayComplete: Bool {
-        todayCompletion.total > 0 && todayCompletion.done >= todayCompletion.total
     }
 
     // MARK: - "You" summaries (moved from HomeView)
@@ -111,89 +51,120 @@ final class HomeViewModel: ObservableObject {
         habits.compactMap { $0.logs }.flatMap { $0 }
     }
 
-    /// Current streak and best streak *across all habits*.
-    /// We treat a "day counts" if you completed ANY habit that day.
-    var globalStreak: (current: Int, best: Int) {
+    private func recalcDerived() {
         let cal = Calendar.current
+        let today = todayStartOfDay
 
+        // 1) split active vs archived
+        let active = habits.filter { !$0.isArchived }
+        let archived = habits.filter { $0.isArchived }
+
+        // 2) scheduled today
+        let scheduled = active
+            .filter { $0.schedule.isScheduled(on: today) }
+            .sorted { $0.sortOrder < $1.sortOrder }
+
+        // 3) completed today (scheduled)
+        let completedScheduled = scheduled.filter { habit in
+            (habit.logs ?? []).contains { log in
+                cal.startOfDay(for: log.date) == today && log.completed
+            }
+        }
+
+        // 4) due but not done (scheduled but no completed log today)
+        let dueNotDone = scheduled.filter { habit in
+            !(habit.logs ?? []).contains { log in
+                cal.startOfDay(for: log.date) == today && log.completed
+            }
+        }
+
+        // 5) not due today (active but not scheduled)
+        let notDue = active
+            .filter { !$0.schedule.isScheduled(on: today) }
+            .sorted { $0.sortOrder < $1.sortOrder }
+
+        // 6) bonus completions (not scheduled but completed today)
+        let bonus = notDue.filter { habit in
+            (habit.logs ?? []).contains { log in
+                cal.startOfDay(for: log.date) == today && log.completed
+            }
+        }
+
+        // 7) hero numbers
+        let totalScheduled = scheduled.count
+        let doneScheduled = completedScheduled.count
+        let bonusCount = bonus.count
+
+        let percentValue: Double
+        if totalScheduled == 0 {
+            percentValue = bonusCount == 0 ? 0.0 : Double(bonusCount)
+        } else {
+            percentValue = Double(doneScheduled + bonusCount) / Double(totalScheduled)
+        }
+
+        // 8) global streak (any habit per day)
         let groupedByDay = Dictionary(grouping: allLogs.filter { $0.completed }) {
             cal.startOfDay(for: $0.date)
         }
-
         let synthetic: [HabitLog] = groupedByDay.keys.map { day in
             HabitLog(date: day, completed: true, habit: Habit.placeholder)
         }
+        let streak = StreakEngine.computeStreaks(logs: synthetic)
 
-        return StreakEngine.computeStreaks(logs: synthetic)
-    }
-
-    /// Which habit is "most consistent" in the last 14 days?
-    var mostConsistentHabit: (title: String, hits: Int, window: Int) {
-        let cal = Calendar.current
+        // 9) most consistent (14d)
         let windowDays = 14
         let windowStart = cal.startOfDay(
             for: cal.date(byAdding: .day, value: -windowDays + 1, to: Date())!
         )
-
         var bestTitle: String = "—"
         var bestHits = 0
-
         for h in habits {
             let daysHit = Set(
                 (h.logs ?? [])
                     .filter { $0.completed && $0.date >= windowStart }
                     .map { cal.startOfDay(for: $0.date) }
             )
-
             if daysHit.count > bestHits {
                 bestHits = daysHit.count
                 bestTitle = h.title
             }
         }
 
-        return (title: bestTitle, hits: bestHits, window: windowDays)
-    }
-
-    /// Rough guess of "when you usually check in"
-    var typicalCheckInTime: Date {
-        let times: [Date] = activeHabits.compactMap { h in
+        // 10) typical check-in time (same logic as before)
+        let times: [Date] = active.compactMap { h in
             guard let hour = h.reminderHour,
                   let minute = h.reminderMinute else {
                 return nil
             }
-            return Calendar.current.date(
-                bySettingHour: hour,
-                minute: minute,
-                second: 0,
-                of: Date()
-            )
+            return cal.date(bySettingHour: hour, minute: minute, second: 0, of: Date())
+        }
+        let typical: Date
+        if times.isEmpty {
+            typical = cal.date(bySettingHour: 20, minute: 0, second: 0, of: Date()) ?? Date()
+        } else {
+            let minutesArray = times.map { t in
+                let comps = cal.dateComponents([.hour, .minute], from: t)
+                return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
+            }
+            let avgMins = minutesArray.reduce(0, +) / minutesArray.count
+            let avgHour = avgMins / 60
+            let avgMinute = avgMins % 60
+            typical = cal.date(bySettingHour: avgHour, minute: avgMinute, second: 0, of: Date()) ?? Date()
         }
 
-        guard !times.isEmpty else {
-            return Calendar.current.date(
-                bySettingHour: 20,
-                minute: 0,
-                second: 0,
-                of: Date()
-            ) ?? Date()
-        }
-
-        let cal = Calendar.current
-        let minutesArray = times.map { t in
-            let comps = cal.dateComponents([.hour, .minute], from: t)
-            return (comps.hour ?? 0) * 60 + (comps.minute ?? 0)
-        }
-
-        let avgMins = minutesArray.reduce(0, +) / minutesArray.count
-        let avgHour = avgMins / 60
-        let avgMinute = avgMins % 60
-
-        return cal.date(
-            bySettingHour: avgHour,
-            minute: avgMinute,
-            second: 0,
-            of: Date()
-        ) ?? Date()
+        // publish
+        self.activeHabits = active
+        self.archivedHabits = archived
+        self.scheduledTodayHabits = scheduled
+        self.completedToday = completedScheduled
+        self.dueButNotDoneToday = dueNotDone
+        self.notDueToday = notDue
+        self.bonusCompletedToday = bonus
+        self.todayCompletion = (doneScheduled, totalScheduled, percentValue)
+        self.isTodayComplete = totalScheduled > 0 && doneScheduled >= totalScheduled
+        self.globalStreak = (streak.current, streak.best)
+        self.mostConsistentHabit = (bestTitle, bestHits, windowDays)
+        self.typicalCheckInTime = typical
     }
 
     // MARK: - Widget sync

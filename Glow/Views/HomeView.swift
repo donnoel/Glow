@@ -203,6 +203,8 @@ struct HomeView: View {
                     TextField("Title", text: $newTitle)
                         .textInputAutocapitalization(.words)
                         .onChange(of: newTitle) { _, newValue in
+                            // don’t run the guesser on every keystroke like "a" or "to"
+                            guard newValue.count > 2 else { return }
                             let guess = HabitIconLibrary.guessIcon(for: newValue)
                             if newIconName == "checkmark.circle" || newIconName.isEmpty {
                                 newIconName = guess
