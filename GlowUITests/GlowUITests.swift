@@ -1,10 +1,3 @@
-//
-//  GlowUITests.swift
-//  GlowUITests
-//
-//  Created by Don Noel on 10/29/25.
-//
-
 import XCTest
 
 final class GlowUITests: XCTestCase {
@@ -21,87 +14,124 @@ final class GlowUITests: XCTestCase {
         app = nil
     }
 
-    // 1) Smoke: app launches and we can see the add button
+    // 1) Smoke: app launches and we can see the add button (or its identifier)
     @MainActor
     func testHomeShowsAddPracticeButton() throws {
-        // the HomeView's add button has accessibilityLabel("Add practice")
-        let addButton = app.buttons["Add practice"]
-        XCTAssertTrue(addButton.waitForExistence(timeout: 5), "Add button should be visible on home")
+        // Prefer an accessibility identifier if your Glow app sets one, e.g. "addPracticeButton"
+        let addButton = app.buttons["addPracticeButton"].exists
+            ? app.buttons["addPracticeButton"]
+            : app.buttons["Add practice"]
+
+        XCTAssertTrue(addButton.waitForExistence(timeout: 5),
+                      "Add Practice button should be visible on home screen.")
     }
 
-    // 2) Add practice flow works
+    // 2) Add practice flow works (sheet or push)
     @MainActor
     func testAddPracticeFlow() throws {
-        let addButton = app.buttons["Add practice"]
+        let addButton = app.buttons["addPracticeButton"].exists
+            ? app.buttons["addPracticeButton"]
+            : app.buttons["Add practice"]
+
         XCTAssertTrue(addButton.waitForExistence(timeout: 5))
         addButton.tap()
 
-        // the sheet has a TextField("Title")
-        let titleField = app.textFields["Title"]
-        XCTAssertTrue(titleField.waitForExistence(timeout: 5), "Title field should be visible in add sheet")
+        // Try common field names; adjust to match Glow’s actual textfield id/label
+        let titleField = app.textFields["practiceTitleField"].exists
+            ? app.textFields["practiceTitleField"]
+            : app.textFields["Title"]
+
+        XCTAssertTrue(titleField.waitForExistence(timeout: 5),
+                      "Title field should be visible when adding a practice.")
+
         titleField.tap()
         titleField.typeText("UITest Practice")
 
-        // tap Save in the navigation bar
-        let saveButton = app.buttons["Save"]
-        XCTAssertTrue(saveButton.waitForExistence(timeout: 2))
+        // Try identifier first, then button title
+        let saveButton = app.buttons["savePracticeButton"].exists
+            ? app.buttons["savePracticeButton"]
+            : app.buttons["Save"]
+
+        XCTAssertTrue(saveButton.waitForExistence(timeout: 3),
+                      "Save button should exist in add practice flow.")
         saveButton.tap()
 
-        // after saving, the new practice row should appear somewhere in the list
-        // we can look for the text we just added
+        // Verify the new practice shows up
         let newRow = app.staticTexts["UITest Practice"]
-        XCTAssertTrue(newRow.waitForExistence(timeout: 5), "Newly added practice should appear in the list")
+        XCTAssertTrue(newRow.waitForExistence(timeout: 5),
+                      "Newly added practice should appear in the list.")
     }
 
-    // 3) Sidebar opens and Reminders can be shown
+    // 3) Sidebar / menu opens and Reminders is shown
     @MainActor
     func testOpenSidebarAndShowReminders() throws {
-        // menu button uses accessibilityLabel("Menu") in HomeView
-        let menuButton = app.buttons["Menu"]
-        XCTAssertTrue(menuButton.waitForExistence(timeout: 5), "Menu button should be present")
+        // Prefer identifier if set
+        let menuButton = app.buttons["menuButton"].exists
+            ? app.buttons["menuButton"]
+            : app.buttons["Menu"]
+
+        XCTAssertTrue(menuButton.waitForExistence(timeout: 5),
+                      "Menu button should be present on the home screen.")
         menuButton.tap()
 
-        // in the sidebar, there's a button labeled "Reminders"
-        let remindersButton = app.buttons["Reminders"]
-        XCTAssertTrue(remindersButton.waitForExistence(timeout: 3), "Reminders item should be visible in sidebar")
+        let remindersButton = app.buttons["remindersButton"].exists
+            ? app.buttons["remindersButton"]
+            : app.buttons["Reminders"]
+
+        XCTAssertTrue(remindersButton.waitForExistence(timeout: 3),
+                      "Reminders item should be visible in the sidebar or menu.")
         remindersButton.tap()
 
-        // the RemindersView currently presents as a sheet; assert the word "Reminders" exists somewhere
-        // (adjust this if your RemindersView has a different title)
+        // Check for a known reminders title
         let remindersTitle = app.staticTexts["Reminders"]
-        XCTAssertTrue(remindersTitle.waitForExistence(timeout: 5), "Reminders sheet should be shown")
+        XCTAssertTrue(remindersTitle.waitForExistence(timeout: 5),
+                      "Reminders view/sheet should be shown after tapping Reminders.")
     }
 
-    // 4) Mark first practice complete from Home
-    // This relies on HabitRowGlass exposing the button with an accessibility label
+    // 4) Mark first practice complete
     @MainActor
     func testToggleFirstPracticeComplete() throws {
-        // make sure we have at least one practice; if none, add one quickly
-        let anyRow = app.staticTexts["UITest Auto"]
-        if !anyRow.exists {
-            // add a quick practice
-            let addButton = app.buttons["Add practice"]
-            if addButton.waitForExistence(timeout: 2) {
+        // Ensure we have at least one practice
+        let existingPractice = app.staticTexts["UITest Auto"]
+
+        if !existingPractice.exists {
+            // create one quickly using the same helper steps
+            let addButton = app.buttons["addPracticeButton"].exists
+                ? app.buttons["addPracticeButton"]
+                : app.buttons["Add practice"]
+            if addButton.waitForExistence(timeout: 3) {
                 addButton.tap()
-                let titleField = app.textFields["Title"]
-                if titleField.waitForExistence(timeout: 2) {
+                let titleField = app.textFields["practiceTitleField"].exists
+                    ? app.textFields["practiceTitleField"]
+                    : app.textFields["Title"]
+                if titleField.waitForExistence(timeout: 3) {
                     titleField.tap()
                     titleField.typeText("UITest Auto")
-                    app.buttons["Save"].tap()
+                    let saveButton = app.buttons["savePracticeButton"].exists
+                        ? app.buttons["savePracticeButton"]
+                        : app.buttons["Save"]
+                    if saveButton.waitForExistence(timeout: 2) {
+                        saveButton.tap()
+                    }
                 }
             }
         }
 
-        // find the first toggle button in the list
-        // HabitRowGlass sets accessibility labels like "Mark practice complete" / "Mark practice incomplete"
-        let completeButton = app.buttons.matching(NSPredicate(format: "label CONTAINS 'Mark practice'"))
-            .firstMatch
-        XCTAssertTrue(completeButton.waitForExistence(timeout: 5), "Should find a practice toggle button")
-        completeButton.tap()
-        // no hard assert on result view here; just ensuring the button is tappable without a crash
+        // Try identifier first, then a predicate on the label
+        let toggleButton: XCUIElement
+        if app.buttons["practiceToggleButton"].exists {
+            toggleButton = app.buttons["practiceToggleButton"]
+        } else {
+            toggleButton = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Mark practice'")).firstMatch
+        }
+
+        XCTAssertTrue(toggleButton.waitForExistence(timeout: 5),
+                      "Should find a practice toggle button.")
+        toggleButton.tap()
+        // We don't assert the resulting state here to keep the test stable.
     }
 
-    // existing performance test can stay
+    // 5) Existing performance test
     @MainActor
     func testLaunchPerformance() throws {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
