@@ -4,6 +4,14 @@ import SwiftUI
 // read today's progress from the shared app group
 private let appGroupID = "group.movie.Glow"
 
+// local widget design tokens so we don't depend on the main app target
+private enum WidgetTokens {
+    static let cornerRadius: CGFloat = 12
+    static let pillPaddingH: CGFloat = 10
+    static let pillPaddingV: CGFloat = 4
+    static let progressHeight: CGFloat = 6
+}
+
 private func loadTodayProgress() -> (done: Int, total: Int) {
     let defaults = UserDefaults(suiteName: appGroupID)
     let done = defaults?.integer(forKey: "today_done") ?? 0
@@ -46,6 +54,8 @@ struct TodayProgressProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodayProgressEntry>) -> ()) {
         let progress = loadTodayProgress()
         let entry = TodayProgressEntry(date: Date(), done: progress.done, total: progress.total)
+
+        // keep your 30-minute cadence for now
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
         completion(timeline)
@@ -101,7 +111,7 @@ struct TodayProgressWidgetView: View {
     // MARK: - Medium / regular home widget
     private var mainView: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous)
                 .fill(
                     colorScheme == .dark
                     ? LinearGradient(
@@ -115,6 +125,7 @@ struct TodayProgressWidgetView: View {
                         endPoint: .bottomTrailing
                     )
                 )
+
             if colorScheme == .dark {
                 RadialGradient(
                     colors: [glowAccent.opacity(0.55), .clear],
@@ -123,8 +134,9 @@ struct TodayProgressWidgetView: View {
                     endRadius: 160
                 )
                 .blendMode(.screen)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous))
             }
+
             VStack(alignment: .leading, spacing: 12) {
                 // top bar
                 HStack(spacing: 10) {
@@ -138,7 +150,6 @@ struct TodayProgressWidgetView: View {
                     .frame(width: 28, height: 28)
 
                     VStack(alignment: .leading, spacing: 1) {
-                        // small, quiet label so it doesn't fight the status line
                         Text("Glow • Today")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
@@ -151,17 +162,17 @@ struct TodayProgressWidgetView: View {
 
                     Spacer()
 
-                    // pill for the count
+                    // pill for the count — softened to 0.32 to match app glass
                     Text("\(entry.done)/\(entry.total)")
                         .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, WidgetTokens.pillPaddingH)
+                        .padding(.vertical, WidgetTokens.pillPaddingV)
                         .background(
                             Capsule()
                                 .fill(
                                     colorScheme == .dark
                                     ? Color.white.opacity(0.12)
-                                    : Color.white.opacity(0.6)
+                                    : Color.white.opacity(0.32)
                                 )
                         )
                         .foregroundStyle(
@@ -183,10 +194,10 @@ struct TodayProgressWidgetView: View {
                             .fill(glowAccent)
                             .frame(width: progressWidth)
                     }
-                    .frame(height: 7)
+                    .frame(height: WidgetTokens.progressHeight)
                     .mask(Capsule())
                 }
-                .frame(height: 7)
+                .frame(height: WidgetTokens.progressHeight)
 
                 if entry.total == 0 {
                     Text("No practices scheduled")
@@ -194,8 +205,9 @@ struct TodayProgressWidgetView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .padding(.horizontal, 2)
-            .padding(.vertical, 3)
+            // slightly more breathing room — 12 feels closer to your Home
+            .padding(.horizontal, 12)
+            .padding(.vertical, 12)
         }
         .applyWidgetBackground()
     }
@@ -203,7 +215,7 @@ struct TodayProgressWidgetView: View {
     // MARK: - Small home widget
     private var compactMainView: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous)
                 .fill(
                     colorScheme == .dark
                     ? LinearGradient(
@@ -225,7 +237,7 @@ struct TodayProgressWidgetView: View {
                     endRadius: 120
                 )
                 .blendMode(.screen)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous))
             }
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -256,13 +268,13 @@ struct TodayProgressWidgetView: View {
                             .fill(glowAccent)
                             .frame(width: progressWidth)
                     }
-                    .frame(height: 5)
+                    .frame(height: WidgetTokens.progressHeight - 1)
                     .mask(Capsule())
                 }
-                .frame(height: 5)
+                .frame(height: WidgetTokens.progressHeight - 1)
             }
-            .padding(.horizontal, 2)
-            .padding(.vertical, 3)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 10)
         }
         .applyWidgetBackground()
     }
@@ -325,13 +337,5 @@ struct TodayProgressWidget: Widget {
             .accessoryRectangular,
             .accessoryCircular
         ])
-    }
-}
-
-// 5) Entry point for the widget target
-@main
-struct GlowWidgetBundle: WidgetBundle {
-    var body: some Widget {
-        TodayProgressWidget()
     }
 }
