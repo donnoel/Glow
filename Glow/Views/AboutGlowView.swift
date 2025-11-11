@@ -7,7 +7,7 @@ struct AboutGlowView: View {
     @Environment(\.modelContext) private var modelContext
 
     // Fake version for now — you can wire this to Bundle.main later
-    private let appVersion = "1.0 (Beta)"
+    private let appVersion = "1.0"
 
     @State private var showResetConfirm = false
     @State private var showResetDone = false
