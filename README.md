@@ -121,7 +121,7 @@ Glow has been tuned for speed and efficiency:
 
 - [ ] iPad optimized
 - [ ] watchOS companion app  
-- [ ] Shared Habits (“Glow Circles”)  
+- [ ] Shared Habits (Glow Circles)  
  
 
 ---
