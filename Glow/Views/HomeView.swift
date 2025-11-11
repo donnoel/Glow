@@ -14,6 +14,8 @@ struct HomeView: View {
     private var habits: [Habit]
 
     @StateObject private var viewModel = HomeViewModel()
+    @AppStorage("hasSeenGlowOnboarding") private var hasSeenGlowOnboarding = false
+    @State private var showOnboarding = false
 
     // Add Sheet / New Practice fields
     @State private var showAdd = false
@@ -156,6 +158,16 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showShare) {
             ShareSheet(activityItems: ["I’m tracking my practices in Glow ✨"])
+        }
+        .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
+            hasSeenGlowOnboarding = true
+        }) {
+            GlowOnboardingInline(isPresented: $showOnboarding)
+        }
+        .onAppear {
+            if hasSeenGlowOnboarding == false {
+                showOnboarding = true
+            }
         }
     }
 
@@ -661,4 +673,42 @@ private struct ShareSheet: UIViewControllerRepresentable {
 extension Notification.Name {
     static let glowShowArchive = Notification.Name("glowShowArchive")
     static let glowShowReminders = Notification.Name("glowShowReminders")
+}
+
+private struct GlowOnboardingInline: View {
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        VStack(spacing: 18) {
+            Spacer()
+            Image(systemName: "sparkles")
+                .font(.system(size: 48, weight: .semibold))
+                .foregroundStyle(GlowTheme.accentPrimary)
+            Text("Welcome to Glow")
+                .font(.title2.weight(.semibold))
+            Text("Add a practice with the + button, then check it off each day.")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 24)
+            Spacer()
+            Button {
+                isPresented = false
+            } label: {
+                Text("Get started")
+                    .font(.body.weight(.semibold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            .fill(GlowTheme.accentPrimary)
+                    )
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 24)
+            }
+        }
+        .background(.ultraThinMaterial)
+        .ignoresSafeArea()
+    }
 }
