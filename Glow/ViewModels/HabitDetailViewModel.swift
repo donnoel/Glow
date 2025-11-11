@@ -10,13 +10,22 @@ final class HabitDetailViewModel: ObservableObject {
 
     // MARK: - Published UI state
     @Published var monthAnchor: Date
+    @Published var monthModel: MonthHeatmapModel
 
     // MARK: - Init
     init(habit: Habit, prewarmedMonth: MonthHeatmapModel? = nil) {
         self.habit = habit
         self.prewarmedMonth = prewarmedMonth
-        // prefer the prewarmed month if we got one, otherwise today
-        self.monthAnchor = prewarmedMonth?.month ?? .now
+
+        let today = Calendar.current.startOfDay(for: Date())
+        let anchor = prewarmedMonth?.month ?? today
+        self.monthAnchor = anchor
+
+        if let prewarmedMonth {
+            self.monthModel = prewarmedMonth
+        } else {
+            self.monthModel = MonthHeatmapModel(habit: habit, month: anchor)
+        }
     }
 
     // MARK: - Derived
@@ -30,14 +39,18 @@ final class HabitDetailViewModel: ObservableObject {
 
     // MARK: - Intent / Actions
     func goToPreviousMonth() {
-        if let prev = Calendar.current.date(byAdding: .month, value: -1, to: monthAnchor) {
+        let cal = Calendar.current
+        if let prev = cal.date(byAdding: .month, value: -1, to: monthAnchor) {
             monthAnchor = prev
+            monthModel = MonthHeatmapModel(habit: habit, month: prev)
         }
     }
 
     func goToNextMonth() {
-        if let next = Calendar.current.date(byAdding: .month, value: 1, to: monthAnchor) {
+        let cal = Calendar.current
+        if let next = cal.date(byAdding: .month, value: 1, to: monthAnchor) {
             monthAnchor = next
+            monthModel = MonthHeatmapModel(habit: habit, month: next)
         }
     }
 

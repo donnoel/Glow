@@ -77,10 +77,8 @@ struct HabitDetailView: View {
                         .foregroundStyle(GlowTheme.textPrimary)
 
                     MonthHeatmap(
-                        habit: viewModel.habit,
-                        month: viewModel.monthAnchor,
+                        model: viewModel.monthModel,
                         tint: viewModel.habitTint,
-                        prewarmed: viewModel.prewarmedMonth,
                         onPrev: { viewModel.goToPreviousMonth() },
                         onNext: { viewModel.goToNextMonth() }
                     )
@@ -236,26 +234,6 @@ private struct MonthHeatmap: View {
     let onPrev: () -> Void
     let onNext: () -> Void
 
-    init(
-        habit: Habit,
-        month: Date,
-        tint: Color,
-        prewarmed: MonthHeatmapModel? = nil,
-        onPrev: @escaping () -> Void,
-        onNext: @escaping () -> Void
-    ) {
-        let cal = Calendar.current
-        if let pre = prewarmed,
-           cal.isDate(pre.month, equalTo: month, toGranularity: .month) {
-            self.model = pre
-        } else {
-            self.model = MonthHeatmapModel(habit: habit, month: month)
-        }
-        self.tint = tint
-        self.onPrev = onPrev
-        self.onNext = onNext
-    }
-    
     var body: some View {
         VStack(spacing: 8) {
             header
@@ -280,7 +258,7 @@ private struct MonthHeatmap: View {
         )
         .accessibilityElement(children: .contain)
     }
-    
+
     private var header: some View {
         HStack {
             Button(action: onPrev) {
@@ -288,15 +266,15 @@ private struct MonthHeatmap: View {
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
-            
+
             Spacer()
-            
+
             Text(model.monthTitle)
                 .font(.headline)
                 .foregroundStyle(GlowTheme.textPrimary)
-            
+
             Spacer()
-            
+
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
             }
@@ -305,7 +283,7 @@ private struct MonthHeatmap: View {
         }
         .accessibilityLabel("Month navigation")
     }
-    
+
     private var weekdayHeader: some View {
         HStack {
             ForEach(model.weekdays, id: \.self) { d in
@@ -316,7 +294,7 @@ private struct MonthHeatmap: View {
             }
         }
     }
-    
+
     private var grid: some View {
         VStack(spacing: 6) {
             ForEach(0..<model.gridDates.count, id: \.self) { row in
@@ -336,7 +314,7 @@ private struct MonthHeatmap: View {
             }
         }
     }
-    
+
     private var summary: some View {
         HStack(spacing: 0) {
             HStack(spacing: 4) {
@@ -345,7 +323,7 @@ private struct MonthHeatmap: View {
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            
+
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
                 Text("Streak \(model.monthStreak)")
