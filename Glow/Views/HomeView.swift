@@ -162,7 +162,7 @@ struct HomeView: View {
         .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
             hasSeenGlowOnboarding = true
         }) {
-            GlowOnboardingInline(isPresented: $showOnboarding)
+            GlowOnboardingView(isPresented: $showOnboarding)
         }
         .onAppear {
             if hasSeenGlowOnboarding == false {

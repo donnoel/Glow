@@ -1,59 +1,103 @@
 import SwiftUI
 
 struct GlowOnboardingView: View {
-    // parent will bind this
     @Binding var isPresented: Bool
+    @State private var pageIndex: Int = 0
+
+    private let totalPages = 5
 
     var body: some View {
-        TabView {
-            OnboardingPage(
-                title: "Welcome to Glow ✨",
-                subtitle: "Glow is for small daily practices. Things you actually want to keep doing.",
-                systemImage: "sparkles"
-            )
+        ZStack {
+            TabView(selection: $pageIndex) {
+                OnboardingPage(
+                    title: "Welcome to Glow ✨",
+                    subtitle: "Glow keeps the few daily practices you actually care about.",
+                    systemImage: "sparkles"
+                )
+                .tag(0)
 
-            OnboardingPage(
-                title: "Add a practice",
-                subtitle: "Tap the + in the top right. Name it, pick a schedule, optionally set a reminder.",
-                systemImage: "plus.circle.fill"
-            )
+                OnboardingPage(
+                    title: "Add a practice",
+                    subtitle: "Tap the + in the top right. Give it a name, pick a schedule, then turn on “Remind me”.",
+                    systemImage: "bell.badge.fill"
+                )
+                .tag(1)
 
-            OnboardingPage(
-                title: "Check it off",
-                subtitle: "From Home, tap a practice to mark today done. Glow tracks streaks and shows your wins.",
-                systemImage: "checkmark.circle.fill"
-            )
+                OnboardingPage(
+                    title: "Tap to see details",
+                    subtitle: "From Home, tap a practice to see streak, heatmap, and history.",
+                    systemImage: "list.bullet.rectangle.portrait.fill"
+                )
+                .tag(2)
 
-            OnboardingPage(
-                title: "See more",
-                subtitle: "Use the menu to view Trends, You, Reminders, and Archived.",
-                systemImage: "line.3.horizontal"
-            )
-        }
-        .tabViewStyle(.page)
-        .background(.ultraThinMaterial)
-        .overlay(alignment: .topTrailing) {
-            Button("Skip") {
-                isPresented = false
+                OnboardingPage(
+                    title: "Swipe on a practice",
+                    subtitle: "Swipe left to Edit, Archive, or Delete.",
+                    systemImage: "hand.point.right.fill"
+                )
+                .tag(3)
+
+                OnboardingPage(
+                    title: "Open the menu",
+                    subtitle: "Use the menu for You, Trends, Reminders, Archived, and About.",
+                    systemImage: "line.3.horizontal"
+                )
+                .tag(4)
             }
-            .font(.footnote.weight(.semibold))
-            .padding(14)
-        }
-        .overlay(alignment: .bottom) {
-            Button {
-                isPresented = false
-            } label: {
-                Text("Get started")
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(GlowTheme.accentPrimary)
-                    )
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 28)
+            .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+            .background(.ultraThinMaterial)
+
+            // top-right skip
+            VStack {
+                HStack {
+                    Spacer()
+                    if pageIndex < totalPages - 1 {
+                        Button("Skip") {
+                            isPresented = false
+                        }
+                        .font(.footnote.weight(.semibold))
+                        .padding(14)
+                    }
+                }
+                Spacer()
+            }
+
+            // bottom controls
+            VStack {
+                Spacer()
+                HStack(spacing: 12) {
+                    // dots
+                    HStack(spacing: 6) {
+                        ForEach(0..<totalPages, id: \.self) { idx in
+                            Circle()
+                                .fill(idx == pageIndex ? GlowTheme.accentPrimary : Color.secondary.opacity(0.28))
+                                .frame(width: idx == pageIndex ? 10 : 8, height: idx == pageIndex ? 10 : 8)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    Button {
+                        if pageIndex < totalPages - 1 {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.9)) {
+                                pageIndex += 1
+                            }
+                        } else {
+                            isPresented = false
+                        }
+                    } label: {
+                        Text(pageIndex < totalPages - 1 ? "Next" : "Get started")
+                            .font(.body.weight(.semibold))
+                            .frame(maxWidth: 160)
+                            .padding(.vertical, 12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                    .fill(GlowTheme.accentPrimary)
+                            )
+                            .foregroundStyle(.white)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 28)
             }
         }
     }
