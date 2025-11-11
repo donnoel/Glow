@@ -298,6 +298,7 @@ struct HomeView: View {
     }
 
     // MARK: - List Content
+    // MARK: - List Content
     private var contentList: some View {
         List {
             // HERO
@@ -317,10 +318,15 @@ struct HomeView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Today’s progress")
                 .accessibilityValue("\(viewModel.todayCompletion.done) of \(viewModel.todayCompletion.total) practices completed")
-                
-                .padding(.top, 64)
+                // hero should sit a little lower under the nav chrome
+                .padding(.top, GlowTheme.Spacing.xlarge * 2) // 64 -> token-based
                 .listRowInsets(
-                    EdgeInsets(top: 8, leading: 16, bottom: 16, trailing: 16)
+                    EdgeInsets(
+                        top: GlowTheme.Spacing.small,
+                        leading: GlowTheme.Spacing.medium,
+                        bottom: GlowTheme.Spacing.medium,
+                        trailing: GlowTheme.Spacing.medium
+                    )
                 )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
@@ -400,6 +406,7 @@ struct HomeView: View {
                 }
             }
 
+            // footer spacer
             Section {
                 Color.clear
                     .frame(height: 48)
