@@ -1,4 +1,3 @@
-// HeroCardGlass.swift
 import SwiftUI
 
 struct HeroCardGlass: View {
@@ -34,10 +33,10 @@ struct HeroCardGlass: View {
     // glass card base + optional celebration layer
     private var cardBackground: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: GlowTheme.Radius.hero, style: .continuous)
                 .fill(.ultraThinMaterial)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    RoundedRectangle(cornerRadius: GlowTheme.Radius.hero, style: .continuous)
                         .stroke(
                             Color.white.opacity(colorScheme == .dark ? 0.18 : 0.4),
                             lineWidth: 1
@@ -76,7 +75,7 @@ struct HeroCardGlass: View {
                 .allowsHitTesting(false)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: GlowTheme.Radius.hero, style: .continuous))
     }
 
     private var statusLine: String {
@@ -88,7 +87,7 @@ struct HeroCardGlass: View {
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 16) {
+        HStack(alignment: .center, spacing: GlowTheme.Spacing.medium) {
 
             // LEFT: ring
             ProgressRingView(
@@ -99,7 +98,7 @@ struct HeroCardGlass: View {
             .frame(width: 88, height: 88)
 
             // RIGHT: text
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Today")
                     .font(.title.weight(.semibold))
                     .foregroundStyle(primaryTextColor)
@@ -117,14 +116,14 @@ struct HeroCardGlass: View {
 
             Spacer(minLength: 8)
         }
-        .padding(.vertical, 16)
-        .padding(.horizontal, 16)
+        .padding(.vertical, GlowTheme.Spacing.medium)
+        .padding(.horizontal, GlowTheme.Spacing.medium)
         .background(cardBackground)
-        .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: GlowTheme.Radius.hero, style: .continuous))
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.55 : 0.09),
-            radius: 30,
-            y: 18
+            color: Color.black.opacity(colorScheme == .dark ? 0.48 : 0.09),
+            radius: 28,
+            y: 16
         )
         .onChange(of: percent) { oldValue, newValue in
             // only celebrate when we cross the 1.0 boundary
@@ -206,16 +205,13 @@ private struct ProgressRingView: View {
     }
 
     var body: some View {
-        // pick the right scale based on state
-        let idleScale: CGFloat = 1.015   // subtle all the time
-        let overScale: CGFloat = 1.03    // a bit more when celebrating
+        let idleScale: CGFloat = 1.015
+        let overScale: CGFloat = 1.03
 
         ZStack {
-            // base ring
             Circle()
                 .stroke(GlowTheme.borderMuted.opacity(0.35), lineWidth: 12)
 
-            // progress
             Circle()
                 .trim(from: 0, to: min(1.0, clampedPercent))
                 .stroke(
@@ -224,9 +220,7 @@ private struct ProgressRingView: View {
                 )
                 .rotationEffect(.degrees(-90))
                 .scaleEffect(breathe ? (overdriveActive ? overScale : idleScale) : 1.0)
-                // animate percent changes
                 .animation(.easeInOut(duration: 0.25), value: clampedPercent)
-                // animate the breathing itself
                 .animation(
                     .easeInOut(duration: overdriveActive ? 0.9 : 2.2)
                         .repeatForever(autoreverses: true),
@@ -238,7 +232,6 @@ private struct ProgressRingView: View {
                 .foregroundStyle(GlowTheme.textPrimary)
         }
         .onAppear {
-            // always breathe, just slower when idle
             breathe = true
         }
         .onChange(of: overdriveActive) { isOn in

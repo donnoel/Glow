@@ -32,10 +32,10 @@ struct HabitRowGlass: View {
     }
 
     private var glassCapsule: some View {
-        RoundedRectangle(cornerRadius: 18, style: .continuous)
+        RoundedRectangle(cornerRadius: GlowTheme.Radius.medium, style: .continuous)
             .fill(.ultraThinMaterial)
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: GlowTheme.Radius.medium, style: .continuous)
                     .fill(
                         habit.accentColor
                             .opacity(colorScheme == .dark ? 0.16 : 0.08)
@@ -43,7 +43,7 @@ struct HabitRowGlass: View {
                     .blendMode(.plusLighter)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                RoundedRectangle(cornerRadius: GlowTheme.Radius.medium, style: .continuous)
                     .stroke(
                         habit.accentColor
                             .opacity(colorScheme == .dark ? 0.28 : 0.18),
@@ -57,7 +57,7 @@ struct HabitRowGlass: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: GlowTheme.Spacing.small) {
             // icon
             ZStack {
                 Circle()
@@ -108,10 +108,10 @@ struct HabitRowGlass: View {
                 }
             }
         }
-        .padding(.vertical, 12)
-        .padding(.horizontal, 12)
+        .padding(.vertical, GlowTheme.Spacing.small)
+        .padding(.horizontal, GlowTheme.Spacing.small)
         .background(glassCapsule)
-        .contentShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .contentShape(RoundedRectangle(cornerRadius: GlowTheme.Radius.medium, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(habit.title)
         .accessibilityValue(doneToday ? "Completed today" : "Not completed today")

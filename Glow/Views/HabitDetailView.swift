@@ -511,7 +511,7 @@ private struct DayCell: View {
 
 // MARK: - Shared Card Style
 private extension View {
-    func glowSurfaceCard(cornerRadius: CGFloat) -> some View {
+    func glowSurfaceCard(cornerRadius: CGFloat = GlowTheme.Radius.medium) -> some View {
         self
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
@@ -523,8 +523,7 @@ private extension View {
             )
             .shadow(
                 color: Color.black.opacity(0.15),
-                radius: 20,
-                y: 10
+                radius: 20, y: 10
             )
     }
 }
