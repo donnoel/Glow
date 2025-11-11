@@ -8,7 +8,21 @@ private func loadTodayProgress() -> (done: Int, total: Int) {
     let defaults = UserDefaults(suiteName: appGroupID)
     let done = defaults?.integer(forKey: "today_done") ?? 0
     let total = defaults?.integer(forKey: "today_total") ?? 0
-    return (done, total)
+    let savedDate = defaults?.string(forKey: "today_date")
+
+    // compare to today; if mismatched, return 0/0 so we don't show yesterday's data
+    let today = Calendar.current.startOfDay(for: Date())
+    let formatter = DateFormatter()
+    formatter.calendar = Calendar.current
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.dateFormat = "yyyy-MM-dd"
+    let todayString = formatter.string(from: today)
+
+    if let savedDate, savedDate == todayString {
+        return (done, total)
+    } else {
+        return (0, 0)
+    }
 }
 
 // 1) The data the widget shows
@@ -41,6 +55,7 @@ struct TodayProgressProvider: TimelineProvider {
 // 3) What the widget looks like
 struct TodayProgressWidgetView: View {
     @Environment(\.widgetFamily) private var family
+    @Environment(\.colorScheme) private var colorScheme
     var entry: TodayProgressEntry
 
     // Glow-ish palette — gentle but colorful
@@ -88,12 +103,28 @@ struct TodayProgressWidgetView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(
-                    LinearGradient(
+                    colorScheme == .dark
+                    ? LinearGradient(
+                        colors: [Color.black, Color.black.opacity(0.35)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    : LinearGradient(
                         colors: [glowSoft, Color.white],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
                 )
+            if colorScheme == .dark {
+                RadialGradient(
+                    colors: [glowAccent.opacity(0.55), .clear],
+                    center: .topLeading,
+                    startRadius: 6,
+                    endRadius: 160
+                )
+                .blendMode(.screen)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
             VStack(alignment: .leading, spacing: 12) {
                 // top bar
                 HStack(spacing: 10) {
@@ -127,9 +158,15 @@ struct TodayProgressWidgetView: View {
                         .padding(.vertical, 4)
                         .background(
                             Capsule()
-                                .fill(Color.white.opacity(0.6))
+                                .fill(
+                                    colorScheme == .dark
+                                    ? Color.white.opacity(0.12)
+                                    : Color.white.opacity(0.6)
+                                )
                         )
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(
+                            colorScheme == .dark ? Color.white.opacity(0.85) : .secondary
+                        )
                 }
 
                 // progress bar
@@ -137,7 +174,11 @@ struct TodayProgressWidgetView: View {
                     let progressWidth = max(7, geo.size.width * percent)
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.black.opacity(0.04))
+                            .fill(
+                                colorScheme == .dark
+                                ? Color.white.opacity(0.08)
+                                : Color.black.opacity(0.04)
+                            )
                         Capsule()
                             .fill(glowAccent)
                             .frame(width: progressWidth)
@@ -164,12 +205,28 @@ struct TodayProgressWidgetView: View {
         ZStack {
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(
-                    LinearGradient(
+                    colorScheme == .dark
+                    ? LinearGradient(
+                        colors: [Color.black, Color.black.opacity(0.25)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    : LinearGradient(
                         colors: [glowSoft, Color.white],
                         startPoint: .top,
                         endPoint: .bottom
                     )
                 )
+            if colorScheme == .dark {
+                RadialGradient(
+                    colors: [glowAccent.opacity(0.5), .clear],
+                    center: .topLeading,
+                    startRadius: 4,
+                    endRadius: 120
+                )
+                .blendMode(.screen)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text("Today")
@@ -190,7 +247,11 @@ struct TodayProgressWidgetView: View {
                     let progressWidth = max(5, geo.size.width * percent)
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color.black.opacity(0.04))
+                            .fill(
+                                colorScheme == .dark
+                                ? Color.white.opacity(0.08)
+                                : Color.black.opacity(0.04)
+                            )
                         Capsule()
                             .fill(glowAccent)
                             .frame(width: progressWidth)

@@ -19,7 +19,15 @@ struct SharedProgressStore {
         defaults.set(done, forKey: "today_done")
         defaults.set(total, forKey: "today_total")
 
-        print("SharedProgressStore ✅ saved done=\(done) total=\(total) to app group")
+        let today = Calendar.current.startOfDay(for: Date())
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar.current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        let todayString = formatter.string(from: today)
+        defaults.set(todayString, forKey: "today_date")
+
+        print("SharedProgressStore ✅ saved done=\(done) total=\(total) date=\(todayString) to app group")
 
         WidgetCenter.shared.reloadAllTimelines()
     }
