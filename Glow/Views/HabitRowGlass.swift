@@ -9,9 +9,12 @@ struct HabitRowGlass: View {
     @State private var tappedBounce = false
 
     private var doneToday: Bool {
+        guard let logs = habit.logs, !logs.isEmpty else { return false }
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
-        return (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today })?.completed == true
+        return logs.contains {
+            $0.completed && cal.isDate($0.date, inSameDayAs: today)
+        }
     }
 
     private var rowTextColor: Color {

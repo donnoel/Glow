@@ -519,17 +519,16 @@ struct HomeView: View {
 
     private func prewarmMonthCache() {
         let habitsToWarm = viewModel.activeHabits
-        let monthAnchor = Date()
+        let anchor = Date()
 
         Task(priority: .utility) {
             var built: [String: MonthHeatmapModel] = [:]
             for habit in habitsToWarm {
                 // build off-main
-                let model = MonthHeatmapModel(habit: habit, month: monthAnchor)
+                let model = MonthHeatmapModel(habit: habit, month: anchor)
                 built[habit.id] = model
             }
             await MainActor.run {
-                // keep existing entries if any
                 for (id, model) in built {
                     if monthCache[id] == nil {
                         monthCache[id] = model
