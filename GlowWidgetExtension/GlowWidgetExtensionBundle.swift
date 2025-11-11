@@ -17,7 +17,7 @@ private func loadTodayProgress() -> (done: Int, total: Int) {
     let done = defaults?.integer(forKey: "today_done") ?? 0
     let total = defaults?.integer(forKey: "today_total") ?? 0
     let savedDate = defaults?.string(forKey: "today_date")
-
+    
     // compare to today; if mismatched, return 0/0 so we don't show yesterday's data
     let today = Calendar.current.startOfDay(for: Date())
     let formatter = DateFormatter()
@@ -25,8 +25,11 @@ private func loadTodayProgress() -> (done: Int, total: Int) {
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.dateFormat = "yyyy-MM-dd"
     let todayString = formatter.string(from: today)
-
+    
     if let savedDate, savedDate == todayString {
+        return (done, total)
+    } else if (done > 0 || total > 0) {
+        // show last known values even if date mismatched
         return (done, total)
     } else {
         return (0, 0)
@@ -45,16 +48,16 @@ struct TodayProgressProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodayProgressEntry {
         TodayProgressEntry(date: Date(), done: 2, total: 3)
     }
-
+    
     func getSnapshot(in context: Context, completion: @escaping (TodayProgressEntry) -> ()) {
         let progress = loadTodayProgress()
         completion(TodayProgressEntry(date: Date(), done: progress.done, total: progress.total))
     }
-
+    
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodayProgressEntry>) -> ()) {
         let progress = loadTodayProgress()
         let entry = TodayProgressEntry(date: Date(), done: progress.done, total: progress.total)
-
+        
         // keep your 30-minute cadence for now
         let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
         let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
@@ -67,16 +70,16 @@ struct TodayProgressWidgetView: View {
     @Environment(\.widgetFamily) private var family
     @Environment(\.colorScheme) private var colorScheme
     var entry: TodayProgressEntry
-
+    
     // Glow-ish palette — gentle but colorful
     private let glowAccent = Color(red: 0.63, green: 0.24, blue: 0.93)
     private let glowSoft = Color(red: 0.96, green: 0.92, blue: 1.0)
-
+    
     private var percent: Double {
         guard entry.total > 0 else { return 0 }
         return Double(entry.done) / Double(entry.total)
     }
-
+    
     private var statusTitle: String {
         if entry.total > 0 && entry.done >= entry.total {
             return "You’re glowing ✨"
@@ -84,7 +87,7 @@ struct TodayProgressWidgetView: View {
             return "You’re doing great 💫"
         }
     }
-
+    
     private var compactStatusTitle: String {
         if entry.total == 0 {
             return "Rest day"
@@ -94,7 +97,7 @@ struct TodayProgressWidgetView: View {
             return "On your way"
         }
     }
-
+    
     var body: some View {
         switch family {
         case .systemSmall:
@@ -107,7 +110,7 @@ struct TodayProgressWidgetView: View {
             mainView
         }
     }
-
+    
     // MARK: - Medium / regular home widget
     private var mainView: some View {
         ZStack {
@@ -125,7 +128,7 @@ struct TodayProgressWidgetView: View {
                         endPoint: .bottomTrailing
                     )
                 )
-
+            
             if colorScheme == .dark {
                 RadialGradient(
                     colors: [glowAccent.opacity(0.55), .clear],
@@ -136,7 +139,7 @@ struct TodayProgressWidgetView: View {
                 .blendMode(.screen)
                 .clipShape(RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous))
             }
-
+            
             VStack(alignment: .leading, spacing: 12) {
                 // top bar
                 HStack(spacing: 10) {
@@ -148,7 +151,7 @@ struct TodayProgressWidgetView: View {
                             .font(.system(size: 13, weight: .semibold))
                     }
                     .frame(width: 28, height: 28)
-
+                    
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Glow • Today")
                             .font(.caption2)
@@ -159,9 +162,9 @@ struct TodayProgressWidgetView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.8)
                     }
-
+                    
                     Spacer()
-
+                    
                     // pill for the count — softened to 0.32 to match app glass
                     Text("\(entry.done)/\(entry.total)")
                         .font(.caption.weight(.semibold))
@@ -179,7 +182,7 @@ struct TodayProgressWidgetView: View {
                             colorScheme == .dark ? Color.white.opacity(0.85) : .secondary
                         )
                 }
-
+                
                 // progress bar
                 GeometryReader { geo in
                     let progressWidth = max(7, geo.size.width * percent)
@@ -198,7 +201,7 @@ struct TodayProgressWidgetView: View {
                     .mask(Capsule())
                 }
                 .frame(height: WidgetTokens.progressHeight)
-
+                
                 if entry.total == 0 {
                     Text("No practices scheduled")
                         .font(.footnote)
@@ -211,7 +214,7 @@ struct TodayProgressWidgetView: View {
         }
         .applyWidgetBackground()
     }
-
+    
     // MARK: - Small home widget
     private var compactMainView: some View {
         ZStack {
@@ -249,12 +252,12 @@ struct TodayProgressWidgetView: View {
                         .font(.caption2.weight(.medium))
                         .foregroundStyle(.secondary)
                 }
-
+                
                 Text(compactStatusTitle)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
-
+                
                 GeometryReader { geo in
                     let progressWidth = max(5, geo.size.width * percent)
                     ZStack(alignment: .leading) {
@@ -278,7 +281,7 @@ struct TodayProgressWidgetView: View {
         }
         .applyWidgetBackground()
     }
-
+    
     // MARK: - Lock screen rectangular
     private var rectangularView: some View {
         HStack {
@@ -288,18 +291,18 @@ struct TodayProgressWidgetView: View {
         }
         .applyWidgetBackground()
     }
-
+    
     // MARK: - Lock screen circular
     private var circularView: some View {
         ZStack {
             Circle()
                 .stroke(.secondary.opacity(0.35), lineWidth: 3)
-
+            
             Circle()
                 .trim(from: 0, to: entry.total > 0 ? CGFloat(percent) : 0)
                 .stroke(glowAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
-
+            
             Text("\(entry.done)")
                 .font(.caption2)
         }
@@ -324,7 +327,7 @@ private extension View {
 // 4) The widget declaration
 struct TodayProgressWidget: Widget {
     let kind: String = "TodayProgressWidget"
-
+    
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: TodayProgressProvider()) { entry in
             TodayProgressWidgetView(entry: entry)
@@ -337,5 +340,12 @@ struct TodayProgressWidget: Widget {
             .accessoryRectangular,
             .accessoryCircular
         ])
+    }
+}
+
+@main
+struct GlowWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        TodayProgressWidget()
     }
 }
