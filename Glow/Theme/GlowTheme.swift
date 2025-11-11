@@ -57,3 +57,50 @@ extension View {
         self.background(GlowTheme.bgSurface.ignoresSafeArea())
     }
 }
+
+// MARK: - 🔐 Design tokens (spacing, radii, glass)
+extension GlowTheme {
+    /// Spacing scale for Glow. Stick to these so Home, Detail, and Widgets
+    /// all breathe the same.
+    struct Spacing {
+        static let xsmall: CGFloat = 8
+        static let small: CGFloat  = 12
+        static let medium: CGFloat = 16   // default inner padding
+        static let large: CGFloat  = 20   // section gaps
+        static let xlarge: CGFloat = 32   // hero / top chrome
+    }
+
+    /// Corner radius scale so we stop seeing 12/18/26 all over.
+    struct Radius {
+        static let pill: CGFloat   = 999
+        static let small: CGFloat  = 12   // cards, widget corners
+        static let medium: CGFloat = 16   // list rows / detail cards
+        static let large: CGFloat  = 20   // dashboard blocks
+        static let hero: CGFloat   = 24   // big hero cards (we'll pull 26 → 24 later)
+    }
+
+    /// Glass strokes/overlays tuned for light/dark.
+    struct Glass {
+        static let strokeLight  = Color.white.opacity(0.35)
+        static let strokeDark   = Color.white.opacity(0.18)
+        static let overlayLight = Color.white.opacity(0.16)
+        static let overlayDark  = Color.white.opacity(0.08)
+    }
+}
+
+// MARK: - 🪟 Shared glass card helper
+extension View {
+    /// Standard Glow glass card: ultra-thin material, subtle stroke.
+    /// Use this in Home, Detail, and even to mirror in the widget.
+    func glowGlassCard(cornerRadius: CGFloat = GlowTheme.Radius.small) -> some View {
+        self
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(GlowTheme.Glass.strokeDark, lineWidth: 1)
+            )
+    }
+}
