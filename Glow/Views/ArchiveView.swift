@@ -14,57 +14,44 @@ struct ArchiveView: View {
     private var archivedHabits: [Habit]
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    if archivedHabits.isEmpty {
-                        ContentUnavailableView(
-                            "No archived practices",
-                            systemImage: "archivebox",
-                            description: Text("Practices you archive will show up here.")
-                        )
-                        .frame(maxWidth: .infinity, minHeight: 240)
-                        .background(glassCard)
-                        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                        .padding(.top, 8)
-                    } else {
-                        ForEach(archivedHabits) { habit in
-                            HStack(spacing: 10) {
-                                // look identical to home rows
-                                HabitRowGlass(habit: habit) {
-                                    // disabled in archive
-                                }
-                                .disabled(true)
-
-                                Button {
-                                    unarchive(habit)
-                                } label: {
-                                    Image(systemName: "arrow.uturn.left.circle.fill")
-                                        .font(.system(size: 22, weight: .semibold))
-                                        .foregroundStyle(GlowTheme.accentPrimary)
-                                        .padding(6)
-                                }
-                                .buttonStyle(.plain)
-                                .accessibilityLabel("Unarchive \(habit.title)")
+        GlowModalScaffold(
+            title: "Archived",
+            subtitle: "Practices you’ve tucked away. Bring them back any time."
+        ) {
+            if archivedHabits.isEmpty {
+                ContentUnavailableView(
+                    "No archived practices",
+                    systemImage: "archivebox",
+                    description: Text("Practices you archive will show up here.")
+                )
+                .frame(maxWidth: .infinity, minHeight: 240)
+                .background(glassCard)
+                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                .padding(.top, 4)
+            } else {
+                VStack(spacing: 14) {
+                    ForEach(archivedHabits) { habit in
+                        HStack(spacing: 10) {
+                            // matches Home look
+                            HabitRowGlass(habit: habit) {
+                                // disabled in archive
                             }
-                            .padding(.horizontal, 2)
+                            .disabled(true)
+
+                            Button {
+                                unarchive(habit)
+                                dismiss() // optional: close after unarchive; remove if you don’t want that
+                            } label: {
+                                Image(systemName: "arrow.uturn.left.circle.fill")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundStyle(GlowTheme.accentPrimary)
+                                    .padding(6)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Unarchive \(habit.title)")
                         }
-                        .padding(.top, 4)
+                        .padding(.horizontal, 2)
                     }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                .padding(.bottom, 32)
-            }
-            .background(GlowTheme.bgSurface.ignoresSafeArea())
-            .navigationTitle("Archived")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
-                    .font(.body.weight(.semibold))
                 }
             }
         }

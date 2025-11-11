@@ -24,8 +24,6 @@ final class RemindersViewModel: ObservableObject {
 }
 
 struct RemindersView: View {
-    @Environment(\.dismiss) private var dismiss
-
     // grab all habits, we’ll filter in-memory because we only need the reminder ones
     @Query(sort: [
         SortDescriptor(\Habit.reminderHour, order: .forward),
@@ -37,38 +35,24 @@ struct RemindersView: View {
     @StateObject private var model = RemindersViewModel()
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if model.reminderHabits.isEmpty {
+        GlowModalScaffold(
+            title: "Reminders",
+            subtitle: "Practices with “Remind me” turned on."
+        ) {
+            if model.reminderHabits.isEmpty {
+                VStack(spacing: 16) {
                     ContentUnavailableView(
                         "No reminders set",
                         systemImage: "bell.slash",
                         description: Text("Turn on “Remind me” for a practice and it will show up here.")
                     )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    List {
-                        Section("Practice reminders") {
-                            ForEach(model.reminderHabits) { habit in
-                                ReminderRow(habit: habit)
-                                    .listRowBackground(Color.clear)
-                            }
-                        }
-                    }
-                    .scrollContentBackground(.hidden)
+                    .frame(maxWidth: .infinity, minHeight: 200)
                 }
-            }
-            .background(GlowTheme.bgPrimary.ignoresSafeArea())
-            .navigationTitle("Reminders")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .imageScale(.large)
+            } else {
+                VStack(spacing: 12) {
+                    ForEach(model.reminderHabits) { habit in
+                        ReminderRow(habit: habit)
                     }
-                    .accessibilityLabel("Close reminders")
                 }
             }
         }

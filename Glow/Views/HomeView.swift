@@ -513,7 +513,7 @@ struct HomeView: View {
         do { try context.save() } catch {
             print("SwiftData save error:", error)
         }
-
+        viewModel.updateHabits(Array(habits))
         Task {
             if archived {
                 await NotificationManager.cancelNotifications(for: habit)
