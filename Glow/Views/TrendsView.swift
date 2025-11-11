@@ -87,35 +87,22 @@ struct TrendsView: View {
     private var habits: [Habit]
 
     @StateObject private var model = TrendsViewModel(habits: [])
-
-    // We'll talk about "last 7 days", "this month", etc. Use `Date()` as anchor.
     @State private var now: Date = Date()
 
-    // MARK: - Body
-
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 28) {
+        GlowModalScaffold(
+            title: "Trends",
+            subtitle: "Last 7 days, streaks, and which practices are carrying you."
+        ) {
+            VStack(spacing: 28) {
+                streakHeroCard
 
-                    // 1. HERO STREAK CARD
-                    streakHeroCard
-
-                    // 2. TOP HABITS / LEADERBOARD
-                    if !model.habitStats.isEmpty {
-                        topHabitsSection
-                    }
-
-                    // 3. WEEKLY ACTIVITY STRIP
-                    weeklyActivitySection
+                if !model.habitStats.isEmpty {
+                    topHabitsSection
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 24)
-                .padding(.bottom, 40)
+
+                weeklyActivitySection
             }
-            .navigationTitle("Trends")
-            .navigationBarTitleDisplayMode(.inline)
-            .background(GlowBackground())
         }
         .onAppear {
             model.recalc(habits: Array(habits), now: now)
@@ -130,14 +117,11 @@ struct TrendsView: View {
 
     // MARK: - Sections
 
-    // big proud card at the top
     private var streakHeroCard: some View {
         let current = model.globalStreaks.current
         let best = model.globalStreaks.best
 
         return VStack(alignment: .leading, spacing: 16) {
-
-            // streak headline row
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 18, weight: .semibold))
@@ -150,10 +134,8 @@ struct TrendsView: View {
                 Spacer(minLength: 0)
             }
 
-            // 3-column stats row
             HStack(alignment: .top, spacing: 0) {
 
-                // Current streak column
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(current) days")
                         .font(.title2.monospacedDigit().weight(.semibold))
@@ -164,7 +146,6 @@ struct TrendsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Best streak column
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(best) days")
                         .font(.title2.monospacedDigit().weight(.semibold))
@@ -175,7 +156,6 @@ struct TrendsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                // Active this week column
                 VStack(alignment: .trailing, spacing: 4) {
                     Text("\(model.weeklyActiveDaysCount)/7")
                         .font(.title2.monospacedDigit().weight(.semibold))
@@ -189,30 +169,13 @@ struct TrendsView: View {
         }
         .padding(.vertical, 20)
         .padding(.horizontal, 16)
-        .background(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(.ultraThinMaterial)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 24, style: .continuous)
-                        .stroke(
-                            Color.white.opacity(0.25),
-                            lineWidth: 1
-                        )
-                        .blendMode(.plusLighter)
-                )
-                .shadow(
-                    color: Color.black.opacity(0.15),
-                    radius: 24,
-                    y: 12
-                )
-        )
+        .background(glassCard)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "Current streak \(current) days. Best streak \(best) days. You were active \(model.weeklyActiveDaysCount) of the last 7 days."
         )
     }
 
-    // leaderboard style list of habits you're doing best
     private var topHabitsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Your Top Habits")
@@ -228,7 +191,6 @@ struct TrendsView: View {
         }
     }
 
-    // last 7 days, "did you show up?"
     private var weeklyActivitySection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("This Week")
@@ -240,41 +202,28 @@ struct TrendsView: View {
         }
     }
 
-    // MARK: - Helpers
-
-    /// Collapse multiple habits' logs down to "did ANYTHING this day?"
-    /// We create pseudo-logs where each unique day you did something becomes one "completed" log.
-    private func mergeLogsByDay(logs: [HabitLog]) -> [HabitLog] {
-        let cal = Calendar.current
-        var byDay: [Date: HabitLog] = [:]
-
-        for log in logs where log.completed {
-            let d = cal.startOfDay(for: log.date)
-            // Keep the first completed log we see for that day.
-            if byDay[d] == nil {
-                byDay[d] = log
-            }
-        }
-
-        // Return them as an array so StreakEngine can reason over unique days.
-        return Array(byDay.values)
+    private var glassCard: some View {
+        RoundedRectangle(cornerRadius: 24, style: .continuous)
+            .fill(.ultraThinMaterial)
+            .overlay(
+                RoundedRectangle(cornerRadius: 24, style: .continuous)
+                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                    .blendMode(.plusLighter)
+            )
+            .shadow(color: Color.black.opacity(0.15), radius: 24, y: 12)
     }
 }
 
-// MARK: - HabitPerformance model
+// MARK: - Supporting types (unchanged)
 
 struct HabitPerformance: Identifiable {
     let habit: Habit
     let currentStreak: Int
     let bestStreak: Int
-    let recentPercent: Int // e.g. 86 (% of last 7 days)
+    let recentPercent: Int
 
-    // Use the object identity of the Habit instance as a stable Hashable ID.
     var id: AnyHashable { AnyHashable(ObjectIdentifier(habit)) }
 }
-
-// MARK: - HabitPerformanceRow
-// one row in "Your Top Habits"
 
 private struct HabitPerformanceRow: View {
     let stat: HabitPerformance
@@ -345,102 +294,74 @@ private struct HabitPerformanceRow: View {
     }
 }
 
-// MARK: - WeeklyActivityStrip
-// like RecentDaysStrip but global: “did you do ANY habit this day?”
-
 private struct WeeklyActivityStrip: View {
     let allHabits: [Habit]
     @Environment(\.colorScheme) private var colorScheme
 
-    private var daysData: [(date: Date, didAnything: Bool)] {
+    // fixed labels so we don't depend on DateFormatter weekday order
+    private let weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+
+    // build a map of weekday (1 = Sun ... 7 = Sat) → did anything
+    private var didSomethingByWeekday: [Int: Bool] {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
         let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
 
-        var map: [Date: Bool] = [:]
+        var map: [Int: Bool] = [:]
 
         for habit in allHabits {
             for log in (habit.logs ?? []) where log.completed {
-                let d = cal.startOfDay(for: log.date)
-                if d >= start {
-                    map[d] = true
-                }
+                let day = cal.startOfDay(for: log.date)
+                // only look at last 7 days so we don't mark an old Sunday
+                guard day >= start else { continue }
+                let weekday = cal.component(.weekday, from: day) // 1 = Sun
+                map[weekday] = true
             }
         }
 
-        // oldest → newest
-        return (0..<7).reversed().map { offset in
-            let base = cal.date(byAdding: .day, value: -offset, to: today) ?? today
-            let d = cal.startOfDay(for: base)
-            return (date: d, didAnything: map[d] ?? false)
-        }
+        return map
     }
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 10) {
 
-            // Row of squares
-            HStack(spacing: 6) {
-                ForEach(0..<daysData.count, id: \.self) { idx in
-                    let info = daysData[idx]
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
+            // row of squares Sun → Sat
+            HStack(spacing: 8) {
+                ForEach(1...7, id: \.self) { weekday in
+                    let didAnything = didSomethingByWeekday[weekday] ?? false
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(
-                            info.didAnything
+                            didAnything
                             ? GlowTheme.accentPrimary
                             : GlowTheme.borderMuted.opacity(0.4)
                         )
-                        .frame(width: 20, height: 20)
+                        .frame(width: 26, height: 26)
                         .accessibilityHidden(true)
                 }
             }
 
-            // Row of weekday labels
-            HStack(spacing: 6) {
-                ForEach(0..<daysData.count, id: \.self) { idx in
-                    let info = daysData[idx]
-                    Text(shortWeekday(for: info.date))
-                        .font(.caption2.weight(.semibold))
+            // labels under them
+            HStack(spacing: 8) {
+                ForEach(0..<7, id: \.self) { idx in
+                    let weekday = idx + 1
+                    let didAnything = didSomethingByWeekday[weekday] ?? false
+                    Text(weekdayLabels[idx])
+                        .font(.caption.weight(.semibold))
                         .foregroundStyle(
-                            info.didAnything
+                            didAnything
                             ? (colorScheme == .dark ? Color.white : GlowTheme.textPrimary)
                             : (colorScheme == .dark
                                ? Color.white.opacity(0.6)
                                : GlowTheme.textSecondary)
                         )
-                        .frame(width: 20)
-                        .minimumScaleFactor(0.5)
+                        .frame(width: 26)
+                        .minimumScaleFactor(0.7)
                         .lineLimit(1)
                 }
             }
         }
         .padding(.vertical, 8)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Weekly activity. Most recent day is on the right.")
-    }
-
-    private static let weekdayFormatter: DateFormatter = {
-        let f = DateFormatter()
-        f.dateFormat = "E"
-        return f
-    }()
-
-    private func shortWeekday(for date: Date) -> String {
-        WeeklyActivityStrip.weekdayFormatter.string(from: date)
-    }
-}
-
-// MARK: - GlowBackground helper
-// soft background to match HomeView vibe without List
-private struct GlowBackground: View {
-    var body: some View {
-        LinearGradient(
-            colors: [
-                Color(.systemBackground),
-                Color(.systemBackground).opacity(0.6)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
-        .ignoresSafeArea()
+        .accessibilityLabel("Weekly activity, Sunday through Saturday.")
     }
 }

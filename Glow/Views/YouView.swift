@@ -1,7 +1,6 @@
 import SwiftUI
 
 struct YouView: View {
-    @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
     // live data from HomeView
@@ -39,143 +38,128 @@ struct YouView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(spacing: 24) {
+        GlowModalScaffold(
+            title: "You",
+            subtitle: "Your rhythm, your highlights, your usual check-in time."
+        ) {
+            // greeting
+            VStack(spacing: 8) {
+                Text("Hi there 👋")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(
+                        colorScheme == .dark ? .white : GlowTheme.textPrimary
+                    )
 
-                    // greeting
-                    VStack(spacing: 8) {
-                        Text("Hi there 👋")
-                            .font(.title2.weight(.semibold))
+                Text("This is your space. Your habits, your rhythm, your wins.")
+                    .font(.subheadline)
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(
+                        colorScheme == .dark
+                        ? Color.white.opacity(0.7)
+                        : GlowTheme.textSecondary
+                    )
+                    .padding(.horizontal, 4)
+            }
+            .frame(maxWidth: .infinity)
+
+            // right now
+            VStack(alignment: .leading, spacing: 16) {
+
+                Text("Right now")
+                    .font(.headline)
+                    .foregroundStyle(
+                        colorScheme == .dark ? .white : GlowTheme.textPrimary
+                    )
+
+                // streak row
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Image(systemName: "flame.fill")
+                        .foregroundStyle(GlowTheme.accentPrimary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(currentStreak) day streak")
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(
                                 colorScheme == .dark ? .white : GlowTheme.textPrimary
                             )
 
-                        Text("This is your space. Your habits, your rhythm, your wins.")
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
+                        Text("Best streak: \(bestStreak) days")
+                            .font(.footnote.monospacedDigit())
                             .foregroundStyle(
                                 colorScheme == .dark
                                 ? Color.white.opacity(0.7)
                                 : GlowTheme.textSecondary
                             )
-                            .padding(.horizontal, 16)
                     }
-                    .frame(maxWidth: .infinity)
+                }
 
-                    // right now
-                    VStack(alignment: .leading, spacing: 16) {
+                // most consistent
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Image(systemName: "heart.fill")
+                        .foregroundStyle(.pink)
 
-                        Text("Right now")
-                            .font(.headline)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Most consistent: \(favoriteTitle)")
+                            .font(.subheadline.weight(.semibold))
                             .foregroundStyle(
                                 colorScheme == .dark ? .white : GlowTheme.textPrimary
                             )
 
-                        // streak row
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Image(systemName: "flame.fill")
-                                .foregroundStyle(GlowTheme.accentPrimary)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(currentStreak) day streak")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(
-                                        colorScheme == .dark ? .white : GlowTheme.textPrimary
-                                    )
-
-                                Text("Best streak: \(bestStreak) days")
-                                    .font(.footnote.monospacedDigit())
-                                    .foregroundStyle(
-                                        colorScheme == .dark
-                                        ? Color.white.opacity(0.7)
-                                        : GlowTheme.textSecondary
-                                    )
-                            }
-                        }
-
-                        // most consistent
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Image(systemName: "heart.fill")
-                                .foregroundStyle(.pink)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Most consistent: \(favoriteTitle)")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(
-                                        colorScheme == .dark ? .white : GlowTheme.textPrimary
-                                    )
-
-                                Text("\(favoriteHits) days in last \(favoriteWindow) days")
-                                    .font(.footnote.monospacedDigit())
-                                    .foregroundStyle(
-                                        colorScheme == .dark
-                                        ? Color.white.opacity(0.7)
-                                        : GlowTheme.textSecondary
-                                    )
-                            }
-                        }
-
-                        // check-in time
-                        HStack(alignment: .firstTextBaseline, spacing: 12) {
-                            Image(systemName: "clock.fill")
-                                .foregroundStyle(GlowTheme.accentPrimary)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("You usually check in around \(checkInTimeString)")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(
-                                        colorScheme == .dark ? .white : GlowTheme.textPrimary
-                                    )
-
-                                Text("That’s when you tend to mark things done.")
-                                    .font(.footnote)
-                                    .foregroundStyle(
-                                        colorScheme == .dark
-                                        ? Color.white.opacity(0.7)
-                                        : GlowTheme.textSecondary
-                                    )
-                            }
-                        }
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(glassCardBackground)
-
-                    // future card
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Coming soon")
-                            .font(.headline)
-                            .foregroundStyle(
-                                colorScheme == .dark ? .white : GlowTheme.textPrimary
-                            )
-
-                        Text("Daily mood, gentle nudges, tiny reflections. A calmer way to see how you're actually doing, not just what you checked off.")
-                            .font(.subheadline)
+                        Text("\(favoriteHits) days in last \(favoriteWindow) days")
+                            .font(.footnote.monospacedDigit())
                             .foregroundStyle(
                                 colorScheme == .dark
-                                ? Color.white.opacity(0.8)
+                                ? Color.white.opacity(0.7)
                                 : GlowTheme.textSecondary
                             )
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(glassCardBackground)
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 40)
-            }
-            .navigationTitle("You")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
-                        dismiss()
+
+                // check-in time
+                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                    Image(systemName: "clock.fill")
+                        .foregroundStyle(GlowTheme.accentPrimary)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("You usually check in around \(checkInTimeString)")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(
+                                colorScheme == .dark ? .white : GlowTheme.textPrimary
+                            )
+
+                        Text("That’s when you tend to mark things done.")
+                            .font(.footnote)
+                            .foregroundStyle(
+                                colorScheme == .dark
+                                ? Color.white.opacity(0.7)
+                                : GlowTheme.textSecondary
+                            )
                     }
-                    .font(.body.weight(.semibold))
                 }
             }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(glassCardBackground)
+
+            // future card
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Coming soon")
+                    .font(.headline)
+                    .foregroundStyle(
+                        colorScheme == .dark ? .white : GlowTheme.textPrimary
+                    )
+
+                Text("Daily mood, gentle nudges, tiny reflections. A calmer way to see how you're actually doing, not just what you checked off.")
+                    .font(.subheadline)
+                    .foregroundStyle(
+                        colorScheme == .dark
+                        ? Color.white.opacity(0.8)
+                        : GlowTheme.textSecondary
+                    )
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(glassCardBackground)
         }
     }
 }
