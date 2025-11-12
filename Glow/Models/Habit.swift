@@ -2,6 +2,7 @@ import Foundation
 import SwiftData
 
 @Model
+@MainActor
 final class Habit {
     // was: @Attribute(.unique) var id: String
     // CloudKit doesn't support unique constraints, so drop the attribute
@@ -39,7 +40,7 @@ final class Habit {
         title: String,
         createdAt: Date = Date(),
         isArchived: Bool = false,
-        schedule: HabitSchedule = .daily,
+        schedule: HabitSchedule? = nil,
         reminderEnabled: Bool = false,
         reminderHour: Int? = nil,
         reminderMinute: Int? = nil,
@@ -50,7 +51,7 @@ final class Habit {
         self.title = title
         self.createdAt = createdAt
         self.isArchived = isArchived
-        self.scheduleData = (try? JSONEncoder().encode(schedule)) ?? Data()
+        self.scheduleData = (try? JSONEncoder().encode(schedule ?? .daily)) ?? Data()
         self.reminderEnabled = reminderEnabled
         self.reminderHour = reminderHour
         self.reminderMinute = reminderMinute
@@ -100,3 +101,4 @@ extension Habit {
         reminderMinute = comps.minute
     }
 }
+
