@@ -85,6 +85,14 @@ private struct ReminderRow: View {
 
     let habit: Habit
 
+    private var isCompletedToday: Bool {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        return (habit.logs ?? []).contains { log in
+            cal.startOfDay(for: log.date) == today && log.completed
+        }
+    }
+
     private var timeString: String {
         guard let comps = habit.reminderTimeComponents,
               let h = comps.hour,
@@ -129,9 +137,17 @@ private struct ReminderRow: View {
 
             Spacer()
 
-            Text(timeString)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(colorScheme == .dark ? .white : GlowTheme.textPrimary)
+            HStack(spacing: 8) {
+                Text(timeString)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(colorScheme == .dark ? .white : GlowTheme.textPrimary)
+
+                Image(systemName: isCompletedToday ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(isCompletedToday ? Color.green : GlowTheme.borderMuted)
+                    .accessibilityLabel(isCompletedToday ? "Completed today" : "Not completed today")
+                    .accessibilityHidden(false)
+            }
         }
         .padding(.vertical, 8)
         .padding(.horizontal, 4)

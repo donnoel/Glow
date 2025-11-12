@@ -87,7 +87,7 @@ struct HabitRowGlass: View {
                     .imageScale(.large)
                     .foregroundStyle(
                         doneToday
-                        ? habit.accentColor
+                        ? Color.green
                         : incompleteRingColor
                     )
                     .scaleEffect(tappedBounce ? 1.08 : 1.0)
