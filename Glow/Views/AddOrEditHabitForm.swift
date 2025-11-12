@@ -13,7 +13,6 @@ struct AddOrEditHabitForm: View {
     // MARK: - Form State
     @State private var title: String
     @State private var schedule: HabitSchedule
-    @State private var isArchived: Bool
     @State private var iconName: String
     @State private var remindMe: Bool
     @State private var reminderTime: Date
@@ -25,7 +24,6 @@ struct AddOrEditHabitForm: View {
 
         _title = State(initialValue: habit?.title ?? "")
         _schedule = State(initialValue: habit?.schedule ?? .daily)
-        _isArchived = State(initialValue: habit?.isArchived ?? false)
 
         let initialIcon = habit?.iconName ?? HabitIconLibrary.guessIcon(for: habit?.title ?? "")
         _iconName = State(initialValue: initialIcon)
@@ -87,12 +85,6 @@ struct AddOrEditHabitForm: View {
                             .datePickerStyle(.wheel)
                             .labelsHidden()
                             .accessibilityLabel("Reminder time")
-                    }
-                }
-
-                if mode == .edit {
-                    Section {
-                        Toggle("Archived", isOn: $isArchived)
                     }
                 }
             }
@@ -162,7 +154,6 @@ struct AddOrEditHabitForm: View {
     private func update(habit: Habit, with trimmedTitle: String) {
         habit.title = trimmedTitle
         habit.schedule = schedule
-        habit.isArchived = isArchived
         habit.iconName = iconName.isEmpty ? HabitIconLibrary.guessIcon(for: trimmedTitle) : iconName
         applyReminderFields(to: habit)
     }
