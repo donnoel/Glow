@@ -6,7 +6,7 @@ enum GlowAppConfig {
 
     // Optional: subject/body defaults
     static let supportSubject = "Glow Feedback"
-    static let supportBodyHint = "Tell us what felt great, and what felt heavy ✨"
+    static let supportBodyHint = "Tell us what felt great, and what didn't ✨"
 
     /// Builds a percent-encoded mailto: URL string we can safely open in SwiftUI.
     static func feedbackMailURL() -> URL? {
