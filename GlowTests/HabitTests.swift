@@ -2,6 +2,7 @@ import Testing
 @testable import Glow
 import Foundation
 
+@MainActor
 struct HabitTests {
 
     private func dailySchedule() -> HabitSchedule {

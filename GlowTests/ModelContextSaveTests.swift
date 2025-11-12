@@ -24,6 +24,7 @@ struct ModelContextSaveTests {
     }
 
     @Test
+    @MainActor
     func saveSafely_can_save_a_new_habit() throws {
         let container = try makeInMemoryContainer()
         let context = ModelContext(container)
