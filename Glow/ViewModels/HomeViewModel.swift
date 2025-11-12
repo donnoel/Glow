@@ -4,11 +4,11 @@ import Combine
 
 @MainActor
 final class HomeViewModel: ObservableObject {
-
+    
     // MARK: - Source of truth
     @Published private(set) var todayStartOfDay: Date
     @Published private(set) var habits: [Habit] = []
-
+    
     // MARK: - Derived (materialized)
     @Published private(set) var activeHabits: [Habit] = []
     @Published private(set) var archivedHabits: [Habit] = []
@@ -22,13 +22,13 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var globalStreak: (current: Int, best: Int) = (0, 0)
     @Published private(set) var mostConsistentHabit: (title: String, hits: Int, window: Int) = ("—", 0, 14)
     @Published private(set) var typicalCheckInTime: Date = Date()
-
+    
     // MARK: - Init
     init(today: Date = Calendar.current.startOfDay(for: Date())) {
         self.todayStartOfDay = today
         recalcDerived()
     }
-
+    
     // MARK: - Inputs
     func updateHabits(_ habits: [Habit]) {
         self.habits = habits
@@ -36,72 +36,72 @@ final class HomeViewModel: ObservableObject {
         // when habits change, push real numbers to the widget
         pushProgressToWidget()
     }
-
+    
     func advanceToToday(_ date: Date) {
         self.todayStartOfDay = Calendar.current.startOfDay(for: date)
         recalcDerived()
         // when the day rolls over, push fresh numbers
         pushProgressToWidget()
     }
-
+    
     // MARK: - "You" summaries (moved from HomeView)
-
+    
     /// All logs, flattened from all habits.
     private var allLogs: [HabitLog] {
         habits.compactMap { $0.logs }.flatMap { $0 }
     }
-
+    
     private func recalcDerived() {
         let cal = Calendar.current
         let today = todayStartOfDay
-
+        
         // 1) split active vs archived
         let active = habits.filter { !$0.isArchived }
         let archived = habits.filter { $0.isArchived }
-
+        
         // 2) scheduled today
         let scheduled = active
             .filter { $0.schedule.isScheduled(on: today) }
             .sorted { $0.sortOrder < $1.sortOrder }
-
+        
         // 3) completed today (scheduled)
         let completedScheduled = scheduled.filter { habit in
             (habit.logs ?? []).contains { log in
                 cal.startOfDay(for: log.date) == today && log.completed
             }
         }
-
+        
         // 4) due but not done (scheduled but no completed log today)
         let dueNotDone = scheduled.filter { habit in
             !(habit.logs ?? []).contains { log in
                 cal.startOfDay(for: log.date) == today && log.completed
             }
         }
-
+        
         // 5) not due today (active but not scheduled)
         let notDue = active
             .filter { !$0.schedule.isScheduled(on: today) }
             .sorted { $0.sortOrder < $1.sortOrder }
-
+        
         // 6) bonus completions (not scheduled but completed today)
         let bonus = notDue.filter { habit in
             (habit.logs ?? []).contains { log in
                 cal.startOfDay(for: log.date) == today && log.completed
             }
         }
-
+        
         // 7) hero numbers
         let totalScheduled = scheduled.count
         let doneScheduled = completedScheduled.count
         let bonusCount = bonus.count
-
+        
         let percentValue: Double
         if totalScheduled == 0 {
             percentValue = bonusCount == 0 ? 0.0 : Double(bonusCount)
         } else {
             percentValue = Double(doneScheduled + bonusCount) / Double(totalScheduled)
         }
-
+        
         // 8) global streak (any habit per day)
         let groupedByDay = Dictionary(grouping: allLogs.filter { $0.completed }) {
             cal.startOfDay(for: $0.date)
@@ -110,7 +110,7 @@ final class HomeViewModel: ObservableObject {
             HabitLog(date: day, completed: true, habit: Habit.placeholder)
         }
         let streak = StreakEngine.computeStreaks(logs: synthetic)
-
+        
         // 9) most consistent (14d)
         let windowDays = 14
         let windowStart = cal.startOfDay(
@@ -129,7 +129,7 @@ final class HomeViewModel: ObservableObject {
                 bestTitle = h.title
             }
         }
-
+        
         // 10) typical check-in time (same logic as before)
         let times: [Date] = active.compactMap { h in
             guard let hour = h.reminderHour,
@@ -151,7 +151,7 @@ final class HomeViewModel: ObservableObject {
             let avgMinute = avgMins % 60
             typical = cal.date(bySettingHour: avgHour, minute: avgMinute, second: 0, of: Date()) ?? Date()
         }
-
+        
         // publish
         self.activeHabits = active
         self.archivedHabits = archived
@@ -166,10 +166,11 @@ final class HomeViewModel: ObservableObject {
         self.mostConsistentHabit = (bestTitle, bestHits, windowDays)
         self.typicalCheckInTime = typical
     }
-
+    
     // MARK: - Widget sync
     private func pushProgressToWidget() {
         let tc = todayCompletion
-        SharedProgressStore.saveToday(done: tc.done, total: tc.total)
+        let bonus = bonusCompletedToday.count
+        SharedProgressStore.saveToday(done: tc.done, total: tc.total, bonus: bonus)
     }
 }

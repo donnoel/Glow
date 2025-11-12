@@ -13,6 +13,8 @@ struct ArchiveView: View {
     )
     private var archivedHabits: [Habit]
 
+    @State private var selectedHabit: Habit?
+
     var body: some View {
         GlowModalScaffold(
             title: "Archived",
@@ -34,9 +36,14 @@ struct ArchiveView: View {
                         HStack(spacing: 10) {
                             // matches Home look
                             HabitRowGlass(habit: habit) {
-                                // disabled in archive
+                                // no toggle in archive
                             }
-                            .disabled(true)
+                            .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .onTapGesture {
+                                selectedHabit = habit
+                            }
+                            .accessibilityAddTraits(.isButton)
+                            .accessibilityLabel("View details for \(habit.title)")
 
                             Button {
                                 unarchive(habit)
@@ -54,6 +61,12 @@ struct ArchiveView: View {
                     }
                 }
             }
+        }
+        .sheet(item: $selectedHabit) { habit in
+            HabitDetailView(
+                habit: habit,
+                prewarmedMonth: MonthHeatmapModel(habit: habit, month: Date())
+            )
         }
     }
 

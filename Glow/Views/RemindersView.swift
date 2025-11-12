@@ -33,6 +33,7 @@ struct RemindersView: View {
     private var habits: [Habit]
 
     @StateObject private var model = RemindersViewModel()
+    @State private var selectedHabit: Habit?
 
     var body: some View {
         GlowModalScaffold(
@@ -51,7 +52,12 @@ struct RemindersView: View {
             } else {
                 VStack(spacing: 12) {
                     ForEach(model.reminderHabits) { habit in
-                        ReminderRow(habit: habit)
+                        Button {
+                            selectedHabit = habit
+                        } label: {
+                            ReminderRow(habit: habit)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -61,6 +67,13 @@ struct RemindersView: View {
         }
         .onChange(of: habits) { _, newHabits in
             model.update(from: newHabits)
+        }
+        .sheet(item: $selectedHabit) { habit in
+            let anchor = Date() // match HomeView's prewarm anchor for consistent month/day alignment
+            HabitDetailView(
+                habit: habit,
+                prewarmedMonth: MonthHeatmapModel(habit: habit, month: anchor)
+            )
         }
     }
 }

@@ -12,13 +12,14 @@ private enum WidgetTokens {
     static let progressHeight: CGFloat = 6
 }
 
-private func loadTodayProgress() -> (done: Int, total: Int) {
+private func loadTodayProgress() -> (done: Int, total: Int, bonus: Int) {
     let defaults = UserDefaults(suiteName: appGroupID)
     let done = defaults?.integer(forKey: "today_done") ?? 0
     let total = defaults?.integer(forKey: "today_total") ?? 0
+    let bonus = defaults?.integer(forKey: "today_bonus") ?? 0
     let savedDate = defaults?.string(forKey: "today_date")
     
-    // compare to today; if mismatched, return 0/0 so we don't show yesterday's data
+    // compare to today; if mismatched, return last known values if present (avoid showing stale zeros)
     let today = Calendar.current.startOfDay(for: Date())
     let formatter = DateFormatter()
     formatter.calendar = Calendar.current
@@ -27,12 +28,12 @@ private func loadTodayProgress() -> (done: Int, total: Int) {
     let todayString = formatter.string(from: today)
     
     if let savedDate, savedDate == todayString {
-        return (done, total)
-    } else if (done > 0 || total > 0) {
-        // show last known values even if date mismatched
-        return (done, total)
+        return (done, total, bonus)
+    } else if (done > 0 || total > 0 || bonus > 0) {
+        // show last known values even if the saved date mismatched (fallback)
+        return (done, total, bonus)
     } else {
-        return (0, 0)
+        return (0, 0, 0)
     }
 }
 
@@ -41,27 +42,58 @@ struct TodayProgressEntry: TimelineEntry {
     let date: Date
     let done: Int
     let total: Int
+    let bonus: Int
 }
 
 // 2) Where the widget gets its data
 struct TodayProgressProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodayProgressEntry {
-        TodayProgressEntry(date: Date(), done: 2, total: 3)
+        TodayProgressEntry(date: Date(), done: 2, total: 3, bonus: 0)
     }
     
     func getSnapshot(in context: Context, completion: @escaping (TodayProgressEntry) -> ()) {
         let progress = loadTodayProgress()
-        completion(TodayProgressEntry(date: Date(), done: progress.done, total: progress.total))
+        completion(TodayProgressEntry(date: Date(), done: progress.done, total: progress.total, bonus: progress.bonus))
     }
     
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodayProgressEntry>) -> ()) {
-        let progress = loadTodayProgress()
-        let entry = TodayProgressEntry(date: Date(), done: progress.done, total: progress.total)
-        
-        // keep your 30-minute cadence for now
-        let nextUpdate = Calendar.current.date(byAdding: .minute, value: 30, to: Date())!
-        let timeline = Timeline(entries: [entry], policy: .after(nextUpdate))
+        let defaults = UserDefaults(suiteName: appGroupID)
+        let done = defaults?.integer(forKey: "today_done") ?? 0
+        let total = defaults?.integer(forKey: "today_total") ?? 0
+        let bonus = defaults?.integer(forKey: "today_bonus") ?? 0
+        let savedStamp = defaults?.integer(forKey: "today_stamp") ?? 0
+
+        let now = Date()
+        let todayStamp = yyyyMMddStamp(for: now)
+
+        // If the saved stamp matches today, use saved counts; otherwise reset to 0s.
+        let currentEntry: TodayProgressEntry
+        if savedStamp == todayStamp {
+            currentEntry = TodayProgressEntry(date: now, done: done, total: total, bonus: bonus)
+        } else {
+            currentEntry = TodayProgressEntry(date: now, done: 0, total: 0, bonus: 0)
+        }
+
+        // Always schedule an automatic rollover entry at the next midnight so the widget resets
+        // even if the app hasn't been launched yet.
+        let midnight = nextMidnight(after: now)
+        let rolloverEntry = TodayProgressEntry(date: midnight.addingTimeInterval(5), done: 0, total: 0, bonus: 0)
+
+        // Build the timeline: now -> midnight reset. After that, WidgetKit will ask again.
+        let timeline = Timeline(entries: [currentEntry, rolloverEntry], policy: .atEnd)
         completion(timeline)
+    }
+
+    private func yyyyMMddStamp(for date: Date) -> Int {
+        let cal = Calendar.current
+        let c = cal.dateComponents([.year, .month, .day], from: date)
+        return (c.year ?? 0) * 10_000 + (c.month ?? 0) * 100 + (c.day ?? 0)
+    }
+
+    private func nextMidnight(after date: Date) -> Date {
+        let cal = Calendar.current
+        let startOfDay = cal.startOfDay(for: date)
+        return cal.date(byAdding: .day, value: 1, to: startOfDay) ?? date.addingTimeInterval(24 * 60 * 60)
     }
 }
 
@@ -80,22 +112,50 @@ struct TodayProgressWidgetView: View {
         return Double(entry.done) / Double(entry.total)
     }
     
-    private var statusTitle: String {
-        if entry.total > 0 && entry.done >= entry.total {
-            return "You’re glowing ✨"
-        } else {
-            return "You’re doing great 💫"
-        }
-    }
-    
-    private var compactStatusTitle: String {
+    private func message(compact: Bool) -> String {
+        // Nothing scheduled
         if entry.total == 0 {
-            return "Rest day"
-        } else if entry.done >= entry.total {
-            return "Glow day ✨"
-        } else {
-            return "On your way"
+            return compact ? "Rest day" : "Nothing scheduled"
         }
+        
+        // All scheduled done
+        if entry.done >= entry.total {
+            if entry.bonus > 0 {
+                // Bonus wins beyond the plan
+                return compact ? "Bonus +\(entry.bonus) 🔥" : "Bonus wins +\(entry.bonus)"
+            } else {
+                return compact ? "Glow day ✨" : "All done — nice."
+            }
+        }
+        
+        // Not started
+        if entry.done == 0 {
+            return compact ? "Ready to start…" : "Ready to start…"
+        }
+        
+        // In progress — rotate through short, non-corny nudges
+        let long = [
+            "Nice first step",
+            "Keep the rhythm",
+            "Momentum building",
+            "Looking good",
+            "Halfway there",
+            "Past halfway",
+            "Almost there",
+            "One more to go"
+        ]
+        let short = [
+            "Nice start",
+            "Keep going",
+            "Momentum up",
+            "Looking good",
+            "Halfway",
+            "Past halfway",
+            "Almost there",
+            "One to go"
+        ]
+        let idx = max(0, min(entry.done - 1, long.count - 1))
+        return compact ? short[idx] : long[idx]
     }
     
     var body: some View {
@@ -156,7 +216,7 @@ struct TodayProgressWidgetView: View {
                         Text("Glow • Today")
                             .font(.caption2)
                             .foregroundStyle(.secondary)
-                        Text(statusTitle)
+                        Text(message(compact: false))
                             .font(.headline.weight(.semibold))
                             .foregroundStyle(.primary)
                             .lineLimit(1)
@@ -253,7 +313,7 @@ struct TodayProgressWidgetView: View {
                         .foregroundStyle(.secondary)
                 }
                 
-                Text(compactStatusTitle)
+                Text(message(compact: true))
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
