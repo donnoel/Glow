@@ -1,11 +1,13 @@
 import SwiftUI
 import SwiftData
 import Combine
+import UIKit
 
 // MARK: - HomeView
 
 struct HomeView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.scenePhase) private var scenePhase
 
     @Query(sort: [
         SortDescriptor(\Habit.sortOrder, order: .forward),
@@ -103,6 +105,21 @@ struct HomeView: View {
             .onChange(of: habits) { _, newHabits in
                 viewModel.updateHabits(newHabits)
                 prewarmMonthCache()
+            }
+            // Refresh when app returns to foreground (fixes stale lists/state after backgrounding)
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                // Re-evaluate "today" in case a day boundary or clock change happened while backgrounded
+                let startOfNow = Calendar.current.startOfDay(for: Date())
+                viewModel.advanceToToday(startOfNow)
+                // Recompute lists and heatmap cache from current data/iCloud sync
+                viewModel.updateHabits(habits)
+                prewarmMonthCache()
+            }
+            // React to DST/manual time change or midnight rollover while app is running
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                checkForNewDay()
+                viewModel.updateHabits(habits)
             }
 
             // extra sheets
