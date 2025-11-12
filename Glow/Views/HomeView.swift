@@ -102,6 +102,12 @@ struct HomeView: View {
             .onAppear {
                 viewModel.updateHabits(habits)
                 prewarmMonthCache()
+
+                // One-time cleanup to normalize historical data
+                Task { @MainActor in
+                    for h in habits { sanitizeLogs(for: h) }
+                    viewModel.updateHabits(habits)
+                }
             }
             .onChange(of: habits) { _, newHabits in
                 viewModel.updateHabits(newHabits)
@@ -533,17 +539,28 @@ struct HomeView: View {
 
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
             if let log = (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today }) {
-                log.completed.toggle()
+                if log.completed {
+                    // Uncheck: remove the log entirely so the day is unquestionably "not done"
+                    context.delete(log)
+                } else {
+                    // Mark complete
+                    log.date = today
+                    log.completed = true
+                }
             } else {
+                // Create a fresh, normalized completion for today
                 let log = HabitLog(date: today, completed: true, habit: habit)
                 context.insert(log)
             }
         }
 
+        // After any toggle, sanitize the habit's logs to enforce single-log-per-day and remove future entries
+        sanitizeLogs(for: habit)
+
         GlowTheme.tapHaptic()
         context.saveSafely()
 
-        // 👇 tell the view model to recompute and push to the widget
+        // Recompute and push to the widget
         viewModel.updateHabits(Array(habits))
     }
 
@@ -738,5 +755,48 @@ private struct GlowOnboardingInline: View {
         }
         .background(.ultraThinMaterial)
         .ignoresSafeArea()
+    }
+}
+
+extension HomeView {
+    // Ensure one normalized log per day; remove future-dated logs; prefer a completed log if duplicates exist.
+    private func sanitizeLogs(for habit: Habit) {
+        let cal = Calendar.current
+        let today = viewModel.todayStartOfDay
+
+        guard var logs = habit.logs, !logs.isEmpty else { return }
+
+        // Group by day (normalized)
+        let grouped = Dictionary(grouping: logs) { log in
+            cal.startOfDay(for: log.date)
+        }
+
+        for (day, entries) in grouped {
+            // Delete future-dated groups entirely
+            if day > today {
+                for e in entries { context.delete(e) }
+                continue
+            }
+
+            // Normalize all dates to start-of-day
+            for e in entries { e.date = day }
+
+            // Pick the single keeper: prefer a completed one if any, else the first
+            let keeper: HabitLog
+            if let done = entries.first(where: { $0.completed }) {
+                keeper = done
+            } else {
+                keeper = entries.first!
+            }
+            keeper.date = day
+            keeper.completed = entries.contains(where: { $0.completed })
+
+            // Delete all others for that day
+            for e in entries where e !== keeper {
+                context.delete(e)
+            }
+        }
+
+        context.saveSafely()
     }
 }
