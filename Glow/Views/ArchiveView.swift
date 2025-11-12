@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import CoreData
 
 struct ArchiveView: View {
     @Environment(\.dismiss) private var dismiss
@@ -35,7 +36,7 @@ struct ArchiveView: View {
                     ForEach(archivedHabits) { habit in
                         HStack(spacing: 10) {
                             // matches Home look
-                            HabitRowGlass(habit: habit) {
+                            HabitRowGlass(habit: habit, isArchived: true) {
                                 // no toggle in archive
                             }
                             .contentShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -47,7 +48,6 @@ struct ArchiveView: View {
 
                             Button {
                                 unarchive(habit)
-                                dismiss() // optional: close after unarchive; remove if you don’t want that
                             } label: {
                                 Image(systemName: "arrow.uturn.left.circle.fill")
                                     .font(.system(size: 22, weight: .semibold))
@@ -91,6 +91,9 @@ struct ArchiveView: View {
         habit.isArchived = false
         do {
             try context.save()
+            // Notify any listeners (e.g., HomeView) that data changed and that the SwiftData context emitted changes
+            NotificationCenter.default.post(name: .glowDataDidChange, object: nil)
+            NotificationCenter.default.post(name: .NSManagedObjectContextObjectsDidChange, object: context)
         } catch {
             print("Unarchive save error:", error)
         }

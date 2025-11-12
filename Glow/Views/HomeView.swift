@@ -20,6 +20,7 @@ struct HomeView: View {
     @State private var showOnboarding = false
 
     // Add Sheet / New Practice fields
+    @State private var listRefreshID = UUID()
     @State private var showAdd = false
     @State private var newTitle = ""
     @State private var newSchedule: HabitSchedule = .daily
@@ -120,6 +121,14 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
                 checkForNewDay()
                 viewModel.updateHabits(habits)
+            }
+            // Listen for archive/unarchive updates and refresh lists/cache
+            .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
+                // Recompute lists immediately from the latest @Query snapshot
+                viewModel.updateHabits(habits)
+                prewarmMonthCache()
+                // Force List to fully rebuild/diff against latest model values
+                listRefreshID = UUID()
             }
 
             // extra sheets
@@ -447,6 +456,7 @@ struct HomeView: View {
         .listSectionSpacing(.custom(10))
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
+        .id(listRefreshID)
     }
 
     // MARK: - Row builder
@@ -464,7 +474,7 @@ struct HomeView: View {
             .opacity(0)
             .accessibilityHidden(true)
 
-            HabitRowGlass(habit: habit) {
+            HabitRowGlass(habit: habit, isArchived: isArchived) {
                 toggleToday(habit)
             }
         }
@@ -690,6 +700,7 @@ private struct ShareSheet: UIViewControllerRepresentable {
 extension Notification.Name {
     static let glowShowArchive = Notification.Name("glowShowArchive")
     static let glowShowReminders = Notification.Name("glowShowReminders")
+    static let glowDataDidChange = Notification.Name("glowDataDidChange")
 }
 
 private struct GlowOnboardingInline: View {

@@ -4,6 +4,7 @@ struct HabitRowGlass: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let habit: Habit
+    let isArchived: Bool
     let toggle: () -> Void
 
     @State private var tappedBounce = false
@@ -75,36 +76,38 @@ struct HabitRowGlass: View {
 
             Spacer(minLength: 8)
 
-            // complete button
-            Button {
-                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                    tappedBounce = true
+            // complete button (hidden for archived habits)
+            if !isArchived {
+                Button {
+                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                        tappedBounce = true
+                    }
+                    GlowTheme.tapHaptic()
+                    toggle()
+                } label: {
+                    Image(systemName: doneToday ? "checkmark.circle.fill" : "circle")
+                        .imageScale(.large)
+                        .foregroundStyle(
+                            doneToday
+                            ? Color.green
+                            : incompleteRingColor
+                        )
+                        .scaleEffect(tappedBounce ? 1.08 : 1.0)
+                        .accessibilityLabel(
+                            doneToday
+                            ? "Mark practice incomplete"
+                            : "Mark practice complete"
+                        )
                 }
-                GlowTheme.tapHaptic()
-                toggle()
-            } label: {
-                Image(systemName: doneToday ? "checkmark.circle.fill" : "circle")
-                    .imageScale(.large)
-                    .foregroundStyle(
-                        doneToday
-                        ? Color.green
-                        : incompleteRingColor
-                    )
-                    .scaleEffect(tappedBounce ? 1.08 : 1.0)
-                    .accessibilityLabel(
-                        doneToday
-                        ? "Mark practice incomplete"
-                        : "Mark practice complete"
-                    )
-            }
-            .buttonStyle(.plain)
-            .frame(minWidth: 44, minHeight: 44)
-            .onChange(of: doneToday) { _, _ in
-                withAnimation(
-                    .spring(response: 0.3, dampingFraction: 0.8)
-                        .delay(0.05)
-                ) {
-                    tappedBounce = false
+                .buttonStyle(.plain)
+                .frame(minWidth: 44, minHeight: 44)
+                .onChange(of: doneToday) { _, _ in
+                    withAnimation(
+                        .spring(response: 0.3, dampingFraction: 0.8)
+                            .delay(0.05)
+                    ) {
+                        tappedBounce = false
+                    }
                 }
             }
         }
