@@ -3,6 +3,12 @@ import SwiftData
 
 @main
 struct GlowApp: App {
+    init() {
+        // Skip onboarding during UI tests so Home is visible immediately
+        if CommandLine.arguments.contains("--uitesting") {
+            UserDefaults.standard.set(true, forKey: "hasSeenGlowOnboarding")
+        }
+    }
     private let container: ModelContainer = {
         let schema = Schema([Habit.self, HabitLog.self])
         do {

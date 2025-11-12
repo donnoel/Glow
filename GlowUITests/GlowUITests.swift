@@ -7,16 +7,34 @@ final class GlowUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
+        // Ensure tests land on Home (skip onboarding)
+        app.launchArguments += ["--uitesting"]
+        app.launchEnvironment["IS_UI_TEST"] = "1"
         app.launch()
+
+        // Fallback: if onboarding still appears for any reason, dismiss it
+        let getStarted = app.buttons["Get started"]
+        if getStarted.waitForExistence(timeout: 1.0) {
+            getStarted.tap()
+        }
     }
 
     override func tearDownWithError() throws {
         app = nil
     }
 
+    private func waitForHome(timeout: TimeInterval = 5) {
+        let addButton = app.buttons["addPracticeButton"].exists
+            ? app.buttons["addPracticeButton"]
+            : app.buttons["Add practice"]
+        XCTAssertTrue(addButton.waitForExistence(timeout: timeout),
+                      "Home should show the 'Add practice' button.")
+    }
+
     // 1) Smoke: app launches and we can see the add button (or its identifier)
     @MainActor
     func testHomeShowsAddPracticeButton() throws {
+        waitForHome()
         // Prefer an accessibility identifier if your Glow app sets one, e.g. "addPracticeButton"
         let addButton = app.buttons["addPracticeButton"].exists
             ? app.buttons["addPracticeButton"]
@@ -29,6 +47,7 @@ final class GlowUITests: XCTestCase {
     // 2) Add practice flow works (sheet or push)
     @MainActor
     func testAddPracticeFlow() throws {
+        waitForHome()
         let addButton = app.buttons["addPracticeButton"].exists
             ? app.buttons["addPracticeButton"]
             : app.buttons["Add practice"]
@@ -65,6 +84,7 @@ final class GlowUITests: XCTestCase {
     // 3) Sidebar / menu opens and Reminders is shown
     @MainActor
     func testOpenSidebarAndShowReminders() throws {
+        waitForHome()
         // Prefer identifier if set
         let menuButton = app.buttons["menuButton"].exists
             ? app.buttons["menuButton"]
@@ -91,6 +111,7 @@ final class GlowUITests: XCTestCase {
     // 4) Mark first practice complete
     @MainActor
     func testToggleFirstPracticeComplete() throws {
+        waitForHome()
         // Ensure we have at least one practice
         let existingPractice = app.staticTexts["UITest Auto"]
 
