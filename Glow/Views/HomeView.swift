@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 import Combine
 import UIKit
+import CoreData   // ⬅️ to observe saves
 
 // MARK: - HomeView
 
@@ -102,12 +103,6 @@ struct HomeView: View {
             .onAppear {
                 viewModel.updateHabits(habits)
                 prewarmMonthCache()
-
-                // One-time cleanup to normalize historical data
-                Task { @MainActor in
-                    for h in habits { sanitizeLogs(for: h) }
-                    viewModel.updateHabits(habits)
-                }
             }
             .onChange(of: habits) { _, newHabits in
                 viewModel.updateHabits(newHabits)
@@ -116,10 +111,8 @@ struct HomeView: View {
             // Refresh when app returns to foreground (fixes stale lists/state after backgrounding)
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
-                // Re-evaluate "today" in case a day boundary or clock change happened while backgrounded
                 let startOfNow = Calendar.current.startOfDay(for: Date())
                 viewModel.advanceToToday(startOfNow)
-                // Recompute lists and heatmap cache from current data/iCloud sync
                 viewModel.updateHabits(habits)
                 prewarmMonthCache()
             }
@@ -128,13 +121,21 @@ struct HomeView: View {
                 checkForNewDay()
                 viewModel.updateHabits(habits)
             }
-            // Listen for archive/unarchive updates and refresh lists/cache
+            // React to our custom "data changed" signal
             .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
-                // Recompute lists immediately from the latest @Query snapshot
-                viewModel.updateHabits(habits)
-                prewarmMonthCache()
-                // Force List to fully rebuild/diff against latest model values
-                listRefreshID = UUID()
+                DispatchQueue.main.async {
+                    viewModel.updateHabits(habits)
+                    prewarmMonthCache()
+                    listRefreshID = UUID()
+                }
+            }
+            // ✅ New: react to *any* SwiftData/Core Data save anywhere
+            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+                DispatchQueue.main.async {
+                    viewModel.updateHabits(habits)
+                    prewarmMonthCache()
+                    listRefreshID = UUID()
+                }
             }
 
             // extra sheets
@@ -215,10 +216,14 @@ struct HomeView: View {
                             }
                             GlowTheme.tapHaptic()
                         }
+                        .accessibilityIdentifier("menuButton") // ✅ UITest stable id
+
                         Spacer()
+
                         NavShareButton {
                             showShare = true
                         }
+
                         NavAddButton {
                             newTitle = ""
                             newSchedule = .daily
@@ -230,6 +235,7 @@ struct HomeView: View {
                             showAdd = true
                         }
                         .accessibilityLabel("Add practice")
+                        .accessibilityIdentifier("addPracticeButton") // ✅ UITest stable id
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 48)
@@ -245,9 +251,9 @@ struct HomeView: View {
             Form {
                 Section("Details") {
                     TextField("Title", text: $newTitle)
+                        .accessibilityIdentifier("practiceTitleField") // ✅ UITest stable id
                         .textInputAutocapitalization(.words)
                         .onChange(of: newTitle) { _, newValue in
-                            // don’t run the guesser on every keystroke like "a" or "to"
                             guard newValue.count > 2 else { return }
                             let guess = HabitIconLibrary.guessIcon(for: newValue)
                             if newIconName == "checkmark.circle" || newIconName.isEmpty {
@@ -324,6 +330,7 @@ struct HomeView: View {
 
                         showAdd = false
                     }
+                    .accessibilityIdentifier("savePracticeButton") // ✅ UITest stable id
                     .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -341,7 +348,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - List Content
     // MARK: - List Content
     private var contentList: some View {
         List {
@@ -362,8 +368,7 @@ struct HomeView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Today’s progress")
                 .accessibilityValue("\(viewModel.todayCompletion.done) of \(viewModel.todayCompletion.total) practices completed")
-                // hero should sit a little lower under the nav chrome
-                .padding(.top, GlowTheme.Spacing.xlarge * 2) // 64 -> token-based
+                .padding(.top, GlowTheme.Spacing.xlarge * 2)
                 .listRowInsets(
                     EdgeInsets(
                         top: GlowTheme.Spacing.small,
@@ -539,28 +544,17 @@ struct HomeView: View {
 
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
             if let log = (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today }) {
-                if log.completed {
-                    // Uncheck: remove the log entirely so the day is unquestionably "not done"
-                    context.delete(log)
-                } else {
-                    // Mark complete
-                    log.date = today
-                    log.completed = true
-                }
+                log.completed.toggle()
             } else {
-                // Create a fresh, normalized completion for today
                 let log = HabitLog(date: today, completed: true, habit: habit)
                 context.insert(log)
             }
         }
 
-        // After any toggle, sanitize the habit's logs to enforce single-log-per-day and remove future entries
-        sanitizeLogs(for: habit)
-
         GlowTheme.tapHaptic()
         context.saveSafely()
 
-        // Recompute and push to the widget
+        // tell the view model to recompute and push to the widget
         viewModel.updateHabits(Array(habits))
     }
 
@@ -603,7 +597,7 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Sidebar buttons (unchanged)
+    // MARK: - Sidebar buttons (unchanged except identifiers)
     private struct SidebarHandleButton: View {
         @Environment(\.colorScheme) private var colorScheme
         let action: () -> Void
@@ -651,8 +645,7 @@ struct HomeView: View {
                             )
                     )
             }
-                    .accessibilityLabel("Add practice")
-                    .accessibilityHint("Create a new practice")
+            .accessibilityLabel("Add practice")
         }
 
         private var navIconColor: Color {
@@ -718,85 +711,4 @@ extension Notification.Name {
     static let glowShowArchive = Notification.Name("glowShowArchive")
     static let glowShowReminders = Notification.Name("glowShowReminders")
     static let glowDataDidChange = Notification.Name("glowDataDidChange")
-}
-
-private struct GlowOnboardingInline: View {
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        VStack(spacing: 18) {
-            Spacer()
-            Image(systemName: "sparkles")
-                .font(.system(size: 48, weight: .semibold))
-                .foregroundStyle(GlowTheme.accentPrimary)
-            Text("Welcome to Glow")
-                .font(.title2.weight(.semibold))
-            Text("Add a practice with the + button, then check it off each day.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
-            Spacer()
-            Button {
-                isPresented = false
-            } label: {
-                Text("Get started")
-                    .font(.body.weight(.semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16, style: .continuous)
-                            .fill(GlowTheme.accentPrimary)
-                    )
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 24)
-            }
-        }
-        .background(.ultraThinMaterial)
-        .ignoresSafeArea()
-    }
-}
-
-extension HomeView {
-    // Ensure one normalized log per day; remove future-dated logs; prefer a completed log if duplicates exist.
-    private func sanitizeLogs(for habit: Habit) {
-        let cal = Calendar.current
-        let today = viewModel.todayStartOfDay
-
-        guard var logs = habit.logs, !logs.isEmpty else { return }
-
-        // Group by day (normalized)
-        let grouped = Dictionary(grouping: logs) { log in
-            cal.startOfDay(for: log.date)
-        }
-
-        for (day, entries) in grouped {
-            // Delete future-dated groups entirely
-            if day > today {
-                for e in entries { context.delete(e) }
-                continue
-            }
-
-            // Normalize all dates to start-of-day
-            for e in entries { e.date = day }
-
-            // Pick the single keeper: prefer a completed one if any, else the first
-            let keeper: HabitLog
-            if let done = entries.first(where: { $0.completed }) {
-                keeper = done
-            } else {
-                keeper = entries.first!
-            }
-            keeper.date = day
-            keeper.completed = entries.contains(where: { $0.completed })
-
-            // Delete all others for that day
-            for e in entries where e !== keeper {
-                context.delete(e)
-            }
-        }
-
-        context.saveSafely()
-    }
 }

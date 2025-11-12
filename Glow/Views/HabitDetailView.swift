@@ -361,27 +361,24 @@ struct MonthHeatmapModel {
     let weekdays: [String] = ["S","M","T","W","Th","F","S"]
 
     init(habit: Habit, month: Date) {
+        // --------- Locals first (avoid referencing self during init) ---------
         let cal = Calendar.current
-        let todayLocal = cal.startOfDay(for: .now)
-        let monthTitleLocal = month.formatted(.dateTime.year().month(.wide))
-
-        // Build grid locally (do not touch self yet)
+        let todayLocal = cal.startOfDay(for: Date())
         let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: month))
         let daysRange = startOfMonth.flatMap { cal.range(of: .day, in: .month, for: $0) }
 
-        var localGrid: [[Date?]] = [Array(repeating: nil, count: 7)]
+        // Build the 6x7 month grid (including leading/trailing blanks)
+        var computedGrid: [[Date?]] = [Array(repeating: nil, count: 7)]
         if let start = startOfMonth, let range = daysRange {
             let firstWeekday = cal.component(.weekday, from: start)
             let leadingBlanks = firstWeekday - 1
 
             var cells: [Date?] = Array(repeating: nil, count: leadingBlanks)
-
             for day in 1...range.count {
                 if let d = cal.date(byAdding: .day, value: day - 1, to: start) {
                     cells.append(d)
                 }
             }
-
             while cells.count % 7 != 0 { cells.append(nil) }
             while cells.count < 42 { cells.append(nil) }
 
@@ -389,76 +386,56 @@ struct MonthHeatmapModel {
             for i in stride(from: 0, to: cells.count, by: 7) {
                 weeks.append(Array(cells[i..<min(i + 7, cells.count)]))
             }
-            localGrid = weeks
+            computedGrid = weeks
         }
 
-        // Completed days for this month (normalized and clamped to today)
-        let completedDaysLocal: Set<Date>
-        if let start = startOfMonth,
-           let end = cal.date(byAdding: DateComponents(month: 1, day: 0), to: start) {
+        // Dates that belong to the visible month
+        let monthDates: [Date] = computedGrid
+            .flatMap { $0 }
+            .compactMap { $0 }
+            .filter { cal.isDate($0, equalTo: month, toGranularity: .month) }
 
+        // Completed days for this month, **ignoring any date after today**
+        let completedSet: Set<Date>
+        if let start = startOfMonth,
+           let end = cal.date(byAdding: DateComponents(month: 1), to: start) {
             let normalized = (habit.logs ?? [])
                 .filter { $0.completed }
                 .map { cal.startOfDay(for: $0.date) }
                 .filter { $0 >= start && $0 < end && $0 <= todayLocal }
 
-            completedDaysLocal = Set(normalized)
+            completedSet = Set(normalized)
         } else {
-            completedDaysLocal = []
+            completedSet = []
         }
 
-        // All valid days inside the visible month
-        let monthDatesLocal: [Date] = localGrid
-            .flatMap { $0 }
-            .compactMap { $0 }
-            .filter { cal.isDate($0, equalTo: month, toGranularity: .month) }
+        // Percent complete = completed cells / total cells in month (up to today handled by completedSet)
+        let doneCount = monthDates.filter { completedSet.contains(cal.startOfDay(for: $0)) }.count
+        let pctLocal = monthDates.isEmpty ? 0 : Int((Double(doneCount) / Double(monthDates.count)) * 100.0)
 
-        // Percent complete for the month
-        let pctLocal: Int
-        if monthDatesLocal.isEmpty {
-            pctLocal = 0
-        } else {
-            let doneCount = monthDatesLocal.filter {
-                completedDaysLocal.contains(cal.startOfDay(for: $0))
-            }.count
-            pctLocal = Int((Double(doneCount) / Double(monthDatesLocal.count)) * 100.0)
+        // Month streak based on logs in this month **up to today only**
+        let inMonthLogs = (habit.logs ?? []).filter {
+            $0.completed
+            && cal.isDate($0.date, equalTo: month, toGranularity: .month)
+            && cal.startOfDay(for: $0.date) <= todayLocal
         }
+        let monthStreakLocal = StreakEngine.computeStreaks(logs: inMonthLogs).current
 
-        // Month streak — sanitize logs to start-of-day and clamp to today
-        let sanitizedMonthLogs: [HabitLog] = (habit.logs ?? [])
-            .filter { $0.completed && cal.isDate($0.date, equalTo: month, toGranularity: .month) }
-            .map { HabitLog(date: cal.startOfDay(for: $0.date), completed: true, habit: nil) }
-            .filter { $0.date <= todayLocal }
-
-        let monthStreakLocal = StreakEngine.computeStreaks(
-            logs: sanitizedMonthLogs,
-            today: todayLocal,
-            calendar: cal
-        ).current
-
-        // FINAL ASSIGNMENT — now it is safe to touch self
+        // --------- Assign stored properties last ---------
         self.cal = cal
         self.month = month
-        self.monthTitle = monthTitleLocal
-        self.gridDates = localGrid
-        self.completedDays = completedDaysLocal
-        self.totalDaysInMonth = monthDatesLocal
+        self.today = todayLocal
+        self.monthTitle = month.formatted(.dateTime.year().month(.wide))
+        self.gridDates = computedGrid
+        self.completedDays = completedSet
+        self.totalDaysInMonth = monthDates
         self.pct = pctLocal
         self.monthStreak = monthStreakLocal
-        self.today = todayLocal
     }
 
-    func isToday(_ date: Date) -> Bool {
-        cal.startOfDay(for: date) == today
-    }
-
-    func isInMonth(_ date: Date) -> Bool {
-        cal.isDate(date, equalTo: month, toGranularity: .month)
-    }
-
-    func isCompleted(_ date: Date) -> Bool {
-        completedDays.contains(cal.startOfDay(for: date))
-    }
+    func isToday(_ date: Date) -> Bool { cal.startOfDay(for: date) == today }
+    func isInMonth(_ date: Date) -> Bool { cal.isDate(date, equalTo: month, toGranularity: .month) }
+    func isCompleted(_ date: Date) -> Bool { completedDays.contains(cal.startOfDay(for: date)) }
 }
 
 // MARK: - DayCell
