@@ -3,6 +3,7 @@ import Testing
 import SwiftData
 import Foundation
 
+@MainActor
 struct ModelContextSaveTests {
 
     private func makeInMemoryContainer() throws -> ModelContainer {
