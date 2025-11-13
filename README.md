@@ -1,177 +1,199 @@
-✨ Glow
+# ✨ **Glow**  
+### *Build better habits. Celebrate your wins. Feel your progress.*
 
-Build better habits. Celebrate your wins. Feel your progress.
+<p align="center">
+  <img src="https://img.shields.io/badge/SwiftUI-6.2-orange?logo=swift">
+  <img src="https://img.shields.io/badge/Platform-iOS_18_|_macOS_15-blue">
+  <img src="https://img.shields.io/badge/License-MIT-green">
+</p>
 
+---
 
-⸻
+## 🌟 What is Glow?
 
-🌟 Overview
+Glow is a modern, mindful habit-tracking app built entirely with **SwiftUI**, **SwiftData**, and **CloudKit**.  
+It focuses on clarity, aesthetic calm, and meaningful progress — not guilt or dopamine loops.
 
-Glow is a mindful habit-tracking app built entirely with SwiftUI and SwiftData.
-It focuses on calm progress, gentle reflections, and celebrating small wins — wrapped in a soft, glass-inspired interface.
+Glow is about *celebrating* the tiny wins that build toward growth.
 
-Glow isn’t about perfection.
-It’s about momentum, awareness, and enjoying the feeling of progress over time.
+---
 
-⸻
+## 💎 Core Features
 
-💎 Core Features
+### A beautiful overview:
 
-✨ Liquid Glass Interface
+| Feature | Description |
+|--------|-------------|
+| 💫 **Liquid Glass UI** | A fully custom translucent design using `.ultraThinMaterial` and GlowTheme tokens. |
+| 🧭 **Today Dashboard** | Track your practices, see today’s progress, and enjoy smooth completion animations. |
+| 🎯 **Habits & Scheduling** | Custom icons, schedules, reminders, and archiving. |
+| 📅 **Habit Detail View** | Weekly rings, monthly heatmaps, and complete history. |
+| 🪞 **You View** | A reflective summary of your best streaks and patterns. |
+| 📈 **Trends & Analytics** | Understand your long-term rhythm with beautiful insights. |
+| 🔔 **Reminders** | Gentle notifications aligned with your schedule. |
+| 🗂️ **Archive** | Hide old practices without losing data. |
+| 🧩 **Home Screen Widgets** | One-tap check-ins and instant progress. |
+| 🪄 **Six-Page Onboarding** | A smooth intro featuring gestures & widget setup. |
+| 🌙 **Adaptive Themes** | Light, Dark, High-Contrast, and Reduce Motion. |
+| 🥂 **Completion Pulse** | A gentle celebration when you finish your day. |
 
-A custom design system using .ultraThinMaterial, depth shadows, and subtle lighting to create a premium Apple feel.
+---
 
-🎯 Today Dashboard
+## 🛠 Built With
 
-Your habits are organized by what matters now:
-Today, Focused, Coming Up, and Archived — each updating live.
+- **Swift 6.2**
+- **SwiftUI**
+- **SwiftData + CloudKit**
+- **App Groups** (for widget sync)
+- **GlowTheme** (tokens for colors, spacing, materials)
+- **StreakEngine**
+- **Hero Card Engine**
 
-📅 Habit Details
+---
 
-Beautiful insights including:
-	•	Weekly progress ring
-	•	Monthly heatmap
-	•	Streaks and best streak
-	•	Calendar-accurate logic backed by a robust streak engine
+## 🧭 Onboarding Experience
 
-🔔 Reminders
+Glow includes a fully custom **6-screen onboarding flow**:
 
-Soft, human-paced notifications you can enable per habit.
+1. Welcome ✨  
+2. Add a practice ➕  
+3. Practice details 📊  
+4. Swipe actions 👆  
+5. Menu overview 📁  
+6. Add the Glow Widget 📦  
 
-🥂 Celebration Pulse
+Users may tap **Skip** or flow through with smooth spring animations.
 
-When you complete your goals, Glow responds with a gentle pulse made of layered glass.
+---
 
-🌙 Adaptive Themes
+## 📁 Project Structure
 
-Full support for Light, Dark, High Contrast, and Dynamic Type.
-
-🧩 Archive & Restore
-
-Archive any habit to pause it — bring it back anytime.
-
-⸻
-
-🛠 Built With
-	•	Swift 6.2
-	•	SwiftUI
-	•	SwiftData
-	•	Combine
-	•	WidgetKit
-	•	No third-party dependencies
-
-Glow uses a token-driven design system (GlowTheme) and a precise streak engine (StreakEngine) for all math-based calendar calculations.
-
-⸻
-
-🧱 Project Structure
-
+```
 Glow/
 ├── App/
-│   ├── GlowApp.swift
-│   └── GlowAppConfig.swift
-│
+│   └── GlowApp.swift
 ├── Models/
 │   ├── Habit.swift
 │   ├── HabitLog.swift
-│   ├── HabitSchedule.swift
-│   ├── Weekday.swift
-│   └── StreakEngine.swift
-│
+│   └── HabitSchedule.swift
+├── ViewModels/
+│   ├── HomeViewModel.swift
+│   └── HabitDetailViewModel.swift
 ├── Views/
 │   ├── HomeView.swift
 │   ├── HabitDetailView.swift
-│   ├── ArchiveView.swift
+│   ├── AddOrEditHabitForm.swift
 │   ├── RemindersView.swift
+│   ├── TrendsView.swift
+│   ├── ArchiveView.swift
+│   ├── YouView.swift
 │   └── Components/
-│       ├── HabitRowGlass.swift
-│       ├── GlassCard.swift
 │       ├── ProgressRingView.swift
-│       ├── QuickActionsBar.swift
-│       └── MetricCard.swift
-│
-├── ViewModels/
-│   ├── HomeViewModel.swift
-│   ├── HabitDetailViewModel.swift
-│   └── RemindersViewModel.swift
-│
-├── Domain/
-│   ├── SharedProgressStore.swift
-│   ├── NotificationManager.swift
-│   └── GlowDataEvents.swift
-│
+│       ├── IconPickerRow.swift
+│       ├── SchedulePicker.swift
+│       └── HabitRowGlass.swift
 ├── Theme/
 │   ├── GlowTheme.swift
-│   ├── GlowPalette.swift
-│   └── GlowTypography.swift
-│
-└── Tests/
-    ├── Unit/
-    └── UI/
+│   └── GlowModalScaffold.swift
+├── Domain/
+│   ├── NotificationManager.swift
+│   └── StreakEngine.swift
+├── Utilities/
+│   ├── SharedProgressStore.swift
+│   ├── GlowExtensions.swift
+│   ├── GlowOnboardingView.swift
+│   └── Date+Extensions.swift
+└── Resources/
+    └── HabitIconLibrary.swift
+```
 
+---
 
-⸻
+## 🧩 Core Components
 
-⚙️ Developer Notes
+### **GlowTheme**
+Token-driven system for:
+- Colors  
+- Materials  
+- Radius  
+- Spacing  
+- Typography  
+- Glass cards  
 
-Glow is designed as a clean, modern SwiftUI architecture:
-	•	Uses @Model SwiftData types
-	•	All heavy work isolated in view models
-	•	UI is pure and stateless
-	•	Calendar grids calculated lazily
-	•	Notifications wired through a central .glowDataDidChange event
-	•	Widgets updated with SharedProgressStore
-	•	100% Apple-native — no dependencies
+### **StreakEngine**
+Handles:
+- Daily streaks  
+- Weekly percentage  
+- Heatmap data  
+- Fast calculations  
 
-⸻
+### **Habit System**
+- SwiftData models  
+- Future-date clamping  
+- Archiving  
+- Reminder scheduling  
 
-🧪 Tests
+### **Hero Progress Card**
+- Animated pulse  
+- Overdrive effect at 100%  
+- Reduce Motion-aware  
 
-Glow includes a robust suite of unit tests and UI tests covering:
-	•	Habit model logic
-	•	Streak calculations
-	•	Archive/unarchive behavior
-	•	Reminder filtering
-	•	UI flows such as:
-	•	Add habit
-	•	Mark complete
-	•	Open detail view
-	•	Archive and restore
+### **Widgets**
+- Uses `SharedProgressStore`
+- Check in directly from the widget  
+- Updates instantly with new logs  
 
-Run tests with:
+---
 
-⌘ + U   // or via CLI: xcodebuild test
+## ⚡ Performance
 
+Glow is tuned for smoothness:
 
-⸻
+- Cached month heatmaps  
+- Minimal dependency injection  
+- Reused materials (low GPU cost)  
+- Lazy views everywhere  
+- 60fps animations with soft springs  
+- SwiftData query minimization  
 
-🚀 App Store Ready
+---
 
-Glow ships with:
-	•	No debug logging
-	•	Clean production entitlements
-	•	Passes static analyzer
-	•	Verified iCloud sync
-	•	Fully accessible UI
-	•	Smooth performance on all supported devices
+## 🧪 Tests
 
-This codebase is clean, stable, and ready for submission.
+Glow includes tests for:
 
-⸻
+- StreakEngine  
+- Habit schedules  
+- Habit log normalization  
+- Notifications  
+- Archive filtering  
+- App config  
+- Icon library  
 
-❤️ Credits
+Plus a UI test that covers onboarding → add practice.
 
-Built with care by Don Noel
-Designed and engineered with help from Bella, your AI collaborator ✨
+---
 
-⸻
+## 🧩 Roadmap
 
-📄 License
+- [ ] iPad layouts  
+- [ ] watchOS app  
+- [ ] Shared Habits (Glow Circles)  
+- [ ] More widget styles  
+- [ ] Custom practice colors  
 
+---
+
+## ❤️ Credits
+
+Built with care by **Don Noel**  
+Designed & engineered with help from **Bella**, your AI teammate ✨
+
+---
+
+## 📄 License  
 MIT License
 
-⸻
+---
 
-Glow reminds you that growth can be gentle — and beautiful.
-
-⸻
+> *Glow should feel like a breath. Every win should feel like a smile.*

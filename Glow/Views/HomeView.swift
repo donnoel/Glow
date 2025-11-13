@@ -3,6 +3,7 @@ import SwiftData
 import Combine
 import UIKit
 import CoreData   // ⬅️ to observe saves
+import LinkPresentation
 
 // MARK: - HomeView
 
@@ -190,7 +191,9 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showShare) {
-            ShareSheet(activityItems: ["I’m tracking my practices in Glow ✨"])
+            ShareSheet(
+                message: "Ask me about Glow — it helps me keep track of my daily practices and celebrate the small wins that actually matter."
+            )
         }
         .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
             hasSeenGlowOnboarding = true
@@ -698,13 +701,39 @@ struct HomeView: View {
 
 // MARK: - ShareSheet helper
 private struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
+    let message: String
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+        let itemSource = GlowShareItemSource(message: message)
+        return UIActivityViewController(activityItems: [itemSource], applicationActivities: nil)
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+}
+
+private final class GlowShareItemSource: NSObject, UIActivityItemSource {
+    private let message: String
+
+    init(message: String) {
+        self.message = message
+    }
+
+    func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
+        message
+    }
+
+    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any {
+        message
+    }
+
+    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+        let metadata = LPLinkMetadata()
+        metadata.title = "Ask me about Glow"
+        if let image = UIImage(named: "GlowShareIcon") {
+            metadata.iconProvider = NSItemProvider(object: image)
+        }
+        return metadata
+    }
 }
 
 extension Notification.Name {
