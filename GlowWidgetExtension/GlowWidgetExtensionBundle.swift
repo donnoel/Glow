@@ -124,7 +124,7 @@ struct TodayProgressWidgetView: View {
                 // Bonus wins beyond the plan
                 return compact ? "Bonus +\(entry.bonus) 🔥" : "Bonus wins +\(entry.bonus)"
             } else {
-                return compact ? "Glow day ✨" : "All done — nice."
+                return compact ? "Glow day ✨" : "Done!  Very Nice"
             }
         }
         
