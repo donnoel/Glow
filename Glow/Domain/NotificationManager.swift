@@ -44,7 +44,7 @@ enum NotificationManager {
             let content = UNMutableNotificationContent()
             content.title = "Glow"
             content.subtitle = habit.title
-            content.body = "Did you complete your practice?"
+            content.body = "Is now a good time to check in?"
             content.sound = .default
 
             let id = "habit.\(habit.id).weekday.\(day.rawValue)"
