@@ -187,7 +187,7 @@ Plus a UI test that covers onboarding → add practice.
 ## ❤️ Credits
 
 Built with care by **Don Noel**  
-Designed & engineered with help from Bella, my AI collaborator ✨
+Designed & engineered with help from **Bella**, my AI collaborator ✨
 
 ---
 
