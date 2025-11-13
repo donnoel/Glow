@@ -4,7 +4,7 @@ struct GlowOnboardingView: View {
     @Binding var isPresented: Bool
     @State private var pageIndex: Int = 0
 
-    private let totalPages = 5
+    private let totalPages = 6
 
     var body: some View {
         ZStack {
@@ -43,6 +43,13 @@ struct GlowOnboardingView: View {
                     systemImage: "line.3.horizontal"
                 )
                 .tag(4)
+
+                OnboardingPage(
+                    title: "Add the Glow Widget",
+                    subtitle: "Put Glow on your Home Screen for instant daily progress and one‑tap check‑ins.",
+                    systemImage: "rectangle.3.offgrid.fill"
+                )
+                .tag(5)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
             .background(.ultraThinMaterial)
