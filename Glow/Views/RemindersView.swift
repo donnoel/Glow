@@ -38,7 +38,7 @@ struct RemindersView: View {
     var body: some View {
         GlowModalScaffold(
             title: "Reminders",
-            subtitle: "Practices with “Remind me” turned on."
+            // subtitle: "Practices with “Remind me” turned on."
         ) {
             if model.reminderHabits.isEmpty {
                 VStack(spacing: 16) {

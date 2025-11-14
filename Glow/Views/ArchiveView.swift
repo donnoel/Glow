@@ -19,7 +19,7 @@ struct ArchiveView: View {
     var body: some View {
         GlowModalScaffold(
             title: "Archived",
-            subtitle: "Practices you’ve tucked away. Bring them back any time."
+            // subtitle: "Practices you’ve tucked away. Bring them back any time."
         ) {
             if archivedHabits.isEmpty {
                 ContentUnavailableView(

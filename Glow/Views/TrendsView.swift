@@ -92,7 +92,7 @@ struct TrendsView: View {
     var body: some View {
         GlowModalScaffold(
             title: "Trends",
-            subtitle: "Last 7 days, streaks, and which practices are carrying you."
+            // subtitle: "Last 7 days, streaks, and which practices are carrying you."
         ) {
             VStack(spacing: 28) {
                 streakHeroCard

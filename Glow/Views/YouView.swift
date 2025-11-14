@@ -41,7 +41,7 @@ struct YouView: View {
     var body: some View {
         GlowModalScaffold(
             title: "You",
-            subtitle: "A snapshot of how you’ve been showing up."
+            // subtitle: "A snapshot of how you’ve been showing up."
         ) {
             VStack(spacing: 24) {
                 
