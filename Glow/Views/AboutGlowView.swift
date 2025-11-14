@@ -5,8 +5,18 @@ struct AboutGlowView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
 
-    // Fake version for now — wire to Bundle.main later
-    private let appVersion = "1.0"
+    // Derived from Info.plist so it always matches the Xcode target
+    private var appVersion: String {
+        let infoDictionary = Bundle.main.infoDictionary
+        let version = infoDictionary?["CFBundleShortVersionString"] as? String ?? "—"
+        let build = infoDictionary?["CFBundleVersion"] as? String ?? ""
+
+        if build.isEmpty {
+            return version
+        } else {
+            return "\(version) (\(build))"
+        }
+    }
 
     @State private var showResetConfirm = false
     @State private var showResetDone = false
