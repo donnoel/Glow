@@ -67,19 +67,19 @@
 			);
 			target = 5A402FD02EB27B0400C855A9 /* Glow */;
 		};
-		5A5A12DE2EC67F7C00A18410 /* Exceptions for "GlowTests" folder in "GlowTests" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				NotificationManagerTests.swift,
-			);
-			target = 5A402FE12EB27B0500C855A9 /* GlowTests */;
-		};
 		5AA2D2C82EC2824100162A86 /* Exceptions for "GlowWidgetExtension" folder in "GlowWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = 5AA2D2AF2EC2824000162A86 /* GlowWidgetExtension */;
+		};
+		5ACBCF6D2EC6AA830028F256 /* Exceptions for "GlowTests" folder in "GlowTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				NotificationManagerTests.swift,
+			);
+			target = 5A402FE12EB27B0500C855A9 /* GlowTests */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -95,7 +95,7 @@
 		5A402FE52EB27B0500C855A9 /* GlowTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				5A5A12DE2EC67F7C00A18410 /* Exceptions for "GlowTests" folder in "GlowTests" target */,
+				5ACBCF6D2EC6AA830028F256 /* Exceptions for "GlowTests" folder in "GlowTests" target */,
 			);
 			path = GlowTests;
 			sourceTree = "<group>";
@@ -220,9 +220,6 @@
 			);
 			dependencies = (
 				5A402FE42EB27B0500C855A9 /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				5A402FE52EB27B0500C855A9 /* GlowTests */,
 			);
 			name = GlowTests;
 			packageProductDependencies = (
