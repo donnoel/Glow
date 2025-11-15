@@ -2,7 +2,6 @@ import Foundation
 import SwiftData
 
 @Model
-@MainActor
 final class Habit {
     // was: @Attribute(.unique) var id: String
     // CloudKit doesn't support unique constraints, so drop the attribute

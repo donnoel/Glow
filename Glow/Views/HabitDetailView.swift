@@ -29,6 +29,7 @@ struct HabitDetailView: View {
 
                     RecentDaysStrip(
                         logs: viewModel.logs,
+                        startDate: viewModel.habit.createdAt,
                         days: 14,
                         tint: viewModel.habitTint
                     )
@@ -189,21 +190,41 @@ private struct RecentDaysStrip: View {
     private let calendar: Calendar
     private let today: Date
     private let completed: Set<Date>
+    private let cycleStart: Date
 
-    init(logs: [HabitLog], days: Int, tint: Color) {
+    init(logs: [HabitLog], startDate: Date, days: Int, tint: Color) {
         self.days = days
         self.tint = tint
-        let cal = Calendar.current
-        self.calendar = cal
-        let today = cal.startOfDay(for: Date())
-        self.today = today
 
+        // Work with locals first to avoid capturing self during initialization.
+        let cal = Calendar.current
+        let todayLocal = cal.startOfDay(for: Date())
+        let createdLocal = cal.startOfDay(for: startDate)
+
+        // How many days have elapsed since the habit started (0-based).
+        let dayIndexLocal = max(0, cal.dateComponents([.day], from: createdLocal, to: todayLocal).day ?? 0)
+
+        // Which 14-day cycle are we currently in?
+        let cycleIndexLocal = dayIndexLocal / days
+
+        // The calendar date for the first slot in the current 14-day cycle.
+        let cycleStartLocal = cal.date(
+            byAdding: .day,
+            value: cycleIndexLocal * days,
+            to: createdLocal
+        ) ?? createdLocal
+
+        // All completion days for this habit (normalized to start of day).
         let completedSet = Set(
             logs
                 .filter { $0.completed }
                 .map { cal.startOfDay(for: $0.date) }
-                .filter { $0 <= today }
         )
+
+        // Assign stored properties last.
+        self.calendar = cal
+        self.today = todayLocal
+        self.cycleStart = cycleStartLocal
         self.completed = completedSet
     }
 
@@ -216,21 +237,30 @@ private struct RecentDaysStrip: View {
 
             HStack(spacing: spacing) {
                 ForEach(0..<days, id: \.self) { offset in
-                    let base = calendar.date(byAdding: .day, value: -offset, to: today) ?? today
-                    let cellDate = calendar.startOfDay(for: base)
-                    let done = completed.contains(cellDate)
+                    // Date for this slot in the current 14-day cycle.
+                    let date = calendar.date(byAdding: .day, value: offset, to: cycleStart) ?? today
+                    let normalized = calendar.startOfDay(for: date)
+                    let done = normalized <= today && completed.contains(normalized)
 
                     RoundedRectangle(cornerRadius: 4, style: .continuous)
                         .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
                         .frame(width: itemSize, height: itemSize)
+                        .accessibilityHidden(false)
+                        .accessibilityLabel(accessibilityLabel(for: normalized, done: done))
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
         .frame(height: 44)
     }
-}
 
+    private func accessibilityLabel(for date: Date, done: Bool) -> String {
+        let formatted = date.formatted(date: .abbreviated, time: .omitted)
+        return done
+            ? "Completed on \(formatted)"
+            : "Not completed on \(formatted)"
+    }
+}
 // MARK: - MonthHeatmap
 private struct MonthHeatmap: View {
     let model: MonthHeatmapModel
