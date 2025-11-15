@@ -107,9 +107,16 @@ struct TodayProgressWidgetView: View {
     private let glowAccent = Color(red: 0.63, green: 0.24, blue: 0.93)
     private let glowSoft = Color(red: 0.96, green: 0.92, blue: 1.0)
     
+    // Clamp percent so the ring never overfills
     private var percent: Double {
         guard entry.total > 0 else { return 0 }
-        return Double(entry.done) / Double(entry.total)
+        let raw = Double(entry.done) / Double(entry.total)
+        return min(max(raw, 0), 1)
+    }
+    
+    // Reached today's goal?
+    private var isComplete: Bool {
+        entry.total > 0 && entry.done >= entry.total
     }
     
     private func message(compact: Bool) -> String {
@@ -344,10 +351,24 @@ struct TodayProgressWidgetView: View {
     
     // MARK: - Lock screen rectangular
     private var rectangularView: some View {
-        HStack {
-            Text("Glow")
-            Spacer()
-            Text("\(entry.done)/\(entry.total)")
+        ZStack {
+            if isComplete {
+                // Simple, centered smile when you've hit today's goal
+                HStack {
+                    Spacer()
+                    Text("😊")
+                        .font(.title3)
+                    Spacer()
+                }
+            } else {
+                HStack {
+                    Text("Glow")
+                        .font(.caption)
+                    Spacer()
+                    Text("\(entry.done)/\(entry.total)")
+                        .font(.caption2)
+                }
+            }
         }
         .applyWidgetBackground()
     }
@@ -355,16 +376,77 @@ struct TodayProgressWidgetView: View {
     // MARK: - Lock screen circular
     private var circularView: some View {
         ZStack {
-            Circle()
-                .stroke(.secondary.opacity(0.35), lineWidth: 3)
-            
-            Circle()
-                .trim(from: 0, to: entry.total > 0 ? CGFloat(percent) : 0)
-                .stroke(glowAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-            
-            Text("\(entry.done)")
-                .font(.caption2)
+            if isComplete {
+                GeometryReader { geo in
+                    let size = min(geo.size.width, geo.size.height)
+                    let lineWidth: CGFloat = 3
+                    let eyeSize = size * 0.12
+                    let eyeOffsetX = size * 0.20
+                    let eyeOffsetY = size * -0.10
+                    let smileRadius = size * 0.25
+
+                    ZStack {
+                        // Head circle
+                        Circle()
+                            .stroke(glowAccent, lineWidth: lineWidth)
+
+                        // Left eye
+                        Circle()
+                            .fill(glowAccent)
+                            .frame(width: eyeSize, height: eyeSize)
+                            .position(
+                                x: geo.size.width / 2 - eyeOffsetX,
+                                y: geo.size.height / 2 + eyeOffsetY
+                            )
+
+                        // Right eye
+                        Circle()
+                            .fill(glowAccent)
+                            .frame(width: eyeSize, height: eyeSize)
+                            .position(
+                                x: geo.size.width / 2 + eyeOffsetX,
+                                y: geo.size.height / 2 + eyeOffsetY
+                            )
+
+                        // Smile
+                        Path { path in
+                            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
+                            let start = CGPoint(
+                                x: center.x - smileRadius,
+                                y: center.y + smileRadius * 0.3
+                            )
+                            let end = CGPoint(
+                                x: center.x + smileRadius,
+                                y: center.y + smileRadius * 0.3
+                            )
+                            let control1 = CGPoint(
+                                x: center.x - smileRadius * 0.5,
+                                y: center.y + smileRadius * 0.9
+                            )
+                            let control2 = CGPoint(
+                                x: center.x + smileRadius * 0.5,
+                                y: center.y + smileRadius * 0.9
+                            )
+                            path.move(to: start)
+                            path.addCurve(to: end, control1: control1, control2: control2)
+                        }
+                        .stroke(glowAccent, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                    }
+                }
+            } else {
+                ZStack {
+                    Circle()
+                        .stroke(.secondary.opacity(0.35), lineWidth: 3)
+                    
+                    Circle()
+                        .trim(from: 0, to: entry.total > 0 ? CGFloat(percent) : 0)
+                        .stroke(glowAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                    
+                    Text("\(entry.done)")
+                        .font(.caption2)
+                }
+            }
         }
         .applyWidgetBackground()
     }
