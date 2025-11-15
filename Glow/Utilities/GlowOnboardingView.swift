@@ -4,55 +4,59 @@ struct GlowOnboardingView: View {
     @Binding var isPresented: Bool
     @State private var pageIndex: Int = 0
 
-    private let totalPages = 6
+    // ✅ 4 vibrant, story-driven slides
+    private let totalPages = 4
 
     var body: some View {
         ZStack {
             TabView(selection: $pageIndex) {
+                // 0 – Welcome / concept
                 OnboardingPage(
                     title: "Welcome to Glow ✨",
-                    subtitle: "Glow keeps the few daily practices you actually care about.",
-                    systemImage: "sparkles"
+                    subtitle: "A tiny home for the few daily practices you actually care about.",
+                    mainSymbol: "sparkles",
+                    supportingSymbols: ["sun.max.fill", "heart.fill"]
                 )
                 .tag(0)
 
+                // 1 – Add + reminders + details
                 OnboardingPage(
-                    title: "Add a practice",
-                    subtitle: "Tap the + in the top right. Give it a name, pick a schedule, then turn on “Remind me”.",
-                    systemImage: "bell.badge.fill"
+                    title: "Add what matters",
+                    subtitle: "Tap the + to add a practice, pick a schedule, turn on “Remind me”, then tap a row to see streaks, heatmap, and history.",
+                    mainSymbol: "plus.circle.fill",
+                    supportingSymbols: ["bell.badge.fill", "list.bullet.rectangle.portrait.fill"]
                 )
                 .tag(1)
 
+                // 2 – Swipe + menu
                 OnboardingPage(
-                    title: "Tap to see details",
-                    subtitle: "From Home, tap a practice to see streak, heatmap, and history.",
-                    systemImage: "list.bullet.rectangle.portrait.fill"
+                    title: "Stay in control",
+                    subtitle: "Swipe left to Edit, Archive, or Delete. Open the menu for You, Trends, Reminders, Archived, and About.",
+                    mainSymbol: "hand.point.right.fill",
+                    supportingSymbols: ["line.3.horizontal", "chart.bar.fill"]
                 )
                 .tag(2)
 
+                // 3 – Widget + iCloud
                 OnboardingPage(
-                    title: "Swipe on a practice",
-                    subtitle: "Swipe left to Edit, Archive, or Delete.",
-                    systemImage: "hand.point.right.fill"
+                    title: "Always within reach",
+                    subtitle: "Add the Glow widget for instant progress and one-tap check-ins. Glow uses iCloud to keep your practices in sync across devices.",
+                    mainSymbol: "rectangle.3.offgrid.fill",
+                    supportingSymbols: ["icloud", "iphone.homebutton"]
                 )
                 .tag(3)
-
-                OnboardingPage(
-                    title: "Open the menu",
-                    subtitle: "Use the menu for You, Trends, Reminders, Archived, and About.",
-                    systemImage: "line.3.horizontal"
-                )
-                .tag(4)
-
-                OnboardingPage(
-                    title: "Add the Glow Widget",
-                    subtitle: "Put Glow on your Home Screen for instant daily progress and one‑tap check‑ins.",
-                    systemImage: "rectangle.3.offgrid.fill"
-                )
-                .tag(5)
             }
             .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
-            .background(.ultraThinMaterial)
+            .background(
+                LinearGradient(
+                    colors: [
+                        GlowTheme.accentPrimary.opacity(0.14),
+                        Color(.systemBackground)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
 
             // top-right skip
             VStack {
@@ -77,8 +81,13 @@ struct GlowOnboardingView: View {
                     HStack(spacing: 6) {
                         ForEach(0..<totalPages, id: \.self) { idx in
                             Circle()
-                                .fill(idx == pageIndex ? GlowTheme.accentPrimary : Color.secondary.opacity(0.28))
-                                .frame(width: idx == pageIndex ? 10 : 8, height: idx == pageIndex ? 10 : 8)
+                                .fill(idx == pageIndex
+                                      ? GlowTheme.accentPrimary
+                                      : Color.secondary.opacity(0.28))
+                                .frame(
+                                    width: idx == pageIndex ? 10 : 8,
+                                    height: idx == pageIndex ? 10 : 8
+                                )
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -110,31 +119,93 @@ struct GlowOnboardingView: View {
     }
 }
 
+// MARK: - Onboarding Page
+
 private struct OnboardingPage: View {
     let title: String
     let subtitle: String
-    let systemImage: String
+    let mainSymbol: String
+    let supportingSymbols: [String]
 
     var body: some View {
-        VStack(spacing: 18) {
-            Spacer()
+        VStack(spacing: 22) {
+            Spacer(minLength: 0)
 
-            Image(systemName: systemImage)
-                .font(.system(size: 54, weight: .semibold))
-                .foregroundStyle(GlowTheme.accentPrimary)
+            // Hero card – glassy, colorful, very Glow
+            ZStack {
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                GlowTheme.accentPrimary.opacity(0.28),
+                                GlowTheme.accentPrimary.opacity(0.06)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 28, style: .continuous)
+                            .strokeBorder(Color.white.opacity(0.30), lineWidth: 1)
+                    )
+                    .shadow(
+                        color: GlowTheme.accentPrimary.opacity(0.55),
+                        radius: 24,
+                        y: 14
+                    )
 
-            Text(title)
-                .font(.title2.weight(.semibold))
-                .multilineTextAlignment(.center)
+                VStack(spacing: 12) {
+                    Image(systemName: mainSymbol)
+                        .font(.system(size: 56, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color.white,
+                                    GlowTheme.accentPrimary.opacity(0.95)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: GlowTheme.accentPrimary.opacity(0.8), radius: 14, y: 6)
 
-            Text(subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 24)
+                    if !supportingSymbols.isEmpty {
+                        HStack(spacing: 14) {
+                            ForEach(supportingSymbols, id: \.self) { symbol in
+                                Image(systemName: symbol)
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(Color.white.opacity(0.9))
+                                    .padding(8)
+                                    .background(
+                                        Circle()
+                                            .fill(
+                                                GlowTheme.accentPrimary.opacity(0.35)
+                                            )
+                                    )
+                            }
+                        }
+                        .transition(.opacity.combined(with: .scale))
+                    }
+                }
+            }
+            .frame(width: 190, height: 190)
 
-            Spacer()
-            Spacer()
+            // Text stack – short, readable, centered
+            VStack(spacing: 10) {
+                Text(title)
+                    .font(.title2.weight(.semibold))
+                    .multilineTextAlignment(.center)
+
+                Text(subtitle)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(4)
+                    .padding(.horizontal, 28)
+            }
+
+            Spacer(minLength: 0)
+            Spacer(minLength: 0)
         }
     }
 }
