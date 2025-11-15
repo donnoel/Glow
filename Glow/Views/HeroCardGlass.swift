@@ -20,6 +20,12 @@ struct HeroCardGlass: View {
     let bonus: Int
     let allDone: Int
 
+    /// Fraction of scheduled practices that are complete (ignores bonus).
+    private var scheduledFraction: Double {
+        guard total > 0 else { return 0 }
+        return min(max(Double(done) / Double(total), 0), 1)
+    }
+
     private var primaryTextColor: Color {
         colorScheme == .dark ? .white : GlowTheme.textPrimary
     }
@@ -79,11 +85,13 @@ struct HeroCardGlass: View {
     }
 
     private var statusLine: String {
-        if bonus > 0 {
-            return "\(allDone) of \(total) complete\n+\(bonus) you're glowing!"
-        } else {
-            return "\(done) of \(total) complete"
+        if total == 0 {
+            return "No practices scheduled"
         }
+        if done == 0 {
+            return "Ready when you are"
+        }
+        return "\(done) of \(total) complete"
     }
 
     var body: some View {
@@ -97,7 +105,7 @@ struct HeroCardGlass: View {
             )
             .frame(width: 88, height: 88)
 
-            // RIGHT: text
+            // MIDDLE: text
             VStack(alignment: .leading, spacing: 4) {
                 Text("Today")
                     .font(.title.weight(.semibold))
@@ -115,6 +123,12 @@ struct HeroCardGlass: View {
             .padding(.top, 2)
 
             Spacer(minLength: 8)
+
+            // RIGHT: shooting star for off-plan wins
+            if bonus > 0 {
+                ShootingStarView(active: showBonusGlow)
+                    .frame(width: 32, height: 32)
+            }
         }
         .padding(.vertical, GlowTheme.Spacing.medium)
         .padding(.horizontal, GlowTheme.Spacing.medium)
@@ -125,12 +139,24 @@ struct HeroCardGlass: View {
             radius: 28,
             y: 16
         )
-        .onChange(of: percent) { oldValue, newValue in
-            // only celebrate when we cross the 1.0 boundary
-            if oldValue <= 1.0 && newValue > 1.0 {
+        // accent glow grows as scheduled practices complete
+        .shadow(
+            color: GlowTheme.accentPrimary.opacity(
+                (colorScheme == .dark ? 0.5 : 0.35) * scheduledFraction
+            ),
+            radius: 24 * scheduledFraction,
+            y: 0
+        )
+        .onChange(of: percent) { _, newValue in
+            // track lastPercent but let completion logic be driven by done/total
+            lastPercent = newValue
+        }
+        .onChange(of: done) { oldValue, newValue in
+            let wasComplete = total > 0 && oldValue >= total
+            let isComplete = total > 0 && newValue >= total
+            if !wasComplete && isComplete {
                 startOverdrive()
             }
-            lastPercent = newValue
         }
         .onChange(of: bonus) { _, newValue in
             if newValue > 0 {
@@ -234,10 +260,50 @@ private struct ProgressRingView: View {
         .onAppear {
             breathe = true
         }
-        .onChange(of: overdriveActive) { oldValue, newValue in
+        .onChange(of: overdriveActive) { _, newValue in
             if newValue {
                 breathe = true
             }
         }
+    }
+}
+
+private struct ShootingStarView: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let active: Bool
+
+    var body: some View {
+        ZStack {
+            // soft trailing streak
+            Capsule()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            GlowTheme.accentPrimary.opacity(0.0),
+                            GlowTheme.accentPrimary.opacity(0.65)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(width: 26, height: 3)
+                .opacity(active ? 1.0 : 0.45)
+                .offset(x: -4)
+                .blur(radius: active ? 0 : 0.4)
+
+            // star head
+            Image(systemName: "star.fill")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(
+                    colorScheme == .dark ? Color.white : GlowTheme.accentPrimary
+                )
+                .shadow(
+                    color: GlowTheme.accentPrimary.opacity(0.7),
+                    radius: 6,
+                    y: 0
+                )
+                .scaleEffect(active ? 1.06 : 0.94)
+        }
+        .animation(.easeInOut(duration: 0.85), value: active)
     }
 }
