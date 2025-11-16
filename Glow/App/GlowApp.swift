@@ -17,16 +17,35 @@ struct GlowApp: App {
         _showOnboarding = State(initialValue: !seen)
     }
 
-    private let container: ModelContainer = {
-        let schema = Schema([Habit.self, HabitLog.self])
+    // MARK: - Shared SwiftData + CloudKit container
+
+    /// IMPORTANT:
+    /// - The CloudKit identifier **must** match the one in Signing & Capabilities → iCloud.
+    /// - Example: iCloud.com.yourteam.Glow
+    private static let modelContainer: ModelContainer = {
+        let schema = Schema([
+            Habit.self,
+            HabitLog.self
+        ])
+
+        // Replace this with the exact identifier from your entitlements
+        let cloudKitID = "iCloud.movie.Glow"
+
+        let config = ModelConfiguration(
+            "GlowStore",
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .private(cloudKitID)
+        )
+
         do {
-            let config = ModelConfiguration(
-                schema: schema,
-                cloudKitDatabase: .private("iCloud.movie.Glow")
-            )
             return try ModelContainer(for: schema, configurations: [config])
         } catch {
-            fatalError("CloudKit model container failed: \(error)")
+            #if DEBUG
+            assertionFailure("❌ Failed to create CloudKit ModelContainer: \(error)")
+            #endif
+            // Fallback to a local-only store so the app still runs in release
+            return try! ModelContainer(for: schema)
         }
     }()
 
@@ -50,6 +69,6 @@ struct GlowApp: App {
                 }
             }
         }
-        .modelContainer(container)
+        .modelContainer(Self.modelContainer)
     }
 }

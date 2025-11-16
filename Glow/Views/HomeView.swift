@@ -192,7 +192,7 @@ struct HomeView: View {
         }
         .sheet(isPresented: $showShare) {
             ShareSheet(
-                message: "Ask me about Glow — it helps me keep track of my daily practices and celebrate the small wins that actually matter."
+                message: "Give Glow a spin."
             )
         }
         .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
@@ -701,8 +701,14 @@ private struct ShareSheet: UIViewControllerRepresentable {
     let message: String
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        let itemSource = GlowShareItemSource(message: message)
-        return UIActivityViewController(activityItems: [itemSource], applicationActivities: nil)
+        let itemSource = GlowShareItemSource(
+            message: message,
+            appURL: URL(string: "https://apps.apple.com/us/app/glow-daily-practice/id6755254758")!
+        )
+        return UIActivityViewController(
+            activityItems: [itemSource],
+            applicationActivities: nil
+        )
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
@@ -710,25 +716,41 @@ private struct ShareSheet: UIViewControllerRepresentable {
 
 private final class GlowShareItemSource: NSObject, UIActivityItemSource {
     private let message: String
+    private let appURL: URL
 
-    init(message: String) {
+    init(message: String, appURL: URL) {
         self.message = message
+        self.appURL = appURL
     }
 
+    // Placeholder shown while the system prepares the share sheet
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
         message
     }
 
-    func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
-        message
+    // Actual shared content: text + link
+    func activityViewController(
+        _ activityViewController: UIActivityViewController,
+        itemForActivityType activityType: UIActivity.ActivityType?
+    ) -> Any? {
+        "\(message) \(appURL.absoluteString)"
     }
 
-    func activityViewControllerLinkMetadata(_ activityViewController: UIActivityViewController) -> LPLinkMetadata? {
+    // Rich link preview metadata (for Messages, Mail, etc.)
+    func activityViewControllerLinkMetadata(
+        _ activityViewController: UIActivityViewController
+    ) -> LPLinkMetadata? {
         let metadata = LPLinkMetadata()
-        metadata.title = "Ask me about Glow"
+        metadata.title = "Glow — Daily Practice"
+
+        // Keep the custom Glow icon as the preview image
         if let image = UIImage(named: "GlowShareIcon") {
             metadata.iconProvider = NSItemProvider(object: image)
         }
+
+        // ❌ Do NOT set metadata.url or metadata.originalURL here.
+        // The App Store link is still in the shared text, so it stays tappable,
+        // but the preview uses our custom icon instead of the remote page preview.
         return metadata
     }
 }
