@@ -134,7 +134,14 @@ struct HomeViewModelTests {
         done.logs = [makeLog(on: today, completed: true, habit: done)]
 
         let due = makeHabit(title: "Due", schedule: dailySchedule()) // daily, no log
-        let notToday = makeHabit(title: "NotToday", schedule: customSchedule([.sun])) // probably not today
+
+        // pick ANY weekday that is not today, so this habit is never scheduled "today"
+        let todayWeekday = Weekday.from(today)
+        let otherWeekday = Weekday.allCases.first { $0 != todayWeekday }!
+        let notToday = makeHabit(
+            title: "NotToday",
+            schedule: customSchedule([otherWeekday])
+        )
 
         vm.updateHabits([done, due, notToday])
 
