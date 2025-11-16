@@ -14,88 +14,119 @@ struct HabitDetailView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 24) {
-
-                // HEADER / STREAKS
-                headerSection
-                    .padding(.top, 8)
-
-                // RECENT
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Recent")
-                        .font(.headline)
-                        .foregroundStyle(GlowTheme.textPrimary)
-
-                    RecentDaysStrip(
-                        logs: viewModel.logs,
-                        startDate: viewModel.habit.createdAt,
-                        days: 14,
-                        tint: viewModel.habitTint
-                    )
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
-                    .glowSurfaceCard(cornerRadius: 16)
+        GeometryReader { proxy in
+            let isRegularWidth = proxy.size.width >= 768
+            let isLandscape = proxy.size.width > proxy.size.height
+            let isPadPortrait = isRegularWidth && !isLandscape
+            // iPhone stays as-is. On iPad (portrait and landscape), use a larger inset (~1 inch)
+            // so the content has the same breathing room on the left and right.
+            let horizontalInset: CGFloat = {
+                if isRegularWidth {
+                    return 96 // ~1 inch margin on each side on most iPads
+                } else {
+                    return 16
                 }
+            }()
 
-                // WEEK
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("This Week")
-                        .font(.headline)
-                        .foregroundStyle(GlowTheme.textPrimary)
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: isRegularWidth ? 28 : 24) {
 
-                    WeeklyProgressRing(
-                        percent: viewModel.weeklyPercent(),
-                        tint: viewModel.habitTint
-                    )
-                    .frame(height: 120)
-                    .frame(maxWidth: .infinity, alignment: .center)
-                    .padding(16)
-                    .background(
-                        RoundedRectangle(cornerRadius: 20, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .fill(viewModel.habitTint.opacity(0.08))
-                                    .blendMode(.plusLighter)
+                    // HEADER / STREAKS
+                    headerSection
+                        .padding(.top, isRegularWidth ? 24 : 8)
+
+                    // RECENT
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Recent")
+                            .font(.headline)
+                            .foregroundStyle(GlowTheme.textPrimary)
+
+                        // Card with symmetrical padding so colored boxes float inside
+                        ZStack {
+                            // Card background and border
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(GlowTheme.bgSurface)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
+                                )
+                                .shadow(
+                                    color: Color.black.opacity(0.15),
+                                    radius: 20, y: 10
+                                )
+                            // Content with inner padding
+                            RecentDaysStrip(
+                                logs: viewModel.logs,
+                                startDate: viewModel.habit.createdAt,
+                                days: 14,
+                                tint: viewModel.habitTint
                             )
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                    .stroke(viewModel.habitTint.opacity(0.28), lineWidth: 1)
-                            )
-                            .shadow(
-                                color: Color.black.opacity(0.4),
-                                radius: 20, y: 10
-                            )
-                    )
+                            .padding(12)
+                        }
+                    }
+
+                    // WEEK
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("This Week")
+                            .font(.headline)
+                            .foregroundStyle(GlowTheme.textPrimary)
+
+                        WeeklyProgressRing(
+                            percent: viewModel.weeklyPercent(),
+                            tint: viewModel.habitTint
+                        )
+                        .frame(height: isRegularWidth ? 180 : 120)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .fill(viewModel.habitTint.opacity(0.08))
+                                        .blendMode(.plusLighter)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .stroke(viewModel.habitTint.opacity(0.28), lineWidth: 1)
+                                )
+                                .shadow(
+                                    color: Color.black.opacity(0.4),
+                                    radius: 20, y: 10
+                                )
+                        )
+                    }
+
+                    // MONTHLY
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Monthly")
+                            .font(.headline)
+                            .foregroundStyle(GlowTheme.textPrimary)
+
+                        MonthHeatmap(
+                            model: MonthHeatmapModel(
+                                habit: viewModel.habit,
+                                month: viewModel.monthModel.month
+                            ),
+                            tint: viewModel.habitTint,
+                            onPrev: { viewModel.goToPreviousMonth() },
+                            onNext: { viewModel.goToNextMonth() }
+                        )
+                    }
+
+                    Spacer(minLength: isPadPortrait ? 0 : (isRegularWidth ? 64 : 32))
                 }
-
-                // MONTHLY
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Monthly")
-                        .font(.headline)
-                        .foregroundStyle(GlowTheme.textPrimary)
-
-                    MonthHeatmap(
-                        model: MonthHeatmapModel(
-                            habit: viewModel.habit,
-                            month: viewModel.monthModel.month
-                        ),
-                        tint: viewModel.habitTint,
-                        onPrev: { viewModel.goToPreviousMonth() },
-                        onNext: { viewModel.goToNextMonth() }
-                    )
-                }
-
-                Spacer(minLength: 32)
+                .padding(.top, isPadPortrait ? 120 : 0)
+                .padding(.horizontal, horizontalInset)
+                .padding(.bottom, isPadPortrait ? 0 : (isRegularWidth ? 40 : 24))
+                // Use nearly full width on iPad while keeping a margin from the edges
+                .frame(maxWidth: .infinity, alignment: .top)
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
+            .scrollIndicators(.hidden)
+            .navigationTitle("Details")
+            .navigationBarTitleDisplayMode(.inline)
+            .background(Color(.systemGroupedBackground).ignoresSafeArea())
         }
-        .navigationTitle("Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .background(Color(.systemGroupedBackground).ignoresSafeArea())
     }
 
     // MARK: - Header / Streaks
@@ -159,23 +190,25 @@ struct HabitDetailView: View {
 private struct WeeklyProgressRing: View {
     let percent: Double
     let tint: Color
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
+        let isRegularWidth = horizontalSizeClass == .regular
         ZStack {
             Circle()
-                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 12)
+                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: isRegularWidth ? 14 : 12)
 
             Circle()
                 .trim(from: 0, to: max(0, min(1, percent)))
                 .stroke(
                     tint,
-                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                    style: StrokeStyle(lineWidth: isRegularWidth ? 16 : 12, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
                 .animation(.easeInOut(duration: 0.3), value: percent)
 
             Text("\(Int(percent * 100))%")
-                .font(.headline.monospacedDigit())
+                .font((isRegularWidth ? Font.title2 : Font.headline).monospacedDigit())
                 .foregroundStyle(GlowTheme.textPrimary)
         }
         .accessibilityElement(children: .ignore)
@@ -191,6 +224,7 @@ private struct RecentDaysStrip: View {
     private let today: Date
     private let completed: Set<Date>
     private let cycleStart: Date
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     init(logs: [HabitLog], startDate: Date, days: Int, tint: Color) {
         self.days = days
@@ -229,29 +263,26 @@ private struct RecentDaysStrip: View {
     }
 
     var body: some View {
-        GeometryReader { geo in
-            let totalWidth = geo.size.width
-            let spacing: CGFloat = 6
-            let count = CGFloat(days)
-            let itemSize = max(16, (totalWidth - (spacing * (count - 1))) / count)
+        let isRegularWidth = horizontalSizeClass == .regular
+        let spacing: CGFloat = isRegularWidth ? 8 : 4
+        let cellHeight: CGFloat = isRegularWidth ? 28 : 20
 
-            HStack(spacing: spacing) {
-                ForEach(0..<days, id: \.self) { offset in
-                    // Date for this slot in the current 14-day cycle.
-                    let date = calendar.date(byAdding: .day, value: offset, to: cycleStart) ?? today
-                    let normalized = calendar.startOfDay(for: date)
-                    let done = normalized <= today && completed.contains(normalized)
+        HStack(spacing: spacing) {
+            ForEach(0..<days, id: \.self) { offset in
+                // Date for this slot in the current 14-day cycle.
+                let date = calendar.date(byAdding: .day, value: offset, to: cycleStart) ?? today
+                let normalized = calendar.startOfDay(for: date)
+                let done = normalized <= today && completed.contains(normalized)
 
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
-                        .frame(width: itemSize, height: itemSize)
-                        .accessibilityHidden(false)
-                        .accessibilityLabel(accessibilityLabel(for: normalized, done: done))
-                }
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(done ? tint : GlowTheme.borderMuted.opacity(0.6))
+                    .frame(maxWidth: .infinity)     // each box takes equal horizontal space
+                    .frame(height: cellHeight)      // consistent row height
+                    .accessibilityHidden(false)
+                    .accessibilityLabel(accessibilityLabel(for: normalized, done: done))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         }
-        .frame(height: 44)
+        .frame(maxWidth: .infinity)
     }
 
     private func accessibilityLabel(for date: Date, done: Bool) -> String {
@@ -261,12 +292,14 @@ private struct RecentDaysStrip: View {
             : "Not completed on \(formatted)"
     }
 }
+
 // MARK: - MonthHeatmap
 private struct MonthHeatmap: View {
     let model: MonthHeatmapModel
     let tint: Color
     let onPrev: () -> Void
     let onNext: () -> Void
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
         VStack(spacing: 8) {
@@ -330,9 +363,11 @@ private struct MonthHeatmap: View {
     }
 
     private var grid: some View {
-        VStack(spacing: 6) {
+        let vSpacing: CGFloat = horizontalSizeClass == .regular ? 8 : 6
+        let hSpacing: CGFloat = horizontalSizeClass == .regular ? 8 : 6
+        return VStack(spacing: vSpacing) {
             ForEach(0..<model.gridDates.count, id: \.self) { row in
-                HStack(spacing: 6) {
+                HStack(spacing: hSpacing) {
                     ForEach(0..<7, id: \.self) { col in
                         let cellDate = model.gridDates[row][col]
                         DayCell(
@@ -475,6 +510,7 @@ private struct DayCell: View {
     let isInMonth: Bool
     let done: Bool
     let tint: Color
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     var body: some View {
         ZStack {
@@ -488,10 +524,10 @@ private struct DayCell: View {
                                 lineWidth: 1
                             )
                     )
-                    .frame(height: 24)
+                    .frame(height: cellHeight)
                     .overlay(
                         Text(dateLabel)
-                            .font(.caption2)
+                            .font(horizontalSizeClass == .regular ? .caption : .caption2)
                             .foregroundStyle(
                                 isInMonth
                                 ? GlowTheme.textPrimary.opacity(0.8)
@@ -499,7 +535,7 @@ private struct DayCell: View {
                             )
                     )
             } else {
-                Color.clear.frame(height: 24)
+                Color.clear.frame(height: cellHeight)
             }
         }
         .contentShape(Rectangle())
@@ -528,6 +564,10 @@ private struct DayCell: View {
         return done
         ? "Completed on \(formatted)"
         : "Not completed on \(formatted)"
+    }
+
+    private var cellHeight: CGFloat {
+        horizontalSizeClass == .regular ? 32 : 24
     }
 }
 

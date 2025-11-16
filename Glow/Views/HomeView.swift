@@ -10,6 +10,7 @@ import LinkPresentation
 struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @Query(sort: [
         SortDescriptor(\Habit.sortOrder, order: .forward),
@@ -243,7 +244,7 @@ struct HomeView: View {
                         .accessibilityLabel("Add practice")
                         .accessibilityIdentifier("addPracticeButton") // ✅ UITest stable id
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, chromeHorizontalPadding)
                     .padding(.top, 48)
                     Spacer()
                 }
@@ -472,6 +473,7 @@ struct HomeView: View {
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
         .id(listRefreshID)
+        .padding(.horizontal, contentHorizontalInset)
     }
 
     // MARK: - Row builder
@@ -600,6 +602,21 @@ struct HomeView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Layout helpers
+    /// Horizontal inset for the main content column.
+    /// On iPad (regular width) we match the Details screen with a ~1-inch gutter.
+    /// On iPhone we leave it at 0 so the existing layout is unchanged.
+    private var contentHorizontalInset: CGFloat {
+        horizontalSizeClass == .regular ? 96 : 0
+    }
+
+    /// Horizontal padding for the nav chrome overlay.
+    /// On iPad this aligns the buttons with the main content column.
+    /// On iPhone we keep the original 16pt padding.
+    private var chromeHorizontalPadding: CGFloat {
+        horizontalSizeClass == .regular ? 96 : 16
     }
 
     // MARK: - Sidebar buttons (unchanged except identifiers)
