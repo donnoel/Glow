@@ -86,6 +86,7 @@ struct HomeView: View {
                         presenting: habitToDelete
                     ) { h in
                         Button("Delete “\(h.title)”", role: .destructive) {
+                            GlowTheme.tapHaptic()
                             Task { await NotificationManager.cancelNotifications(for: h) }
                             context.delete(h)
                             do { try context.save() } catch {
@@ -225,6 +226,7 @@ struct HomeView: View {
 
                         NavShareButton {
                             showShare = true
+                            GlowTheme.tapHaptic()
                         }
 
                         NavAddButton {
@@ -236,6 +238,7 @@ struct HomeView: View {
                             newReminderTime = HomeView.defaultReminderTime()
 
                             showAdd = true
+                            GlowTheme.tapHaptic()
                         }
                         .accessibilityLabel("Add practice")
                         .accessibilityIdentifier("addPracticeButton") // ✅ UITest stable id
@@ -332,6 +335,7 @@ struct HomeView: View {
                         }
 
                         showAdd = false
+                        GlowTheme.tapHaptic()
                     }
                     .accessibilityIdentifier("savePracticeButton") // ✅ UITest stable id
                     .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
@@ -560,6 +564,7 @@ struct HomeView: View {
 
     private func toggleArchive(_ habit: Habit, archived: Bool) {
         habit.isArchived = archived
+        GlowTheme.tapHaptic()
         do { try context.save() } catch {
             print("SwiftData save error:", error)
         }
