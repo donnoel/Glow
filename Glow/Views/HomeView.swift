@@ -104,40 +104,34 @@ struct HomeView: View {
                 checkForNewDay()
             }
             .onAppear {
-                viewModel.updateHabits(habits)
-                prewarmMonthCache()
+                refreshFromHabits()
             }
-            .onChange(of: habits) { _, newHabits in
-                viewModel.updateHabits(newHabits)
-                prewarmMonthCache()
+        
+            .onChange(of: habits) { _, _ in
+                refreshFromHabits()
             }
             // Refresh when app returns to foreground (fixes stale lists/state after backgrounding)
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 let startOfNow = Calendar.current.startOfDay(for: Date())
                 viewModel.advanceToToday(startOfNow)
-                viewModel.updateHabits(habits)
-                prewarmMonthCache()
+                refreshFromHabits()
             }
             // React to DST/manual time change or midnight rollover while app is running
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
                 checkForNewDay()
-                viewModel.updateHabits(habits)
+                refreshFromHabits()
             }
             // React to our custom "data changed" signal
             .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
                 DispatchQueue.main.async {
-                    viewModel.updateHabits(habits)
-                    prewarmMonthCache()
-                    listRefreshID = UUID()
+                    refreshFromHabits(reloadListID: true)
                 }
             }
-            // ✅ New: react to *any* SwiftData/Core Data save anywhere
-            .onReceive(NotificationCenter.default.publisher(for: .NSManagedObjectContextDidSave)) { _ in
+            // ✅ React to *any* SwiftData save (including CloudKit merges)
+            .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in
                 DispatchQueue.main.async {
-                    viewModel.updateHabits(habits)
-                    prewarmMonthCache()
-                    listRefreshID = UUID()
+                    refreshFromHabits(reloadListID: true)
                 }
             }
 
@@ -373,7 +367,7 @@ struct HomeView: View {
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Today’s progress")
                 .accessibilityValue("\(viewModel.todayCompletion.done) of \(viewModel.todayCompletion.total) practices completed")
-                .padding(.top, GlowTheme.Spacing.xlarge * 2)
+                .padding(.top, heroTopPadding)
                 .listRowInsets(
                     EdgeInsets(
                         top: GlowTheme.Spacing.small,
@@ -603,8 +597,24 @@ struct HomeView: View {
             }
         }
     }
+    
+    private func refreshFromHabits(reloadListID: Bool = false) {
+        viewModel.updateHabits(habits)
+        prewarmMonthCache()
+        if reloadListID {
+            listRefreshID = UUID()
+        }
+    }
+
 
     // MARK: - Layout helpers
+    /// Extra top padding for the hero card.
+    /// On iPad (regular width) we nudge it down a bit so it doesn’t crowd the nav chrome.
+    private var heroTopPadding: CGFloat {
+        horizontalSizeClass == .regular
+        ? GlowTheme.Spacing.xlarge * 3
+        : GlowTheme.Spacing.xlarge * 2
+    }
     /// Horizontal inset for the main content column.
     /// On iPad (regular width) we match the Details screen with a ~1-inch gutter.
     /// On iPhone we leave it at 0 so the existing layout is unchanged.
