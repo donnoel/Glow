@@ -38,9 +38,17 @@ struct GlowApp: App {
         } catch {
             #if DEBUG
             assertionFailure("❌ Failed to create CloudKit ModelContainer: \(error)")
+            #else
+            print("⚠️ Failed to create CloudKit-backed ModelContainer, falling back to local store: \(error)")
             #endif
-            // Fallback to a local-only store so the app still runs in release
-            return try! ModelContainer(for: schema)
+
+            // Fallback to a local-only store so the app still runs without CloudKit
+            do {
+                return try ModelContainer(for: schema)
+            } catch {
+                // At this point even the local store cannot be created; this is a fatal configuration issue.
+                fatalError("❌ Failed to create fallback local ModelContainer: \(error)")
+            }
         }
     }()
 
