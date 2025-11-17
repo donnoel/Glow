@@ -14,66 +14,82 @@ final class GlowUITests: XCTestCase {
 
         // Fallback: if onboarding still appears for any reason, dismiss it
         let getStarted = app.buttons["Get started"]
-        if getStarted.waitForExistence(timeout: 1.0) {
+        if getStarted.waitForExistence(timeout: 3.0) {
             getStarted.tap()
         }
+
+        // Ensure we actually landed on Home
+        waitForHome()
     }
 
     override func tearDownWithError() throws {
         app = nil
     }
 
+    // MARK: - Helpers
+
+    private func addPracticeButton() -> XCUIElement {
+        if app.buttons["addPracticeButton"].exists {
+            return app.buttons["addPracticeButton"]
+        } else {
+            return app.buttons["Add practice"]
+        }
+    }
+
+    private func practiceTitleField() -> XCUIElement {
+        if app.textFields["practiceTitleField"].exists {
+            return app.textFields["practiceTitleField"]
+        } else {
+            return app.textFields["Title"]
+        }
+    }
+
+    private func savePracticeButton() -> XCUIElement {
+        if app.buttons["savePracticeButton"].exists {
+            return app.buttons["savePracticeButton"]
+        } else {
+            return app.buttons["Save"]
+        }
+    }
+
     private func waitForHome(timeout: TimeInterval = 5) {
-        let addButton = app.buttons["addPracticeButton"].exists
-            ? app.buttons["addPracticeButton"]
-            : app.buttons["Add practice"]
+        let addButton = addPracticeButton()
         XCTAssertTrue(addButton.waitForExistence(timeout: timeout),
                       "Home should show the 'Add practice' button.")
+    }
+
+    private func createPractice(named title: String, timeout: TimeInterval = 5) {
+        let addButton = addPracticeButton()
+        XCTAssertTrue(addButton.waitForExistence(timeout: timeout),
+                      "Add Practice button should exist before creating a practice.")
+        addButton.tap()
+
+        let titleField = practiceTitleField()
+        XCTAssertTrue(titleField.waitForExistence(timeout: timeout),
+                      "Title field should be visible when adding a practice.")
+        titleField.tap()
+        titleField.typeText(title)
+
+        let saveButton = savePracticeButton()
+        XCTAssertTrue(saveButton.waitForExistence(timeout: timeout),
+                      "Save button should exist in add practice flow.")
+        saveButton.tap()
     }
 
     // 1) Smoke: app launches and we can see the add button (or its identifier)
     @MainActor
     func testHomeShowsAddPracticeButton() throws {
         waitForHome()
-        // Prefer an accessibility identifier if your Glow app sets one, e.g. "addPracticeButton"
-        let addButton = app.buttons["addPracticeButton"].exists
-            ? app.buttons["addPracticeButton"]
-            : app.buttons["Add practice"]
-
-        XCTAssertTrue(addButton.waitForExistence(timeout: 5),
-                      "Add Practice button should be visible on home screen.")
+        let addButton = addPracticeButton()
+        XCTAssertTrue(addButton.isHittable,
+                      "Add Practice button should be hittable on home screen.")
     }
 
     // 2) Add practice flow works (sheet or push)
     @MainActor
     func testAddPracticeFlow() throws {
         waitForHome()
-        let addButton = app.buttons["addPracticeButton"].exists
-            ? app.buttons["addPracticeButton"]
-            : app.buttons["Add practice"]
-
-        XCTAssertTrue(addButton.waitForExistence(timeout: 5))
-        addButton.tap()
-
-        // Try common field names; adjust to match Glow’s actual textfield id/label
-        let titleField = app.textFields["practiceTitleField"].exists
-            ? app.textFields["practiceTitleField"]
-            : app.textFields["Title"]
-
-        XCTAssertTrue(titleField.waitForExistence(timeout: 5),
-                      "Title field should be visible when adding a practice.")
-
-        titleField.tap()
-        titleField.typeText("UITest Practice")
-
-        // Try identifier first, then button title
-        let saveButton = app.buttons["savePracticeButton"].exists
-            ? app.buttons["savePracticeButton"]
-            : app.buttons["Save"]
-
-        XCTAssertTrue(saveButton.waitForExistence(timeout: 3),
-                      "Save button should exist in add practice flow.")
-        saveButton.tap()
+        createPractice(named: "UITest Practice")
 
         // Verify the new practice shows up
         let newRow = app.staticTexts["UITest Practice"]
@@ -112,31 +128,8 @@ final class GlowUITests: XCTestCase {
     @MainActor
     func testToggleFirstPracticeComplete() throws {
         waitForHome()
-        // Ensure we have at least one practice
-        let existingPractice = app.staticTexts["UITest Auto"]
-
-        if !existingPractice.exists {
-            // create one quickly using the same helper steps
-            let addButton = app.buttons["addPracticeButton"].exists
-                ? app.buttons["addPracticeButton"]
-                : app.buttons["Add practice"]
-            if addButton.waitForExistence(timeout: 3) {
-                addButton.tap()
-                let titleField = app.textFields["practiceTitleField"].exists
-                    ? app.textFields["practiceTitleField"]
-                    : app.textFields["Title"]
-                if titleField.waitForExistence(timeout: 3) {
-                    titleField.tap()
-                    titleField.typeText("UITest Auto")
-                    let saveButton = app.buttons["savePracticeButton"].exists
-                        ? app.buttons["savePracticeButton"]
-                        : app.buttons["Save"]
-                    if saveButton.waitForExistence(timeout: 2) {
-                        saveButton.tap()
-                    }
-                }
-            }
-        }
+        // Always ensure we have a known practice to toggle
+        createPractice(named: "UITest Auto")
 
         // Try identifier first, then a predicate on the label
         let toggleButton: XCUIElement
@@ -156,7 +149,10 @@ final class GlowUITests: XCTestCase {
     @MainActor
     func testLaunchPerformance() throws {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            XCUIApplication().launch()
+            let app = XCUIApplication()
+            app.launchArguments += ["--uitesting"]
+            app.launchEnvironment["IS_UI_TEST"] = "1"
+            app.launch()
         }
     }
 }
