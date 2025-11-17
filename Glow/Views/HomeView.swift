@@ -612,7 +612,7 @@ struct HomeView: View {
     /// On iPad (regular width) we nudge it down a bit so it doesn’t crowd the nav chrome.
     private var heroTopPadding: CGFloat {
         horizontalSizeClass == .regular
-        ? GlowTheme.Spacing.xlarge * 3
+        ? GlowTheme.Spacing.xlarge * 3.5
         : GlowTheme.Spacing.xlarge * 2
     }
     /// Horizontal inset for the main content column.
