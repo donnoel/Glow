@@ -478,13 +478,23 @@ struct MonthHeatmapModel {
         let doneCount = monthDates.filter { completedSet.contains(cal.startOfDay(for: $0)) }.count
         let pctLocal = monthDates.isEmpty ? 0 : Int((Double(doneCount) / Double(monthDates.count)) * 100.0)
 
-        // Month streak based on logs in this month **up to today only**
-        let inMonthLogs = (habit.logs ?? []).filter {
+        // Month streak based on logs in this month **up to today only**,
+        // using one completion per calendar day (to match HomeViewModel’s global streak logic).
+        let inMonthCompletedLogs = (habit.logs ?? []).filter {
             $0.completed
             && cal.isDate($0.date, equalTo: month, toGranularity: .month)
             && cal.startOfDay(for: $0.date) <= todayLocal
         }
-        let monthStreakLocal = StreakEngine.computeStreaks(logs: inMonthLogs).current
+
+        let groupedByDay = Dictionary(grouping: inMonthCompletedLogs) { log in
+            cal.startOfDay(for: log.date)
+        }
+
+        let syntheticMonthLogs: [HabitLog] = groupedByDay.keys.map { day in
+            HabitLog(date: day, completed: true, habit: Habit.placeholder)
+        }
+
+        let monthStreakLocal = StreakEngine.computeStreaks(logs: syntheticMonthLogs).current
 
         // --------- Assign stored properties last ---------
         self.cal = cal
