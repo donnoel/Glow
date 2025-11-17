@@ -4,17 +4,12 @@ import SwiftData
 @main
 struct GlowApp: App {
     @AppStorage("hasSeenGlowOnboarding") private var hasSeenGlowOnboarding = false
-    @State private var showOnboarding: Bool
 
     init() {
         // Skip onboarding during UI tests so Home is visible immediately
         if CommandLine.arguments.contains("--uitesting") {
             UserDefaults.standard.set(true, forKey: "hasSeenGlowOnboarding")
         }
-
-        // Seed initial onboarding state from UserDefaults *before* first frame
-        let seen = UserDefaults.standard.bool(forKey: "hasSeenGlowOnboarding")
-        _showOnboarding = State(initialValue: !seen)
     }
 
     // MARK: - Shared SwiftData + CloudKit container
@@ -51,22 +46,19 @@ struct GlowApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if showOnboarding {
-                    GlowOnboardingView(
-                        isPresented: Binding(
-                            get: { showOnboarding },
-                            set: { newValue in
-                                showOnboarding = newValue
-                                if newValue == false {
-                                    hasSeenGlowOnboarding = true
-                                }
-                            }
-                        )
+            if !hasSeenGlowOnboarding {
+                GlowOnboardingView(
+                    isPresented: Binding(
+                        get: { !hasSeenGlowOnboarding },
+                        set: { isPresented in
+                            // When onboarding is dismissed (isPresented == false),
+                            // mark that the user has seen onboarding.
+                            hasSeenGlowOnboarding = !isPresented
+                        }
                     )
-                } else {
-                    HomeView()
-                }
+                )
+            } else {
+                HomeView()
             }
         }
         .modelContainer(Self.modelContainer)
