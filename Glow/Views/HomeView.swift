@@ -19,8 +19,6 @@ struct HomeView: View {
     private var habits: [Habit]
 
     @StateObject private var viewModel = HomeViewModel()
-    @AppStorage("hasSeenGlowOnboarding") private var hasSeenGlowOnboarding = false
-    @State private var showOnboarding = false
 
     // Add Sheet / New Practice fields
     @State private var listRefreshID = UUID()
@@ -190,16 +188,6 @@ struct HomeView: View {
             ShareSheet(
                 message: "Give Glow a spin."
             )
-        }
-        .fullScreenCover(isPresented: $showOnboarding, onDismiss: {
-            hasSeenGlowOnboarding = true
-        }) {
-            GlowOnboardingView(isPresented: $showOnboarding)
-        }
-        .onAppear {
-            if hasSeenGlowOnboarding == false {
-                showOnboarding = true
-            }
         }
     }
 
