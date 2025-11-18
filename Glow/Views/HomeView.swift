@@ -153,7 +153,10 @@ struct HomeView: View {
                     favoriteTitle: viewModel.mostConsistentHabit.title,
                     favoriteHits: viewModel.mostConsistentHabit.hits,
                     favoriteWindow: viewModel.mostConsistentHabit.window,
-                    checkInTime: viewModel.typicalCheckInTime
+                    checkInTime: viewModel.typicalCheckInTime,
+                    recentActiveDays: viewModel.recentActiveDays,
+                    lifetimeActiveDays: viewModel.lifetimeActiveDays,
+                    lifetimeCompletions: viewModel.lifetimeCompletions
                 )
             }
             .onReceive(NotificationCenter.default.publisher(for: .glowShowYou)) { _ in

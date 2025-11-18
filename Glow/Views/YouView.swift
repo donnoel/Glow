@@ -11,6 +11,9 @@ struct YouView: View {
     let favoriteHits: Int      // e.g. "9" times in window
     let favoriteWindow: Int    // e.g. "14" days window
     let checkInTime: Date      // e.g. ~8:15pm
+    let recentActiveDays: Int  // days with ≥1 completion in the last 7 days
+    let lifetimeActiveDays: Int
+    let lifetimeCompletions: Int
     
     private var primaryTextColor: Color {
         colorScheme == .dark ? .white : GlowTheme.textPrimary
@@ -216,19 +219,35 @@ struct YouView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(glassCardBackground)
                 
-                // future / placeholder card
+                // You & Glow over time
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Coming soon")
+                    Text("You & Glow")
                         .font(.headline)
                         .foregroundStyle(primaryTextColor)
                     
-                    Text("Daily mood, softer nudges, tiny reflections — all in one place.")
-                        .font(.subheadline)
-                        .foregroundStyle(
-                            colorScheme == .dark
-                            ? Color.white.opacity(0.8)
-                            : GlowTheme.textSecondary
-                        )
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Showing up lately")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(primaryTextColor)
+                        
+                        Text("You’ve had at least one practice on \(recentActiveDays) of the last 7 days.")
+                            .font(.footnote)
+                            .foregroundStyle(secondaryTextColor)
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Overall")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(primaryTextColor)
+                        
+                        Text("You’ve shown up on \(lifetimeActiveDays) day\(lifetimeActiveDays == 1 ? "" : "s") since you started Glow.")
+                            .font(.footnote)
+                            .foregroundStyle(secondaryTextColor)
+                        
+                        Text("Across all practices, you’ve marked things done \(lifetimeCompletions) time\(lifetimeCompletions == 1 ? "" : "s").")
+                            .font(.footnote)
+                            .foregroundStyle(secondaryTextColor)
+                    }
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)

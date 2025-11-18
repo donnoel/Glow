@@ -22,6 +22,9 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var globalStreak: (current: Int, best: Int) = (0, 0)
     @Published private(set) var mostConsistentHabit: (title: String, hits: Int, window: Int) = ("—", 0, 14)
     @Published private(set) var typicalCheckInTime: Date = Date()
+    @Published private(set) var recentActiveDays: Int = 0          // days with ≥1 completion in the last 7 days
+    @Published private(set) var lifetimeActiveDays: Int = 0        // distinct days with any completion
+    @Published private(set) var lifetimeCompletions: Int = 0       // total completed logs across all time
     
     // MARK: - Init
     init(today: Date = Calendar.current.startOfDay(for: Date())) {
@@ -102,14 +105,36 @@ final class HomeViewModel: ObservableObject {
             percentValue = Double(doneScheduled + bonusCount) / Double(totalScheduled)
         }
         
-        // 8) global streak (any habit per day)
-        let groupedByDay = Dictionary(grouping: allLogs.filter { $0.completed }) {
+        // 8) global streak + activity summaries (any habit per day)
+        let completedLogs = allLogs.filter { $0.completed }
+        let groupedByDay = Dictionary(grouping: completedLogs) {
             cal.startOfDay(for: $0.date)
         }
         let synthetic: [HabitLog] = groupedByDay.keys.map { day in
             HabitLog(date: day, completed: true, habit: Habit.placeholder)
         }
         let streak = StreakEngine.computeStreaks(logs: synthetic)
+        
+        // lifetime summaries
+        let lifetimeDaysWithActivity = groupedByDay.keys.count
+        let lifetimeCompletionsCount = completedLogs.count
+        
+        // last 7 days with at least one completion (including today)
+        let recentDaysWithActivity: Int
+        if let windowStart = cal.date(byAdding: .day, value: -6, to: today) {
+            var count = 0
+            for offset in 0..<7 {
+                if let d = cal.date(byAdding: .day, value: offset, to: windowStart) {
+                    let day = cal.startOfDay(for: d)
+                    if groupedByDay.keys.contains(day) {
+                        count += 1
+                    }
+                }
+            }
+            recentDaysWithActivity = count
+        } else {
+            recentDaysWithActivity = 0
+        }
         
         // 9) most consistent (14d)
         let windowDays = 14
@@ -165,6 +190,9 @@ final class HomeViewModel: ObservableObject {
         self.globalStreak = (streak.current, streak.best)
         self.mostConsistentHabit = (bestTitle, bestHits, windowDays)
         self.typicalCheckInTime = typical
+        self.recentActiveDays = recentDaysWithActivity
+        self.lifetimeActiveDays = lifetimeDaysWithActivity
+        self.lifetimeCompletions = lifetimeCompletionsCount
     }
     
     // MARK: - Widget sync
