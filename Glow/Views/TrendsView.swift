@@ -156,13 +156,28 @@ struct TrendsView: View {
         let current = model.globalStreaks.current
         let best = model.globalStreaks.best
 
+        let activityPercent = model.weeklyActivityPercent
+
+        let activityTitle: String = {
+            switch activityPercent {
+            case 0:
+                return "This week is wide open ✨"
+            case 1..<50:
+                return "Nice start this week ✨"
+            case 50..<100:
+                return "You’re building momentum ✨"
+            default:
+                return "Perfect week so far ✨"
+            }
+        }()
+
         return VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {
                 Image(systemName: "sparkles")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundStyle(GlowTheme.accentPrimary)
 
-                Text("You’re on a streak ✨")
+                Text(activityTitle)
                     .font(.headline.weight(.semibold))
                     .foregroundStyle(GlowTheme.textPrimary)
 
@@ -192,7 +207,7 @@ struct TrendsView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(model.weeklyActiveDaysCount)/7")
+                    Text("\(activityPercent)%")
                         .font(.title2.monospacedDigit().weight(.semibold))
                         .foregroundStyle(GlowTheme.accentPrimary)
                     Text("Active this week")
@@ -207,7 +222,7 @@ struct TrendsView: View {
         .background(glassCard)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "Current streak \(current) days. Best streak \(best) days. You were active \(model.weeklyActiveDaysCount) of the last 7 days."
+            "Current streak \(current) days. Best streak \(best) days. You were active on \(model.weeklyActiveDaysCount) of the last 7 days, \(activityPercent) percent."
         )
     }
 
