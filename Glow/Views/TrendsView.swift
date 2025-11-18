@@ -2,16 +2,49 @@ import SwiftUI
 import SwiftData
 import Combine
 
+/// View model for the Trends sheet.
+///
+/// Computes per-habit performance over the last 7 days,
+/// as well as global streaks and weekly activity summaries
+/// across all habits.
 @MainActor
 final class TrendsViewModel: ObservableObject {
+    /// Ranked per-habit performance over the last 7 days
+    /// for all active (non-archived) habits.
     @Published var habitStats: [HabitPerformance] = []
+
+    /// Global streaks across any habit: current and best,
+    /// computed from days where at least one habit was completed.
     @Published var globalStreaks: (current: Int, best: Int) = (0, 0)
+
+    /// How many of the last 7 days (including today)
+    /// had at least one completed habit.
     @Published var weeklyActiveDaysCount: Int = 0
+
+    /// True if there has been at least one completion in the
+    /// last 7 days (across any habit).
+    var hasAnyActivity: Bool {
+        weeklyActiveDaysCount > 0
+    }
+
+    /// Percentage of the last 7 days with at least one completion,
+    /// as an integer from 0–100.
+    var weeklyActivityPercent: Int {
+        guard weeklyActiveDaysCount > 0 else { return 0 }
+        return Int((Double(weeklyActiveDaysCount) / 7.0 * 100.0).rounded())
+    }
+
+    /// Whether you were active on all 7 days in the last week.
+    var isWeekFullyActive: Bool {
+        weeklyActiveDaysCount >= 7
+    }
 
     init(habits: [Habit], now: Date = Date()) {
         recalc(habits: habits, now: now)
     }
 
+    /// Recomputes per-habit stats, global streaks, and weekly activity
+    /// for the provided habits at a specific point in time.
     func recalc(habits: [Habit], now: Date) {
         let cal = Calendar.current
         let today = cal.startOfDay(for: now)
@@ -65,6 +98,8 @@ final class TrendsViewModel: ObservableObject {
         self.weeklyActiveDaysCount = completedDays.count
     }
 
+    /// Deduplicates completed logs so there is at most one log per calendar day,
+    /// which lets us compute streaks based on "did anything this day" semantics.
     private static func mergeLogsByDay(logs: [HabitLog]) -> [HabitLog] {
         let cal = Calendar.current
         var byDay: [Date: HabitLog] = [:]
