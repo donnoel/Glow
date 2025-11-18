@@ -20,8 +20,37 @@ struct YouView: View {
         colorScheme == .dark ? Color.white.opacity(0.7) : GlowTheme.textSecondary
     }
     
+    private var hasMeaningfulFavorite: Bool {
+        favoriteHits > 0 && favoriteTitle != "—"
+    }
+    
+    private var favoritePercentText: String? {
+        guard favoriteWindow > 0, favoriteHits > 0 else { return nil }
+        let percent = Int(round((Double(favoriteHits) / Double(favoriteWindow)) * 100))
+        return "\(percent)%"
+    }
+    
     private var checkInTimeString: String {
         checkInTime.formatted(date: .omitted, time: .shortened)
+    }
+    
+    private var streakDetailText: String {
+        if currentStreak == 0 {
+            // Gentle, encouraging tone when there is no active streak.
+            return "No streak right now — every restart counts."
+        }
+        
+        if bestStreak == 0 || currentStreak == bestStreak {
+            // Either best is not meaningful yet, or they are at their best streak so far.
+            return "You’re at your best streak so far."
+        }
+        
+        let gap = bestStreak - currentStreak
+        if gap > 0 && gap <= 3 {
+            return "Only \(gap) day\(gap == 1 ? "" : "s") away from your best streak of \(bestStreak) days."
+        }
+        
+        return "Best streak so far: \(bestStreak) days."
     }
     
     private var glassCardBackground: some View {
@@ -77,11 +106,11 @@ struct YouView: View {
                             .foregroundStyle(GlowTheme.accentPrimary)
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(currentStreak) day streak")
+                            Text("\(currentStreak) day\(currentStreak == 1 ? "" : "s") in a row")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(primaryTextColor)
                             
-                            Text("Best streak: \(bestStreak) days")
+                            Text(streakDetailText)
                                 .font(.footnote.monospacedDigit())
                                 .foregroundStyle(secondaryTextColor)
                         }
@@ -96,18 +125,38 @@ struct YouView: View {
                             .foregroundStyle(.pink)
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Most consistent: \(favoriteTitle)")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(primaryTextColor)
-                            
-                            Text("\(favoriteHits) days in last \(favoriteWindow) days")
-                                .font(.footnote.monospacedDigit())
-                                .foregroundStyle(secondaryTextColor)
+                            if hasMeaningfulFavorite {
+                                Text("Most consistent: \(favoriteTitle)")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(primaryTextColor)
+                                
+                                if let percentText = favoritePercentText {
+                                    Text("\(favoriteHits) of last \(favoriteWindow) days (\(percentText))")
+                                        .font(.footnote.monospacedDigit())
+                                        .foregroundStyle(secondaryTextColor)
+                                } else {
+                                    Text("\(favoriteHits) of last \(favoriteWindow) days")
+                                        .font(.footnote.monospacedDigit())
+                                        .foregroundStyle(secondaryTextColor)
+                                }
+                            } else {
+                                Text("No clear “most consistent” practice yet")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(primaryTextColor)
+                                
+                                Text("As you build a few steady days, we’ll highlight a favorite here.")
+                                    .font(.footnote)
+                                    .foregroundStyle(secondaryTextColor)
+                            }
                         }
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Most consistent practice")
-                    .accessibilityValue("\(favoriteTitle), \(favoriteHits) days in last \(favoriteWindow) days.")
+                    .accessibilityValue(
+                        hasMeaningfulFavorite
+                        ? "\(favoriteTitle), \(favoriteHits) days in last \(favoriteWindow) days."
+                        : "No clear most consistent practice yet. We’ll highlight one after a few steady days."
+                    )
                     
                     // check-in time
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
