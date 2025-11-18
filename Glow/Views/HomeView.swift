@@ -185,9 +185,7 @@ struct HomeView: View {
             }
         }
         .sheet(isPresented: $showShare) {
-            ShareSheet(
-                message: "Give Glow a spin."
-            )
+            ShareSheet(message: "")
         }
     }
 
@@ -738,7 +736,8 @@ private final class GlowShareItemSource: NSObject, UIActivityItemSource {
 
     // Placeholder shown while the system prepares the share sheet
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
-        message
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? appURL.absoluteString : message
     }
 
     // Actual shared content: text + link
@@ -746,7 +745,13 @@ private final class GlowShareItemSource: NSObject, UIActivityItemSource {
         _ activityViewController: UIActivityViewController,
         itemForActivityType activityType: UIActivity.ActivityType?
     ) -> Any? {
-        "\(message) \(appURL.absoluteString)"
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            // Just share the App Store link, no leading message text.
+            return appURL.absoluteString
+        } else {
+            return "\(message) \(appURL.absoluteString)"
+        }
     }
 
     // Rich link preview metadata (for Messages, Mail, etc.)
@@ -754,7 +759,7 @@ private final class GlowShareItemSource: NSObject, UIActivityItemSource {
         _ activityViewController: UIActivityViewController
     ) -> LPLinkMetadata? {
         let metadata = LPLinkMetadata()
-        metadata.title = "Glow — Daily Practice"
+        metadata.title = "Glow Daily Practice"
 
         // Keep the custom Glow icon as the preview image
         if let image = UIImage(named: "GlowShareIcon") {
