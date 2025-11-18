@@ -12,11 +12,16 @@ struct YouView: View {
     let favoriteWindow: Int    // e.g. "14" days window
     let checkInTime: Date      // e.g. ~8:15pm
     
+    private var primaryTextColor: Color {
+        colorScheme == .dark ? .white : GlowTheme.textPrimary
+    }
+    
+    private var secondaryTextColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.7) : GlowTheme.textSecondary
+    }
+    
     private var checkInTimeString: String {
-        let f = DateFormatter()
-        f.dateStyle = .none
-        f.timeStyle = .short
-        return f.string(from: checkInTime)
+        checkInTime.formatted(date: .omitted, time: .shortened)
     }
     
     private var glassCardBackground: some View {
@@ -49,18 +54,12 @@ struct YouView: View {
                 VStack(spacing: 8) {
                     Text("Hi there 👋")
                         .font(.title3.weight(.semibold))
-                        .foregroundStyle(
-                            colorScheme == .dark ? .white : GlowTheme.textPrimary
-                        )
+                        .foregroundStyle(primaryTextColor)
                     
-                    Text("Your streak, your most steady practice, and when you usually check in.")
+                    Text("Your wins, your most steady practice, and when you usually check in.")
                         .font(.subheadline)
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(
-                            colorScheme == .dark
-                            ? Color.white.opacity(0.7)
-                            : GlowTheme.textSecondary
-                        )
+                        .foregroundStyle(secondaryTextColor)
                         .padding(.horizontal, 4)
                 }
                 .frame(maxWidth: .infinity)
@@ -70,9 +69,7 @@ struct YouView: View {
                     
                     Text("Right now")
                         .font(.headline)
-                        .foregroundStyle(
-                            colorScheme == .dark ? .white : GlowTheme.textPrimary
-                        )
+                        .foregroundStyle(primaryTextColor)
                     
                     // streak row
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -82,19 +79,16 @@ struct YouView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(currentStreak) day streak")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(
-                                    colorScheme == .dark ? .white : GlowTheme.textPrimary
-                                )
+                                .foregroundStyle(primaryTextColor)
                             
                             Text("Best streak: \(bestStreak) days")
                                 .font(.footnote.monospacedDigit())
-                                .foregroundStyle(
-                                    colorScheme == .dark
-                                    ? Color.white.opacity(0.7)
-                                    : GlowTheme.textSecondary
-                                )
+                                .foregroundStyle(secondaryTextColor)
                         }
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Current streak")
+                    .accessibilityValue("\(currentStreak) days. Best streak \(bestStreak) days.")
                     
                     // most consistent
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -104,19 +98,16 @@ struct YouView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Most consistent: \(favoriteTitle)")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(
-                                    colorScheme == .dark ? .white : GlowTheme.textPrimary
-                                )
+                                .foregroundStyle(primaryTextColor)
                             
                             Text("\(favoriteHits) days in last \(favoriteWindow) days")
                                 .font(.footnote.monospacedDigit())
-                                .foregroundStyle(
-                                    colorScheme == .dark
-                                    ? Color.white.opacity(0.7)
-                                    : GlowTheme.textSecondary
-                                )
+                                .foregroundStyle(secondaryTextColor)
                         }
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Most consistent practice")
+                    .accessibilityValue("\(favoriteTitle), \(favoriteHits) days in last \(favoriteWindow) days.")
                     
                     // check-in time
                     HStack(alignment: .firstTextBaseline, spacing: 12) {
@@ -126,19 +117,16 @@ struct YouView: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("You usually check in around \(checkInTimeString)")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(
-                                    colorScheme == .dark ? .white : GlowTheme.textPrimary
-                                )
+                                .foregroundStyle(primaryTextColor)
                             
                             Text("That’s when you tend to mark things done.")
                                 .font(.footnote)
-                                .foregroundStyle(
-                                    colorScheme == .dark
-                                    ? Color.white.opacity(0.7)
-                                    : GlowTheme.textSecondary
-                                )
+                                .foregroundStyle(secondaryTextColor)
                         }
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Typical check-in time")
+                    .accessibilityValue("Around \(checkInTimeString)")
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -148,9 +136,7 @@ struct YouView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Coming soon")
                         .font(.headline)
-                        .foregroundStyle(
-                            colorScheme == .dark ? .white : GlowTheme.textPrimary
-                        )
+                        .foregroundStyle(primaryTextColor)
                     
                     Text("Daily mood, softer nudges, tiny reflections — all in one place.")
                         .font(.subheadline)
