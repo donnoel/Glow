@@ -459,22 +459,17 @@ struct HomeView: View {
     // MARK: - Row builder
     @ViewBuilder
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
-        ZStack {
-            NavigationLink {
-                HabitDetailView(
-                    habit: habit,
-                    prewarmedMonth: monthCache[habit.id]
-                )
-            } label: {
-                EmptyView()
-            }
-            .opacity(0)
-            .accessibilityHidden(true)
-
+        NavigationLink {
+            HabitDetailView(
+                habit: habit,
+                prewarmedMonth: monthCache[habit.id]
+            )
+        } label: {
             HabitRowGlass(habit: habit, isArchived: isArchived) {
                 toggleToday(habit)
             }
         }
+        .buttonStyle(.plain)
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
