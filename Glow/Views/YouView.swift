@@ -34,6 +34,41 @@ struct YouView: View {
         checkInTime.formatted(date: .omitted, time: .shortened)
     }
     
+    private var checkInBucketDescription: String {
+        let hour = Calendar.current.component(.hour, from: checkInTime)
+        
+        switch hour {
+        case 5..<9:
+            return "You usually check in in the early morning"
+        case 9..<12:
+            return "You usually check in in the late morning"
+        case 12..<17:
+            return "You usually check in in the afternoon"
+        case 17..<21:
+            return "You usually check in in the evening"
+        case 21..<24:
+            return "You usually check in later at night"
+        default:
+            // Covers late night / very early hours (0–4)
+            return "You usually check in late at night"
+        }
+    }
+    
+    private var checkInNudgeText: String {
+        let hour = Calendar.current.component(.hour, from: checkInTime)
+        
+        switch hour {
+        case 5..<12:
+            return "That’s a solid time to set the tone for your day."
+        case 12..<18:
+            return "That’s a good window to keep your day on track."
+        case 18..<22:
+            return "That’s a nice way to wind down and close the loop on your day."
+        default:
+            return "If that feels a bit late, you might experiment with nudging one practice earlier in the day."
+        }
+    }
+    
     private var streakDetailText: String {
         if currentStreak == 0 {
             // Gentle, encouraging tone when there is no active streak.
@@ -164,18 +199,18 @@ struct YouView: View {
                             .foregroundStyle(GlowTheme.accentPrimary)
                         
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("You usually check in around \(checkInTimeString)")
+                            Text("\(checkInBucketDescription), around \(checkInTimeString)")
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(primaryTextColor)
                             
-                            Text("That’s when you tend to mark things done.")
+                            Text(checkInNudgeText)
                                 .font(.footnote)
                                 .foregroundStyle(secondaryTextColor)
                         }
                     }
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Typical check-in time")
-                    .accessibilityValue("Around \(checkInTimeString)")
+                    .accessibilityValue("\(checkInBucketDescription), around \(checkInTimeString).")
                 }
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
