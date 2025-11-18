@@ -179,12 +179,9 @@ struct HomeView: View {
                 SidebarOverlay(
                     selectedTab: $selectedTab,
                     close: {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            showSidebar = false
-                        }
+                        showSidebar = false   // overlay slides/fades, *then* we remove it
                     }
                 )
-                .transition(.identity)
             }
         }
         .sheet(isPresented: $showShare) {
@@ -201,9 +198,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
                         SidebarHandleButton {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                                showSidebar = true
-                            }
+                            showSidebar = true     // let SidebarOverlay animate itself
                             GlowTheme.tapHaptic()
                         }
                         .accessibilityIdentifier("menuButton") // ✅ UITest stable id

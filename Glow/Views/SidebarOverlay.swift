@@ -8,11 +8,13 @@ enum SidebarTab: String {
 
 struct SidebarOverlay: View {
     @Environment(\.colorScheme) private var colorScheme
+    
 
     @Binding var selectedTab: SidebarTab
     let close: () -> Void
 
     @State private var offsetX: CGFloat = -320
+    @State private var backdropOpacity: Double = 0
     @Environment(\.openURL) private var openURL
 
     private var sidebarWidth: CGFloat { 260 }
@@ -21,7 +23,7 @@ struct SidebarOverlay: View {
     var body: some View {
         ZStack(alignment: .leading) {
             Color.black
-                .opacity(0.25)
+                .opacity(backdropOpacity)
                 .ignoresSafeArea()
                 .onTapGesture { closeWithSlideOut() }
 
@@ -157,7 +159,17 @@ struct SidebarOverlay: View {
         }
         .onAppear {
             selectedTab = .home
+
+            // Start fully hidden
             offsetX = -sidebarWidth - 40
+            backdropOpacity = 0
+
+            // Fade in scrim
+            withAnimation(.easeInOut(duration: 0.20)) {
+                backdropOpacity = 0.25
+            }
+
+            // Slide in panel
             withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                 offsetX = 0
             }
@@ -182,9 +194,17 @@ struct SidebarOverlay: View {
     }
 
     private func closeWithSlideOut() {
+        // Slide panel offscreen
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
             offsetX = -sidebarWidth - 40
         }
+
+        // Fade out scrim
+        withAnimation(.easeInOut(duration: 0.20)) {
+            backdropOpacity = 0
+        }
+
+        // After the animations, notify HomeView to remove the overlay
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             close()
         }
