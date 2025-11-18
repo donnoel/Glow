@@ -91,6 +91,39 @@ struct YouView: View {
         return "Best streak so far: \(bestStreak) days."
     }
     
+    private var recentActivitySummaryText: String {
+        switch recentActiveDays {
+        case 0:
+            return "No practices logged in the last 7 days — every restart counts."
+        case 7:
+            return "You’ve had at least one practice on all 7 of the last 7 days."
+        default:
+            return "You’ve had at least one practice on \(recentActiveDays) of the last 7 days."
+        }
+    }
+    
+    private var lifetimeDaysSummaryText: String {
+        switch lifetimeActiveDays {
+        case 0:
+            return "You haven’t logged a practice day yet — your first one is a great place to start."
+        case 1:
+            return "You’ve shown up on 1 day since you started Glow."
+        default:
+            return "You’ve shown up on \(lifetimeActiveDays) days since you started Glow."
+        }
+    }
+    
+    private var lifetimeCompletionsSummaryText: String {
+        switch lifetimeCompletions {
+        case 0:
+            return "You haven’t marked any practices done yet."
+        case 1:
+            return "Across all practices, you’ve marked things done 1 time."
+        default:
+            return "Across all practices, you’ve marked things done \(lifetimeCompletions) times."
+        }
+    }
+    
     private var glassCardBackground: some View {
         RoundedRectangle(cornerRadius: 24, style: .continuous)
             .fill(.ultraThinMaterial)
@@ -230,7 +263,7 @@ struct YouView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(primaryTextColor)
                         
-                        Text("You’ve had at least one practice on \(recentActiveDays) of the last 7 days.")
+                        Text(recentActivitySummaryText)
                             .font(.footnote)
                             .foregroundStyle(secondaryTextColor)
                     }
@@ -240,11 +273,11 @@ struct YouView: View {
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(primaryTextColor)
                         
-                        Text("You’ve shown up on \(lifetimeActiveDays) day\(lifetimeActiveDays == 1 ? "" : "s") since you started Glow.")
+                        Text(lifetimeDaysSummaryText)
                             .font(.footnote)
                             .foregroundStyle(secondaryTextColor)
                         
-                        Text("Across all practices, you’ve marked things done \(lifetimeCompletions) time\(lifetimeCompletions == 1 ? "" : "s").")
+                        Text(lifetimeCompletionsSummaryText)
                             .font(.footnote)
                             .foregroundStyle(secondaryTextColor)
                     }
@@ -252,6 +285,9 @@ struct YouView: View {
                 .padding(16)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(glassCardBackground)
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Your recent and lifetime activity")
+                .accessibilityValue("Active on \(recentActiveDays) of the last 7 days, and on \(lifetimeActiveDays) days overall.")
             }
         }
     }
