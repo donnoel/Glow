@@ -457,17 +457,24 @@ struct HomeView: View {
     // MARK: - Row builder
     @ViewBuilder
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
-        NavigationLink {
-            HabitDetailView(
-                habit: habit,
-                prewarmedMonth: monthCache[habit.id]
-            )
-        } label: {
+        ZStack {
+            // Invisible full-row tap target for navigation (no chevron)
+            NavigationLink {
+                HabitDetailView(
+                    habit: habit,
+                    prewarmedMonth: monthCache[habit.id]
+                )
+            } label: {
+                EmptyView()
+            }
+            .opacity(0)                 // keep hit area, hide visuals
+            .accessibilityHidden(true)  // let HabitRowGlass handle VoiceOver
+
+            // Our custom glass row UI
             HabitRowGlass(habit: habit, isArchived: isArchived) {
                 toggleToday(habit)
             }
         }
-        .buttonStyle(.plain)
         .listRowBackground(Color.clear)
         .listRowSeparator(.hidden)
         .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
