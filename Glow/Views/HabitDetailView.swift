@@ -104,7 +104,11 @@ struct HabitDetailView: View {
                             .foregroundStyle(GlowTheme.textPrimary)
 
                         MonthHeatmap(
-                            model: viewModel.monthModel,
+                            model: MonthHeatmapModel(
+                                habit: viewModel.habit,
+                                month: viewModel.monthModel.month,
+                                logs: viewModel.logs
+                            ),
                             tint: viewModel.habitTint,
                             onPrev: { viewModel.goToPreviousMonth() },
                             onNext: { viewModel.goToNextMonth() }
@@ -230,27 +234,35 @@ private struct RecentDaysStrip: View {
         // Work with locals first to avoid capturing self during initialization.
         let cal = Calendar.current
         let todayLocal = cal.startOfDay(for: Date())
-        let createdLocal = cal.startOfDay(for: startDate)
 
-        // How many days have elapsed since the habit started (0-based).
-        let dayIndexLocal = max(0, cal.dateComponents([.day], from: createdLocal, to: todayLocal).day ?? 0)
+        // Normalize all completed log dates to start-of-day and ignore anything in the future.
+        let completedDates = logs
+            .filter { $0.completed }
+            .map { cal.startOfDay(for: $0.date) }
+            .filter { $0 <= todayLocal }
 
-        // Which 14-day cycle are we currently in?
+        // The origin of the habit timeline is the first completed day; if there are
+        // no completions yet, fall back to the habit's creation date.
+        let originLocal: Date
+        if let first = completedDates.min() {
+            originLocal = first
+        } else {
+            originLocal = cal.startOfDay(for: startDate)
+        }
+
+        // How many days have elapsed since the origin (0-based).
+        let dayIndexLocal = max(0, cal.dateComponents([.day], from: originLocal, to: todayLocal).day ?? 0)
+
+        // Determine which 14-day window we are in, starting from the origin. This keeps
+        // the strip as a 14-day window that advances in chunks of `days`, while still
+        // ensuring that the very first completion appears in the left-most box.
         let cycleIndexLocal = dayIndexLocal / days
 
-        // The calendar date for the first slot in the current 14-day cycle.
-        let cycleStartLocal = cal.date(
-            byAdding: .day,
-            value: cycleIndexLocal * days,
-            to: createdLocal
-        ) ?? createdLocal
+        // The calendar date for the first slot in the current 14-day window.
+        let cycleStartLocal = cal.date(byAdding: .day, value: cycleIndexLocal * days, to: originLocal) ?? originLocal
 
-        // All completion days for this habit (normalized to start of day).
-        let completedSet = Set(
-            logs
-                .filter { $0.completed }
-                .map { cal.startOfDay(for: $0.date) }
-        )
+        // Completed days as a set for fast lookup.
+        let completedSet = Set(completedDates)
 
         // Assign stored properties last.
         self.calendar = cal
@@ -422,12 +434,15 @@ struct MonthHeatmapModel {
     let today: Date
     let weekdays: [String] = ["S","M","T","W","Th","F","S"]
 
-    init(habit: Habit, month: Date) {
+    init(habit: Habit, month: Date, logs: [HabitLog]? = nil) {
         // --------- Locals first (avoid referencing self during init) ---------
         let cal = Calendar.current
         let todayLocal = cal.startOfDay(for: Date())
         let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: month))
         let daysRange = startOfMonth.flatMap { cal.range(of: .day, in: .month, for: $0) }
+
+        // Use the explicit logs list if provided; otherwise fall back to the habit's relationship.
+        let sourceLogs = logs ?? (habit.logs ?? [])
 
         // Build the 6x7 month grid (including leading/trailing blanks)
         var computedGrid: [[Date?]] = [Array(repeating: nil, count: 7)]
@@ -461,7 +476,7 @@ struct MonthHeatmapModel {
         let completedSet: Set<Date>
         if let start = startOfMonth,
            let end = cal.date(byAdding: DateComponents(month: 1), to: start) {
-            let normalized = (habit.logs ?? [])
+            let normalized = sourceLogs
                 .filter { $0.completed }
                 .map { cal.startOfDay(for: $0.date) }
                 .filter { $0 >= start && $0 < end && $0 <= todayLocal }
@@ -477,7 +492,7 @@ struct MonthHeatmapModel {
 
         // Month streak based on logs in this month **up to today only**,
         // using one completion per calendar day (to match HomeViewModel’s global streak logic).
-        let inMonthCompletedLogs = (habit.logs ?? []).filter {
+        let inMonthCompletedLogs = sourceLogs.filter {
             $0.completed
             && cal.isDate($0.date, equalTo: month, toGranularity: .month)
             && cal.startOfDay(for: $0.date) <= todayLocal
