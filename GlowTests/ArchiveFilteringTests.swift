@@ -56,4 +56,21 @@ struct ArchiveFilteringTests {
 
         #expect(result.map(\.title) == ["First", "Second", "Third"])
     }
+
+    @Test
+    func empty_input_yields_empty_result() {
+        let result = archivedHabits(from: [])
+        
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func all_active_habits_yield_empty_result() {
+        let a = makeHabit(title: "Active A", isArchived: false, sortOrder: 0)
+        let b = makeHabit(title: "Active B", isArchived: false, sortOrder: 1)
+        
+        let result = archivedHabits(from: [a, b])
+        
+        #expect(result.isEmpty)
+    }
 }
