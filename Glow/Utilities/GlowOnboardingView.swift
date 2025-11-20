@@ -1,5 +1,22 @@
 import SwiftUI
+struct GlowOnboardingState {
+    private(set) var pageIndex: Int = 0
+    let totalPages: Int
 
+    var isOnLastPage: Bool {
+        guard totalPages > 0 else { return true }
+        return pageIndex == totalPages - 1
+    }
+
+    var primaryButtonTitle: String {
+        isOnLastPage ? "Get started" : "Next"
+    }
+
+    mutating func advance() {
+        guard !isOnLastPage else { return }
+        pageIndex += 1
+    }
+}
 struct GlowOnboardingView: View {
     @Binding var isPresented: Bool
     @State private var pageIndex: Int = 0
