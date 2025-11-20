@@ -33,10 +33,10 @@ struct HabitIconLibraryTests {
         let walk = HabitIconLibrary.guessIcon(for: "Walk dog")
         let drink = HabitIconLibrary.guessIcon(for: "Drink water")
 
-        // We're not asserting the exact symbol names here (since that's app-specific),
-        // just that we got *something* non-empty back.
-        #expect(!run.isEmpty)
-        #expect(!walk.isEmpty)
-        #expect(!drink.isEmpty)
+        // We don't assert specific symbol names here, but we *do* expect these
+        // to avoid the generic fallback icon.
+        #expect(run != "checkmark.circle")
+        #expect(walk != "checkmark.circle")
+        #expect(drink != "checkmark.circle")
     }
 }
