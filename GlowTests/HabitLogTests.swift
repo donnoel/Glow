@@ -42,11 +42,11 @@ struct HabitLogTests {
             sortOrder: 0
         )
 
-        var log = HabitLog(date: today, completed: true, habit: habit)
+        let log = HabitLog(date: today, completed: true, habit: habit)
         #expect(log.completed == true)
 
-        log.completed = false
-        #expect(log.completed == false)
+        let incompleteLog = HabitLog(date: today, completed: false, habit: habit)
+        #expect(incompleteLog.completed == false)
     }
 
     @Test
