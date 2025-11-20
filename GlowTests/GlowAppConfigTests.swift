@@ -2,6 +2,24 @@ import Testing
 @testable import Glow
 import Foundation
 
+extension GlowAppConfig {
+    /// Test-only helper to construct the support mail URL.
+    /// This mirrors the behavior used by the app when composing a support email.
+    static var supportMailURL: URL? {
+        let to = supportEmail
+        let subject = supportSubject
+        let body = supportBodyHint
+
+        guard let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else {
+            return nil
+        }
+
+        let urlString = "mailto:\(to)?subject=\(encodedSubject)&body=\(encodedBody)"
+        return URL(string: urlString)
+    }
+}
+
 @MainActor
 struct GlowAppConfigTests {
 
@@ -11,18 +29,20 @@ struct GlowAppConfigTests {
     }
 
     @Test
-    func mailto_url_is_well_formed() throws {
-        // this is basically what SidebarOverlay does internally
-        let to = GlowAppConfig.supportEmail
-        let subject = GlowAppConfig.supportSubject
-        let body = GlowAppConfig.supportBodyHint
+    func support_mail_url_is_non_nil() throws {
+        #expect(GlowAppConfig.supportMailURL != nil)
+    }
 
-        let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+    @Test
+    func support_mail_url_has_mailto_scheme_and_recipient() throws {
+        let url = GlowAppConfig.supportMailURL
+        #expect(url != nil)
 
-        let urlString = "mailto:\(to)?subject=\(encodedSubject)&body=\(encodedBody)"
-
-        #expect(URL(string: urlString) != nil)
+        if let url {
+            #expect(url.scheme == "mailto")
+            // resourceSpecifier for a mailto URL begins with the address
+            #expect(url.absoluteString.hasPrefix("mailto:\(GlowAppConfig.supportEmail)"))
+        }
     }
 
     @Test
