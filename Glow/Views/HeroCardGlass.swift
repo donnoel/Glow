@@ -13,11 +13,6 @@ struct HeroCardGlass: View {
     @State private var sheenOffset: CGFloat = -200
     @State private var showBonusGlow = false
 
-    // ✨ shooting star animation state
-    @State private var showBonusStar = false
-    @State private var starProgress: CGFloat = 0.0
-    @State private var starResting = false
-
     // progress inputs
     let done: Int
     let total: Int
@@ -132,31 +127,6 @@ struct HeroCardGlass: View {
         .padding(.vertical, GlowTheme.Spacing.medium)
         .padding(.horizontal, GlowTheme.Spacing.medium)
         .background(cardBackground)
-        // ✨ overlay: gold shooting star path from near “complete” to off the right edge
-        .overlay(
-            GeometryReader { geo in
-                if showBonusStar {
-                    // Start just under the status line, roughly under the word "complete"
-                    let start = CGPoint(
-                        x: geo.size.width * 0.14,   // near lower-left of the hero card
-                        y: geo.size.height * 0.82
-                    )
-                    // End near the top‑right edge of the hero card, still visible
-                    let end = CGPoint(
-                        x: geo.size.width - 10,
-                        y: geo.size.height * 0.18
-                    )
-
-                    let t = starResting ? 1.0 : CGFloat(starProgress)
-                    let x = start.x + (end.x - start.x) * t
-                    let y = start.y + (end.y - start.y) * t
-
-                    ShootingStarView(resting: starResting)
-                        .position(x: x, y: y)
-                }
-            }
-            .allowsHitTesting(false)
-        )
         .contentShape(RoundedRectangle(cornerRadius: GlowTheme.Radius.hero, style: .continuous))
         .shadow(
             color: Color.black.opacity(colorScheme == .dark ? 0.48 : 0.09),
@@ -236,56 +206,10 @@ struct HeroCardGlass: View {
             showBonusGlow = true
         }
 
-        launchShootingStar()
-
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.95) {
             withAnimation(.easeInOut(duration: 0.85)) {
                 showBonusGlow = false
             }
-        }
-    }
-
-    private func launchShootingStar() {
-        guard bonus > 0 else { return }
-
-        // Respect Reduce Motion with a shorter, simpler effect
-        if reduceMotion {
-            showBonusStar = true
-            starResting = false
-            starProgress = 0.0
-
-            // Start the animation on the next runloop tick so the star
-            // is first rendered at the starting point, then flies across.
-            DispatchQueue.main.async {
-                withAnimation(.easeOut(duration: 0.6)) {
-                    starProgress = 1.0
-                }
-            }
-
-            // Snap into a brief resting pulse at the edge
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
-                starResting = true
-            }
-
-            return
-        }
-
-        // Normal, more expressive arc across the card
-        showBonusStar = true
-        starResting = false
-        starProgress = 0.0
-
-        // Fly across the card – start the animation on the next tick so
-        // the star is first drawn at the starting point and then travels
-        DispatchQueue.main.async {
-            withAnimation(.easeOut(duration: 1.4)) {
-                starProgress = 1.0
-            }
-        }
-
-        // When the flight finishes, switch into a pulsing resting state
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.4) {
-            starResting = true
         }
     }
 }
@@ -335,62 +259,6 @@ private struct ProgressRingView: View {
             if newValue {
                 breathe = true
             }
-        }
-    }
-}
-
-// MARK: - Gold shooting star
-
-private struct ShootingStarView: View {
-    let resting: Bool
-    @State private var pulse = false
-
-    var body: some View {
-        ZStack(alignment: .trailing) {
-            // trailing tail (only while flying)
-            if !resting {
-                Capsule()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.yellow.opacity(0.0),
-                                Color.yellow.opacity(0.12),
-                                Color.yellow.opacity(0.9)
-                            ],
-                            startPoint: .leading,
-                            endPoint: .trailing
-                        )
-                    )
-                    .frame(width: 80, height: 3)
-                    .blur(radius: 0.7)
-                    .rotationEffect(.degrees(-15))
-            }
-
-            // gold star head
-            Image(systemName: "star.fill")
-                .font(.system(size: resting ? 18 : 14, weight: .semibold))
-                .foregroundStyle(
-                    LinearGradient(
-                        colors: [
-                            Color(red: 1.0, green: 0.96, blue: 0.76),
-                            Color(red: 1.0, green: 0.84, blue: 0.20)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .shadow(color: Color.yellow.opacity(0.95), radius: resting ? 12 : 10, x: 0, y: 0)
-                .scaleEffect(resting ? (pulse ? 1.12 : 0.95) : 1.0)
-                .animation(
-                    resting
-                    ? .easeInOut(duration: 0.8).repeatForever(autoreverses: true)
-                    : .default,
-                    value: pulse
-                )
-        }
-        .compositingGroup()
-        .onAppear {
-            pulse = true
         }
     }
 }
