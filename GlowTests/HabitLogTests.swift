@@ -74,5 +74,34 @@ struct HabitLogTests {
 
         #expect(habit.logs?.count == 2)
         #expect(habit.logs?.first?.habit?.title == "Multi-day")
+        if let dates = habit.logs?.map(\.date) {
+            #expect(dates.contains(yesterday))
+            #expect(dates.contains(today))
+        } else {
+            Issue.record("Expected habit.logs to be non-nil when assigning logs")
+        }
+    }
+
+    @Test
+    func new_habit_starts_with_no_logs() throws {
+        let habit = Habit(
+            title: "Fresh",
+            createdAt: .now,
+            isArchived: false,
+            schedule: HabitSchedule(kind: .daily, days: []),
+            reminderEnabled: false,
+            reminderHour: nil,
+            reminderMinute: nil,
+            iconName: "checkmark.circle",
+            sortOrder: 0
+        )
+
+        // Depending on the model, logs may be nil or an empty array by default.
+        // This expectation allows either, but explicitly guards against a non-empty default.
+        if let logs = habit.logs {
+            #expect(logs.isEmpty)
+        } else {
+            #expect(habit.logs == nil)
+        }
     }
 }
