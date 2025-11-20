@@ -1,38 +1,10 @@
 import Testing
 @testable import Glow
 import Foundation
+import UserNotifications
 
 @MainActor
 struct NotificationManagerTests {
-    
-    // MARK: - Timeout helper
-    
-    private enum TimeoutError: Error {
-        case timedOut
-    }
-    
-    /// Runs an async operation and fails the test if it doesn't complete within `duration`.
-    private func withTimeout(
-        _ duration: Duration = .seconds(5),
-        operation: @escaping @Sendable () async throws -> Void
-    ) async throws {
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            // The real operation
-            group.addTask {
-                try await operation()
-            }
-            
-            // The timeout "watchdog"
-            group.addTask {
-                try await Task.sleep(for: duration)
-                throw TimeoutError.timedOut
-            }
-            
-            // Whichever finishes first wins
-            _ = try await group.next()
-            group.cancelAll()
-        }
-    }
     
     // MARK: - Helpers
     
@@ -60,17 +32,35 @@ struct NotificationManagerTests {
         )
     }
     
-    // MARK: - Tests
-    
-#if os(iOS)
-    @Test
-    func requestAuthorization_is_skipped_in_tests() {
-        // Intentionally not calling NotificationManager.requestAuthorizationIfNeeded()
-        // to avoid a UI prompt / hanging the test runner.
+    /// Fake notification center used for tests to avoid hitting the real UNUserNotificationCenter.
+    final class FakeNotificationCenter: NotificationScheduling {
+        private(set) var addedRequests: [UNNotificationRequest] = []
+        private(set) var removedIdentifiers: [[String]] = []
+        
+        func add(_ request: UNNotificationRequest) async throws {
+            addedRequests.append(request)
+        }
+        
+        func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
+            removedIdentifiers.append(identifiers)
+        }
+        
+        func reset() {
+            addedRequests.removeAll()
+            removedIdentifiers.removeAll()
+        }
     }
     
-    @Test(.disabled("Relies on UNUserNotificationCenter; flaky / hanging in runner before 1.0"))
-    func schedule_does_nothing_for_archived_habit() async throws {
+    // MARK: - Tests
+    
+    #if os(iOS)
+    
+    @Test
+    func schedule_does_not_schedule_for_archived_habit() async {
+        let fakeCenter = FakeNotificationCenter()
+        NotificationManager.center = fakeCenter
+        defer { NotificationManager.center = UNUserNotificationCenter.current() }
+        
         let archived = makeHabit(
             title: "Archived",
             isArchived: true,
@@ -79,25 +69,42 @@ struct NotificationManagerTests {
             minute: 0
         )
         
-        try await withTimeout {
-            await NotificationManager.scheduleNotifications(for: archived)
-        }
+        let expectedIds = NotificationManager.notificationIdentifiers(for: archived)
+        // Sanity: archived habits with reminders still compute identifiers, but the main guard
+        // in scheduleNotifications(for:) should prevent scheduling.
+        #expect(!expectedIds.isEmpty)
+        
+        await NotificationManager.scheduleNotifications(for: archived)
+        
+        #expect(fakeCenter.addedRequests.isEmpty, "Archived habits should not schedule notifications")
     }
     
-    @Test(.disabled("Relies on UNUserNotificationCenter; flaky / hanging in runner before 1.0"))
-    func schedule_does_nothing_for_habit_without_reminder() async throws {
+    @Test
+    func schedule_does_not_schedule_for_habit_without_reminder() async {
+        let fakeCenter = FakeNotificationCenter()
+        NotificationManager.center = fakeCenter
+        defer { NotificationManager.center = UNUserNotificationCenter.current() }
+        
         let noReminder = makeHabit(
             title: "NoReminder",
             reminderEnabled: false
         )
         
-        try await withTimeout {
-            await NotificationManager.scheduleNotifications(for: noReminder)
-        }
+        let expectedIds = NotificationManager.notificationIdentifiers(for: noReminder)
+        // With reminders disabled, we should not even derive identifiers.
+        #expect(expectedIds.isEmpty)
+        
+        await NotificationManager.scheduleNotifications(for: noReminder)
+        
+        #expect(fakeCenter.addedRequests.isEmpty, "Habits with reminders disabled should not schedule notifications")
     }
     
-    @Test(.disabled("Relies on UNUserNotificationCenter; flaky / hanging in runner before 1.0"))
-    func schedule_works_for_valid_habit() async throws {
+    @Test
+    func schedule_schedules_for_valid_habit() async {
+        let fakeCenter = FakeNotificationCenter()
+        NotificationManager.center = fakeCenter
+        defer { NotificationManager.center = UNUserNotificationCenter.current() }
+        
         let valid = makeHabit(
             title: "ValidReminder",
             reminderEnabled: true,
@@ -105,24 +112,48 @@ struct NotificationManagerTests {
             minute: 0
         )
         
-        try await withTimeout {
-            await NotificationManager.scheduleNotifications(for: valid)
-        }
+        let expectedIds = NotificationManager.notificationIdentifiers(for: valid)
+        #expect(!expectedIds.isEmpty, "Valid reminder-enabled habit should have at least one identifier")
+        
+        await NotificationManager.scheduleNotifications(for: valid)
+        
+        let added = fakeCenter.addedRequests
+        #expect(!added.isEmpty, "Valid reminder-enabled habit should schedule at least one notification")
+        
+        let addedIds = Set(added.map(\.identifier))
+        #expect(addedIds == Set(expectedIds), "Scheduled notification identifiers should match expected identifiers")
     }
     
-    @Test(.disabled("Relies on UNUserNotificationCenter; flaky / hanging in runner before 1.0"))
-    func cancel_is_callable_for_any_habit() async throws {
-        let h = makeHabit(
+    @Test
+    func cancel_clears_scheduled_notifications_for_habit() async {
+        let fakeCenter = FakeNotificationCenter()
+        NotificationManager.center = fakeCenter
+        defer { NotificationManager.center = UNUserNotificationCenter.current() }
+        
+        let habit = makeHabit(
             title: "ToCancel",
             reminderEnabled: true,
             hour: 7,
             minute: 30
         )
         
-        try await withTimeout {
-            await NotificationManager.cancelNotifications(for: h)
-        }
+        let expectedIds = NotificationManager.notificationIdentifiers(for: habit)
+        #expect(!expectedIds.isEmpty, "Valid habit should compute identifiers for cancellation")
+        
+        // First schedule
+        await NotificationManager.scheduleNotifications(for: habit)
+        #expect(!fakeCenter.addedRequests.isEmpty, "Precondition: scheduling should create pending notifications")
+        
+        // Then cancel
+        await NotificationManager.cancelNotifications(for: habit)
+        
+        // Assert that cancel attempted to remove the expected identifiers
+        #expect(
+            fakeCenter.removedIdentifiers.contains(where: { $0 == expectedIds }),
+            "Cancel should attempt to remove pending notifications for the habit"
+        )
     }
+    
     #else
     // On non-iOS platforms, just verify we can build the test target.
     @Test
