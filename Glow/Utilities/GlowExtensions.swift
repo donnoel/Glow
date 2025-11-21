@@ -1,8 +1,14 @@
 import SwiftUI
 
 extension Habit {
+    /// Stable, deterministic bucket index derived from the habit's id.
+    private var accentBucketIndex: Int {
+        let total = id.unicodeScalars.reduce(0) { $0 &+ Int($1.value) }
+        return total % 10
+    }
+
     var accentColorName: String {
-        switch abs(id.hashValue) % 10 {
+        switch accentBucketIndex {
         case 0: return "PracticeBlueAccent"
         case 1: return "PracticeGreenAccent"
         case 2: return "PracticePurpleAccent"
