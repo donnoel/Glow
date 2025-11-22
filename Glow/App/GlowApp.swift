@@ -13,17 +13,13 @@ struct GlowApp: App {
     }
 
     // MARK: - Shared SwiftData + CloudKit container
-
-    /// IMPORTANT:
-    /// - The CloudKit identifier **must** match the one in Signing & Capabilities → iCloud.
-    /// - Example: iCloud.com.yourteam.Glow
+    
     private static let modelContainer: ModelContainer = {
         let schema = Schema([
             Habit.self,
             HabitLog.self
         ])
 
-        // Replace this with the exact identifier from your entitlements
         let cloudKitID = "iCloud.movie.Glow"
 
         let config = ModelConfiguration(

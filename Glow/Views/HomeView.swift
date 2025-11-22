@@ -2,7 +2,7 @@ import SwiftUI
 import SwiftData
 import Combine
 import UIKit
-import CoreData   // ⬅️ to observe saves
+import CoreData
 import LinkPresentation
 
 // MARK: - HomeView
@@ -27,7 +27,7 @@ struct HomeView: View {
     @State private var newSchedule: HabitSchedule = .daily
     @State private var newIconName: String = "checkmark.circle"
 
-    // 🔔 Reminder fields for creation
+    // Reminder fields for creation
     @State private var newReminderEnabled = false
     @State private var newReminderTime: Date = HomeView.defaultReminderTime()
 
@@ -126,7 +126,7 @@ struct HomeView: View {
                     refreshFromHabits(reloadListID: true)
                 }
             }
-            // ✅ React to *any* SwiftData save (including CloudKit merges)
+            // React to any SwiftData save (including CloudKit merges)
             .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in
                 DispatchQueue.main.async {
                     refreshFromHabits(reloadListID: true)
@@ -199,7 +199,7 @@ struct HomeView: View {
                             showSidebar = true     // let SidebarOverlay animate itself
                             GlowTheme.tapHaptic()
                         }
-                        .accessibilityIdentifier("menuButton") // ✅ UITest stable id
+                        .accessibilityIdentifier("menuButton") // UITest stable id
 
                         Spacer()
 
@@ -220,7 +220,7 @@ struct HomeView: View {
                             GlowTheme.tapHaptic()
                         }
                         .accessibilityLabel("Add practice")
-                        .accessibilityIdentifier("addPracticeButton") // ✅ UITest stable id
+                        .accessibilityIdentifier("addPracticeButton") // UITest stable id
                     }
                     .padding(.horizontal, chromeHorizontalPadding)
                     .padding(.top, 48)
@@ -236,7 +236,7 @@ struct HomeView: View {
             Form {
                 Section("Details") {
                     TextField("Title", text: $newTitle)
-                        .accessibilityIdentifier("practiceTitleField") // ✅ UITest stable id
+                        .accessibilityIdentifier("practiceTitleField") // UITest stable id
                         .textInputAutocapitalization(.words)
                         .onChange(of: newTitle) { _, newValue in
                             guard newValue.count > 2 else { return }
@@ -316,7 +316,7 @@ struct HomeView: View {
                         showAdd = false
                         GlowTheme.tapHaptic()
                     }
-                    .accessibilityIdentifier("savePracticeButton") // ✅ UITest stable id
+                    .accessibilityIdentifier("savePracticeButton") // UITest stable id
                     .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
@@ -773,7 +773,7 @@ private final class GlowShareItemSource: NSObject, UIActivityItemSource {
             metadata.iconProvider = NSItemProvider(object: image)
         }
 
-        // ❌ Do NOT set metadata.url or metadata.originalURL here.
+        // Do NOT set metadata.url or metadata.originalURL here.
         // The App Store link is still in the shared text, so it stays tappable,
         // but the preview uses our custom icon instead of the remote page preview.
         return metadata

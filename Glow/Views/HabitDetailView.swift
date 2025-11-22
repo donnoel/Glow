@@ -187,7 +187,7 @@ struct HabitDetailView: View {
     }
 }
 
-// MARK: - WeeklyProgressRing (unchanged)
+// MARK: - WeeklyProgressRing
 private struct WeeklyProgressRing: View {
     let percent: Double
     let tint: Color
