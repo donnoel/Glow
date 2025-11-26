@@ -164,9 +164,6 @@ struct AddOrEditHabitForm: View {
         habit.reminderEnabled = remindMe
         if remindMe {
             habit.setReminderTime(from: reminderTime)
-        } else {
-            habit.reminderHour = nil
-            habit.reminderMinute = nil
         }
     }
 

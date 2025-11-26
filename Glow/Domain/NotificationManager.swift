@@ -35,7 +35,7 @@ enum NotificationManager {
     /// Computes the notification identifiers that should be active for a given habit,
     /// based on its schedule and reminder configuration.
     static func notificationIdentifiers(for habit: Habit) -> [String] {
-        guard habit.reminderEnabled, habit.reminderTimeComponents != nil else {
+        guard habit.reminderTimeComponents != nil else {
             return []
         }
 
