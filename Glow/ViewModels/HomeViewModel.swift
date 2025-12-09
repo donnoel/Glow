@@ -57,10 +57,33 @@ final class HomeViewModel: ObservableObject {
     private func recalcDerived() {
         let cal = Calendar.current
         let today = todayStartOfDay
+
+        struct HabitCache {
+            let habit: Habit
+            let completedLogs: [HabitLog]
+            let completedDays: Set<Date>
+            let completedLogCount: Int
+            let hasCompletedToday: Bool
+        }
+
+        let habitCaches: [HabitCache] = habits.map { habit in
+            let logs = (habit.logs ?? []).filter { $0.completed }
+            let days = Set(logs.map { cal.startOfDay(for: $0.date) })
+            let hasToday = days.contains(today)
+            return HabitCache(
+                habit: habit,
+                completedLogs: logs,
+                completedDays: days,
+                completedLogCount: logs.count,
+                hasCompletedToday: hasToday
+            )
+        }
         
         // 1) split active vs archived
-        let active = habits.filter { !$0.isArchived }
-        let archived = habits.filter { $0.isArchived }
+        let activeCaches = habitCaches.filter { !$0.habit.isArchived }
+        let archivedCaches = habitCaches.filter { $0.habit.isArchived }
+        let active = activeCaches.map { $0.habit }
+        let archived = archivedCaches.map { $0.habit }
         
         // 2) scheduled today
         let scheduled = active
@@ -69,16 +92,12 @@ final class HomeViewModel: ObservableObject {
         
         // 3) completed today (scheduled)
         let completedScheduled = scheduled.filter { habit in
-            (habit.logs ?? []).contains { log in
-                cal.startOfDay(for: log.date) == today && log.completed
-            }
+            habitCaches.first(where: { $0.habit.id == habit.id })?.hasCompletedToday ?? false
         }
         
         // 4) due but not done (scheduled but no completed log today)
         let dueNotDone = scheduled.filter { habit in
-            !(habit.logs ?? []).contains { log in
-                cal.startOfDay(for: log.date) == today && log.completed
-            }
+            !(habitCaches.first(where: { $0.habit.id == habit.id })?.hasCompletedToday ?? false)
         }
         
         // 5) not due today (active but not scheduled)
@@ -88,9 +107,7 @@ final class HomeViewModel: ObservableObject {
         
         // 6) bonus completions (not scheduled but completed today)
         let bonus = notDue.filter { habit in
-            (habit.logs ?? []).contains { log in
-                cal.startOfDay(for: log.date) == today && log.completed
-            }
+            habitCaches.first(where: { $0.habit.id == habit.id })?.hasCompletedToday ?? false
         }
         
         // 7) hero numbers
@@ -106,10 +123,7 @@ final class HomeViewModel: ObservableObject {
         }
         
         // 8) global streak + activity summaries (any habit per day, active habits only)
-        let completedLogs = active
-            .compactMap { $0.logs }
-            .flatMap { $0 }
-            .filter { $0.completed }
+        let completedLogs = activeCaches.flatMap { $0.completedLogs }
         let groupedByDay = Dictionary(grouping: completedLogs) {
             cal.startOfDay(for: $0.date)
         }
@@ -120,7 +134,7 @@ final class HomeViewModel: ObservableObject {
         
         // lifetime summaries
         let lifetimeDaysWithActivity = groupedByDay.keys.count
-        let lifetimeCompletionsCount = completedLogs.count
+        let lifetimeCompletionsCount = activeCaches.reduce(0) { $0 + $1.completedLogCount }
         
         // last 7 days with at least one completion (including today)
         let recentDaysWithActivity: Int
@@ -146,15 +160,11 @@ final class HomeViewModel: ObservableObject {
         )
         var bestTitle: String = "—"
         var bestHits = 0
-        for h in active {
-            let daysHit = Set(
-                (h.logs ?? [])
-                    .filter { $0.completed && $0.date >= windowStart }
-                    .map { cal.startOfDay(for: $0.date) }
-            )
+        for cache in activeCaches {
+            let daysHit = cache.completedDays.filter { $0 >= windowStart }
             if daysHit.count > bestHits {
                 bestHits = daysHit.count
-                bestTitle = h.title
+                bestTitle = cache.habit.title
             }
         }
         

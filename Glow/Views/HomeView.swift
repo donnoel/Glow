@@ -53,6 +53,7 @@ struct HomeView: View {
 
     @State private var highlightTodayCard = false
     @State private var lastPercent: Double = 0.0
+    @State private var pendingRefreshTask: Task<Void, Never>?
 
     // MARK: - body
 
@@ -106,31 +107,27 @@ struct HomeView: View {
             }
         
             .onChange(of: habits) { _, _ in
-                refreshFromHabits()
+                scheduleRefresh()
             }
             // Refresh when app returns to foreground (fixes stale lists/state after backgrounding)
             .onChange(of: scenePhase) { _, phase in
                 guard phase == .active else { return }
                 let startOfNow = Calendar.current.startOfDay(for: Date())
                 viewModel.advanceToToday(startOfNow)
-                refreshFromHabits()
+                scheduleRefresh()
             }
             // React to DST/manual time change or midnight rollover while app is running
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
                 checkForNewDay()
-                refreshFromHabits()
+                scheduleRefresh()
             }
             // React to our custom "data changed" signal
             .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
-                DispatchQueue.main.async {
-                    refreshFromHabits(reloadListID: true)
-                }
+                scheduleRefresh(reloadListID: true)
             }
             // React to any SwiftData save (including CloudKit merges)
             .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in
-                DispatchQueue.main.async {
-                    refreshFromHabits(reloadListID: true)
-                }
+                scheduleRefresh(reloadListID: true)
             }
 
             // extra sheets
@@ -584,6 +581,15 @@ struct HomeView: View {
         }
     }
     
+    private func scheduleRefresh(reloadListID: Bool = false) {
+        // Coalesce rapid-fire triggers to avoid redundant recomputes during transitions.
+        pendingRefreshTask?.cancel()
+        pendingRefreshTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 150_000_000) // 150ms debounce
+            refreshFromHabits(reloadListID: reloadListID)
+        }
+    }
+
     private func refreshFromHabits(reloadListID: Bool = false) {
         viewModel.updateHabits(habits)
         prewarmMonthCache()

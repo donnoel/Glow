@@ -27,6 +27,10 @@ final class TrendsViewModel: ObservableObject {
         weeklyActiveDaysCount > 0
     }
 
+    /// Map of weekday (1 = Sun ... 7 = Sat) indicating whether
+    /// there was any completed habit in the last 7 days.
+    @Published private(set) var weeklyActivityMap: [Int: Bool] = [:]
+
     /// Percentage of the last 7 days with at least one completion,
     /// as an integer from 0–100.
     var weeklyActivityPercent: Int {
@@ -96,6 +100,7 @@ final class TrendsViewModel: ObservableObject {
         self.habitStats = stats
         self.globalStreaks = (global.current, global.best)
         self.weeklyActiveDaysCount = completedDays.count
+        self.weeklyActivityMap = Self.weekdayActivity(completedDays: completedDays, calendar: cal)
     }
 
     /// Deduplicates completed logs so there is at most one log per calendar day,
@@ -111,6 +116,23 @@ final class TrendsViewModel: ObservableObject {
             }
         }
         return Array(byDay.values)
+    }
+
+    /// Builds a weekday map (1 = Sun ... 7 = Sat) for the last 7 days.
+    private static func weekdayActivity(completedDays: Set<Date>, calendar: Calendar) -> [Int: Bool] {
+        var map: [Int: Bool] = [:]
+        let today = calendar.startOfDay(for: Date())
+        let start = calendar.date(byAdding: .day, value: -6, to: today) ?? today
+
+        for offset in 0..<7 {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: start) else { continue }
+            let normalized = calendar.startOfDay(for: day)
+            if completedDays.contains(normalized) {
+                let weekday = calendar.component(.weekday, from: normalized)
+                map[weekday] = true
+            }
+        }
+        return map
     }
 }
 
@@ -247,7 +269,7 @@ struct TrendsView: View {
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(GlowTheme.textPrimary)
 
-            WeeklyActivityStrip(allHabits: habits)
+            WeeklyActivityStrip(activityMap: model.weeklyActivityMap)
                 .accessibilityLabel("Weekly activity over the last 7 days.")
         }
     }
@@ -345,32 +367,11 @@ private struct HabitPerformanceRow: View {
 }
 
 private struct WeeklyActivityStrip: View {
-    let allHabits: [Habit]
+    let activityMap: [Int: Bool]
     @Environment(\.colorScheme) private var colorScheme
 
     // fixed labels so we don't depend on DateFormatter weekday order
     private let weekdayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
-
-    // build a map of weekday (1 = Sun ... 7 = Sat) → did anything
-    private var didSomethingByWeekday: [Int: Bool] {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
-
-        var map: [Int: Bool] = [:]
-
-        for habit in allHabits {
-            for log in (habit.logs ?? []) where log.completed {
-                let day = cal.startOfDay(for: log.date)
-                // only look at last 7 days so we don't mark an old Sunday
-                guard day >= start else { continue }
-                let weekday = cal.component(.weekday, from: day) // 1 = Sun
-                map[weekday] = true
-            }
-        }
-
-        return map
-    }
 
     var body: some View {
         VStack(spacing: 10) {
@@ -378,7 +379,7 @@ private struct WeeklyActivityStrip: View {
             // row of squares Sun → Sat
             HStack(spacing: 8) {
                 ForEach(1...7, id: \.self) { weekday in
-                    let didAnything = didSomethingByWeekday[weekday] ?? false
+                    let didAnything = activityMap[weekday] ?? false
                     RoundedRectangle(cornerRadius: 6, style: .continuous)
                         .fill(
                             didAnything
@@ -394,7 +395,7 @@ private struct WeeklyActivityStrip: View {
             HStack(spacing: 8) {
                 ForEach(0..<7, id: \.self) { idx in
                     let weekday = idx + 1
-                    let didAnything = didSomethingByWeekday[weekday] ?? false
+                    let didAnything = activityMap[weekday] ?? false
                     Text(weekdayLabels[idx])
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(
