@@ -439,6 +439,7 @@ struct MonthHeatmapModel {
         let cal = Calendar.current
         let todayLocal = cal.startOfDay(for: Date())
         let startOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: month))
+        let endOfMonth = startOfMonth.flatMap { cal.date(byAdding: DateComponents(month: 1), to: $0) }
         let daysRange = startOfMonth.flatMap { cal.range(of: .day, in: .month, for: $0) }
 
         // Use the explicit logs list if provided; otherwise fall back to the habit's relationship.
@@ -488,7 +489,28 @@ struct MonthHeatmapModel {
 
         // Percent complete = completed cells / total cells in month (up to today handled by completedSet)
         let doneCount = monthDates.filter { completedSet.contains(cal.startOfDay(for: $0)) }.count
-        let pctLocal = monthDates.isEmpty ? 0 : Int((Double(doneCount) / Double(monthDates.count)) * 100.0)
+        let daysInMonth = daysRange?.count ?? monthDates.count
+        let denominator: Int
+        if let start = startOfMonth, let end = endOfMonth {
+            if todayLocal < start {
+                denominator = 0 // future month
+            } else if todayLocal >= end {
+                denominator = daysInMonth // past month: whole month counts
+            } else {
+                // current month: only count days that have occurred (inclusive of today)
+                let elapsed = (cal.dateComponents([.day], from: start, to: todayLocal).day ?? 0) + 1
+                denominator = min(daysInMonth, elapsed)
+            }
+        } else {
+            denominator = monthDates.count
+        }
+
+        let pctLocal: Int
+        if denominator == 0 {
+            pctLocal = 0
+        } else {
+            pctLocal = Int((Double(doneCount) / Double(denominator)) * 100.0)
+        }
 
         // Month streak based on logs in this month **up to today only**,
         // using one completion per calendar day (to match HomeViewModel’s global streak logic).
