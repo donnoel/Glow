@@ -11,6 +11,8 @@ final class HabitDetailViewModel: ObservableObject {
     // MARK: - Published UI state
     @Published var monthAnchor: Date
     @Published var monthModel: MonthHeatmapModel
+    @Published private(set) var cachedWeeklyPercent: Double
+    @Published private(set) var cachedStreaks: (current: Int, best: Int)
 
     // MARK: - Init
     init(habit: Habit, prewarmedMonth: MonthHeatmapModel? = nil) {
@@ -26,6 +28,11 @@ final class HabitDetailViewModel: ObservableObject {
         } else {
             self.monthModel = MonthHeatmapModel(habit: habit, month: anchor)
         }
+
+        // Precompute metrics so the view doesn’t rebuild sets on every render.
+        let metrics = HabitDetailViewModel.computeMetrics(for: habit.logs ?? [])
+        self.cachedWeeklyPercent = metrics.weekly
+        self.cachedStreaks = metrics.streaks
     }
 
     // MARK: - Derived
@@ -56,13 +63,19 @@ final class HabitDetailViewModel: ObservableObject {
 
     // MARK: - Metrics
     func weeklyPercent() -> Double {
+        cachedWeeklyPercent
+    }
+
+    func streaks() -> (current: Int, best: Int) {
+        cachedStreaks
+    }
+
+    private static func computeMetrics(for logs: [HabitLog]) -> (weekly: Double, streaks: (current: Int, best: Int)) {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())
 
         // last 7 days including today
-        guard let start = cal.date(byAdding: .day, value: -6, to: today) else {
-            return 0.0
-        }
+        let start = cal.date(byAdding: .day, value: -6, to: today) ?? today
 
         // normalize completed log dates into a set
         let completed = Set(
@@ -80,10 +93,8 @@ final class HabitDetailViewModel: ObservableObject {
             }
         }
 
-        return Double(hits) / 7.0
-    }
-
-    func streaks() -> (current: Int, best: Int) {
-        StreakEngine.computeStreaks(logs: logs)
+        let weekly = Double(hits) / 7.0
+        let streaks = StreakEngine.computeStreaks(logs: logs)
+        return (weekly, streaks)
     }
 }
