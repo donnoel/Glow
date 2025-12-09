@@ -26,7 +26,7 @@ final class HabitDetailViewModel: ObservableObject {
         if let prewarmedMonth {
             self.monthModel = prewarmedMonth
         } else {
-            self.monthModel = MonthHeatmapModel(habit: habit, month: anchor)
+            self.monthModel = MonthHeatmapModel(habit: habit, month: anchor, logs: habit.logs)
         }
 
         // Precompute metrics so the view doesn’t rebuild sets on every render.
@@ -49,7 +49,7 @@ final class HabitDetailViewModel: ObservableObject {
         let cal = Calendar.current
         if let prev = cal.date(byAdding: .month, value: -1, to: monthAnchor) {
             monthAnchor = prev
-            monthModel = MonthHeatmapModel(habit: habit, month: prev)
+            monthModel = MonthHeatmapModel(habit: habit, month: prev, logs: logs)
         }
     }
 
@@ -57,7 +57,7 @@ final class HabitDetailViewModel: ObservableObject {
         let cal = Calendar.current
         if let next = cal.date(byAdding: .month, value: 1, to: monthAnchor) {
             monthAnchor = next
-            monthModel = MonthHeatmapModel(habit: habit, month: next)
+            monthModel = MonthHeatmapModel(habit: habit, month: next, logs: logs)
         }
     }
 
