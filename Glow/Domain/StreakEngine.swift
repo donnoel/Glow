@@ -10,6 +10,7 @@ enum StreakEngine {
             logs.filter { $0.completed }.map { calendar.startOfDay(for: $0.date) }
         )
 
+        // Current streak: walk backward from today until the first gap.
         var current = 0
         var day = calendar.startOfDay(for: today)
         while completedDays.contains(day) {
@@ -18,19 +19,22 @@ enum StreakEngine {
             day = calendar.startOfDay(for: prev)
         }
 
-        var best = current
+        // Best streak: scan the entire history (not capped to 365 days).
+        var best = 0
         var rolling = 0
-        var cursor = calendar.startOfDay(for: today)
-        for _ in 0..<365 {
-            if completedDays.contains(cursor) {
+        var previousDay: Date?
+        for date in completedDays.sorted() {
+            if let prev = previousDay,
+               calendar.isDate(date, inSameDayAs: calendar.date(byAdding: .day, value: 1, to: prev) ?? prev) {
                 rolling += 1
-                best = max(best, rolling)
             } else {
-                rolling = 0
+                rolling = 1
             }
-            guard let prev = calendar.date(byAdding: .day, value: -1, to: cursor) else { break }
-            cursor = calendar.startOfDay(for: prev)
+            best = max(best, rolling)
+            previousDay = date
         }
+        best = max(best, current)
+
         return (current, best)
     }
 }

@@ -89,4 +89,15 @@ struct StreakEngineTests {
         #expect(result.current == 1)
         #expect(result.best == 1)
     }
+
+    @Test
+    func best_streak_is_not_capped_at_one_year() throws {
+        // Build 400 consecutive days ending today.
+        let logs = (0..<400).map { log(on: day(-$0)) }
+
+        let result = StreakEngine.computeStreaks(logs: logs)
+
+        #expect(result.current == 400)
+        #expect(result.best == 400)
+    }
 }
