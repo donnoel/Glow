@@ -79,14 +79,14 @@ final class TrendsViewModel: ObservableObject {
             return a.recentPercent > b.recentPercent
         }
 
-        // global streaks (any habit per day)
-        let allLogs = habits.compactMap { $0.logs }.flatMap { $0 }
+        // global streaks (any habit per day, active habits only)
+        let allLogs = activeHabits.compactMap { $0.logs }.flatMap { $0 }
         let merged = Self.mergeLogsByDay(logs: allLogs)
         let global = StreakEngine.computeStreaks(logs: merged)
 
         // weekly active count
         let completedDays = Set(
-            habits
+            activeHabits
                 .compactMap { $0.logs }
                 .flatMap { $0 }
                 .filter { $0.completed && $0.date >= start }

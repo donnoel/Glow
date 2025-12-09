@@ -226,6 +226,25 @@ struct HomeViewModelTests {
     }
 
     @Test
+    func archived_habits_do_not_influence_global_stats() async throws {
+        let vm = HomeViewModel(today: today)
+
+        let archived = makeHabit(title: "Archived", schedule: dailySchedule(), isArchived: true)
+        archived.logs = [makeLog(on: today, completed: true, habit: archived)]
+
+        let active = makeHabit(title: "Active", schedule: dailySchedule(), isArchived: false)
+        active.logs = [] // no completions
+
+        vm.updateHabits([archived, active])
+
+        let streaks = vm.globalStreak
+        #expect(streaks.current == 0)
+        #expect(streaks.best == 0)
+        #expect(vm.recentActiveDays == 0)
+        #expect(vm.lifetimeActiveDays == 0)
+    }
+
+    @Test
     func typicalCheckInTime_averages_enabled_reminders() async throws {
         let vm = HomeViewModel(today: today)
 

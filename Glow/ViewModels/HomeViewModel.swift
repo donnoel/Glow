@@ -105,8 +105,11 @@ final class HomeViewModel: ObservableObject {
             percentValue = Double(doneScheduled + bonusCount) / Double(totalScheduled)
         }
         
-        // 8) global streak + activity summaries (any habit per day)
-        let completedLogs = allLogs.filter { $0.completed }
+        // 8) global streak + activity summaries (any habit per day, active habits only)
+        let completedLogs = active
+            .compactMap { $0.logs }
+            .flatMap { $0 }
+            .filter { $0.completed }
         let groupedByDay = Dictionary(grouping: completedLogs) {
             cal.startOfDay(for: $0.date)
         }
@@ -143,7 +146,7 @@ final class HomeViewModel: ObservableObject {
         )
         var bestTitle: String = "—"
         var bestHits = 0
-        for h in habits {
+        for h in active {
             let daysHit = Set(
                 (h.logs ?? [])
                     .filter { $0.completed && $0.date >= windowStart }
