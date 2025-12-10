@@ -366,7 +366,7 @@ private struct MonthHeatmap: View {
 
     private var weekdayHeader: some View {
         HStack {
-            ForEach(model.weekdays, id: \.self) { d in
+            ForEach(Array(model.weekdays.enumerated()), id: \.offset) { _, d in
                 Text(d)
                     .font(.caption2)
                     .foregroundStyle(GlowTheme.textSecondary)
