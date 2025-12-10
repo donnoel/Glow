@@ -70,6 +70,15 @@ final class HabitDetailViewModel: ObservableObject {
         cachedStreaks
     }
 
+    /// Recompute the month heatmap and cached metrics from the latest logs.
+    func refreshFromStore() {
+        let latestLogs = logs
+        monthModel = MonthHeatmapModel(habit: habit, month: monthAnchor, logs: latestLogs)
+        let metrics = HabitDetailViewModel.computeMetrics(for: latestLogs)
+        cachedWeeklyPercent = metrics.weekly
+        cachedStreaks = metrics.streaks
+    }
+
     private static func computeMetrics(for logs: [HabitLog]) -> (weekly: Double, streaks: (current: Int, best: Int)) {
         let cal = Calendar.current
         let today = cal.startOfDay(for: Date())

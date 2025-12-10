@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import Combine
 
 struct HabitDetailView: View {
     @StateObject private var viewModel: HabitDetailViewModel
@@ -123,6 +124,13 @@ struct HabitDetailView: View {
             .navigationTitle("Details")
             .navigationBarTitleDisplayMode(.inline)
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
+            .onAppear { viewModel.refreshFromStore() }
+            .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in
+                viewModel.refreshFromStore()
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
+                viewModel.refreshFromStore()
+            }
         }
     }
 
