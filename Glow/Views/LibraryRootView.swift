@@ -107,7 +107,8 @@ struct LibraryRootView: View {
             .glowCoreListRhythm()
             .navigationTitle("Library")
             .navigationBarTitleDisplayMode(isIPadRegularWidth ? .inline : .large)
-            .glowIPadPageContainer(maxWidth: 900)
+            .glowIPadPageContainer(maxWidth: 860)
+            .glowIPadListComposition(top: 4, bottom: 18)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

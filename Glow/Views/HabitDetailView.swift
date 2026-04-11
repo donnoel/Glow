@@ -19,10 +19,11 @@ struct HabitDetailView: View {
     var body: some View {
         GeometryReader { proxy in
             let isRegularWidth = proxy.size.width >= 768
-            let horizontalInset: CGFloat = isRegularWidth ? 96 : 16
+            let horizontalPadding: CGFloat = isRegularWidth ? 24 : 16
+            let contentMaxWidth: CGFloat = isRegularWidth ? 860 : .infinity
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: isRegularWidth ? 28 : 24) {
+                LazyVStack(alignment: .leading, spacing: isRegularWidth ? 24 : 24) {
                     headerSection
                     progressSummarySection
 
@@ -74,15 +75,16 @@ struct HabitDetailView: View {
 
                     managementSection
                 }
-                .padding(.top, isRegularWidth ? 12 : 8)
-                .padding(.horizontal, horizontalInset)
-                .padding(.bottom, isRegularWidth ? 44 : 28)
+                .padding(.top, isRegularWidth ? 6 : 8)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, isRegularWidth ? 32 : 28)
+                .frame(maxWidth: contentMaxWidth, alignment: .topLeading)
                 .frame(maxWidth: .infinity, alignment: .top)
             }
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom) {
                 Color.clear
-                    .frame(height: isRegularWidth ? 26 : 20)
+                    .frame(height: isRegularWidth ? 16 : 20)
             }
             .navigationTitle(viewModel.habit.title)
             .navigationBarTitleDisplayMode(.inline)

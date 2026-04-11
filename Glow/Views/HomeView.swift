@@ -62,7 +62,7 @@ struct HomeView: View {
             contentList
                 .navigationTitle("Today")
                 .navigationBarTitleDisplayMode(isIPadRegularWidth ? .inline : .large)
-                .glowIPadPageContainer(maxWidth: 920)
+                .glowIPadPageContainer(maxWidth: 860)
                 .toolbar {
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         Button {
@@ -273,6 +273,7 @@ struct HomeView: View {
         }
         .listSectionSeparator(.hidden)
         .glowCoreListRhythm()
+        .glowIPadListComposition(top: 4, bottom: 18)
         .id(listRefreshID)
     }
 
