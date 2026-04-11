@@ -23,6 +23,8 @@ extension Notification.Name {
     static let glowShowTrends = Notification.Name("glowShowTrends")
     static let glowShowAbout  = Notification.Name("glowShowAbout")
     static let glowShowYou    = Notification.Name("glowShowYou")
+    static let glowShowArchive = Notification.Name("glowShowArchive")
+    static let glowShowReminders = Notification.Name("glowShowReminders")
 }
 
 extension Habit {

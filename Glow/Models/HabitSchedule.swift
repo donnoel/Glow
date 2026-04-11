@@ -1,6 +1,6 @@
 import Foundation
 
-enum Weekday: Int, Codable, CaseIterable, Hashable {
+nonisolated enum Weekday: Int, Codable, CaseIterable, Hashable {
     case sun = 1, mon, tue, wed, thu, fri, sat
 
     static func from(_ date: Date, calendar: Calendar = .current) -> Weekday {
@@ -9,7 +9,7 @@ enum Weekday: Int, Codable, CaseIterable, Hashable {
     }
 }
 
-struct HabitSchedule: Codable, Equatable {
+nonisolated struct HabitSchedule: Codable, Equatable {
     enum Kind: String, Codable { case daily, custom }
 
     var kind: Kind

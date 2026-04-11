@@ -1,24 +1,22 @@
 import SwiftUI
 
-/// A horizontal row of tappable icons (SF Symbols) pulled from HabitIconLibrary.
+/// A grid of tappable icons (SF Symbols) pulled from HabitIconLibrary.
 /// Caller binds to `selection`, which is the chosen symbol name.
 struct IconPickerRow: View {
     @Binding var selection: String   // e.g. "figure.walk", "drop.fill"
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 10), count: 4)
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            LazyHStack(spacing: 12) {
-                ForEach(HabitIconLibrary.all, id: \.id) { icon in
-                    IconChip(
-                        symbolName: icon.name,
-                        label: icon.label,
-                        isSelected: icon.name == selection
-                    ) {
-                        selection = icon.name
-                    }
+        LazyVGrid(columns: columns, spacing: 10) {
+            ForEach(HabitIconLibrary.all, id: \.id) { icon in
+                IconChip(
+                    symbolName: icon.name,
+                    label: icon.label,
+                    isSelected: icon.name == selection
+                ) {
+                    selection = icon.name
                 }
             }
-            .padding(.vertical, 4)
         }
         .accessibilityLabel("Choose icon")
     }
@@ -33,7 +31,7 @@ private struct IconChip: View {
 
     var body: some View {
         Button(action: onTap) {
-            VStack(spacing: 6) {
+            VStack(spacing: 8) {
                 ZStack {
                     Circle()
                         .fill(isSelected
@@ -49,10 +47,10 @@ private struct IconChip: View {
                                     lineWidth: isSelected ? 2 : 1
                                 )
                         )
-                        .frame(width: 44, height: 44)
+                        .frame(width: 50, height: 50)
 
                     Image(systemName: symbolName)
-                        .font(.system(size: 20, weight: .semibold))
+                        .font(.system(size: 21, weight: .semibold))
                         .foregroundStyle(
                             isSelected
                             ? tint
@@ -67,9 +65,15 @@ private struct IconChip: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
-            .frame(minWidth: 56)
+            .frame(maxWidth: .infinity, minHeight: 86)
+            .padding(.vertical, 6)
+            .background(
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(isSelected ? tint.opacity(0.08) : Color.clear)
+            )
         }
         .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
         .accessibilityLabel("\(label) icon")
         .accessibilityHint(isSelected ? "Selected" : "Double tap to select")
     }

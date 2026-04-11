@@ -62,7 +62,7 @@ struct GlowApp: App {
                     )
                 )
             } else {
-                HomeView()
+                RootTabShell()
             }
         }
         .modelContainer(Self.modelContainer)

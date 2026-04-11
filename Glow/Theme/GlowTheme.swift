@@ -56,6 +56,13 @@ extension View {
     func glowSurfaceBackground() -> some View {
         self.background(GlowTheme.bgSurface.ignoresSafeArea())
     }
+
+    /// Shared list rhythm for Glow's core iPhone screens.
+    func glowCoreListRhythm() -> some View {
+        self
+            .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
+    }
 }
 
 // MARK: - 🔐 Design tokens (spacing, radii, glass)
@@ -102,5 +109,20 @@ extension View {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(GlowTheme.Glass.strokeDark, lineWidth: 1)
             )
+    }
+}
+
+struct GlowSectionHeader: View {
+    let title: LocalizedStringKey
+
+    init(_ title: LocalizedStringKey) {
+        self.title = title
+    }
+
+    var body: some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(GlowTheme.textSecondary)
+            .textCase(nil)
     }
 }

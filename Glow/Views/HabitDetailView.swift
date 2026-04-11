@@ -3,7 +3,9 @@ import SwiftData
 import Combine
 
 struct HabitDetailView: View {
+    @Environment(\.modelContext) private var context
     @StateObject private var viewModel: HabitDetailViewModel
+    @State private var showEditHabit = false
 
     init(habit: Habit, prewarmedMonth: MonthHeatmapModel? = nil) {
         _viewModel = StateObject(
@@ -17,34 +19,18 @@ struct HabitDetailView: View {
     var body: some View {
         GeometryReader { proxy in
             let isRegularWidth = proxy.size.width >= 768
-            let isLandscape = proxy.size.width > proxy.size.height
-            let isPadPortrait = isRegularWidth && !isLandscape
-            // iPhone stays as-is. On iPad (portrait and landscape), use a larger inset (~1 inch)
-            // so the content has the same breathing room on the left and right.
-            let horizontalInset: CGFloat = {
-                if isRegularWidth {
-                    return 96 // ~1 inch margin on each side on most iPads
-                } else {
-                    return 16
-                }
-            }()
+            let horizontalPadding: CGFloat = isRegularWidth ? 24 : 16
+            let contentMaxWidth: CGFloat = isRegularWidth ? 860 : .infinity
 
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: isRegularWidth ? 28 : 24) {
-
-                    // HEADER / STREAKS
+                LazyVStack(alignment: .leading, spacing: isRegularWidth ? 24 : 24) {
                     headerSection
-                        .padding(.top, isRegularWidth ? 24 : 8)
+                    progressSummarySection
 
-                    // RECENT
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Recent")
-                            .font(.headline)
-                            .foregroundStyle(GlowTheme.textPrimary)
+                        GlowSectionHeader("Recent Activity")
 
-                        // Card with symmetrical padding so colored boxes float inside
                         ZStack {
-                            // Card background and border
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .fill(GlowTheme.bgSurface)
                                 .overlay(
@@ -66,43 +52,18 @@ struct HabitDetailView: View {
                         }
                     }
 
-                    // WEEK
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("This Week")
-                            .font(.headline)
-                            .foregroundStyle(GlowTheme.textPrimary)
+                        GlowSectionHeader("Weekly Completion")
 
-                        WeeklyProgressRing(
-                            percent: viewModel.weeklyPercent(),
-                            tint: viewModel.habitTint
-                        )
-                        .frame(height: isRegularWidth ? 180 : 120)
-                        .frame(maxWidth: .infinity, alignment: .center)
-                        .padding(16)
-                        .background(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                .fill(.ultraThinMaterial)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .fill(viewModel.habitTint.opacity(0.08))
-                                        .blendMode(.plusLighter)
-                                )
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
-                                        .stroke(viewModel.habitTint.opacity(0.28), lineWidth: 1)
-                                )
-                                .shadow(
-                                    color: Color.black.opacity(0.4),
-                                    radius: 20, y: 10
-                                )
-                        )
+                        weeklyCompletionSection
                     }
 
-                    // MONTHLY
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Monthly")
-                            .font(.headline)
-                            .foregroundStyle(GlowTheme.textPrimary)
+                    VStack(alignment: .leading, spacing: 10) {
+                        GlowSectionHeader("Monthly")
+
+                        Text("Day-by-day completion for \(viewModel.monthModel.monthTitle)")
+                            .font(.footnote)
+                            .foregroundStyle(GlowTheme.textSecondary)
 
                         MonthHeatmap(
                             model: viewModel.monthModel,
@@ -112,17 +73,28 @@ struct HabitDetailView: View {
                         )
                     }
 
-                    Spacer(minLength: isPadPortrait ? 0 : (isRegularWidth ? 64 : 32))
+                    managementSection
                 }
-                .padding(.top, isPadPortrait ? 120 : 0)
-                .padding(.horizontal, horizontalInset)
-                .padding(.bottom, isPadPortrait ? 0 : (isRegularWidth ? 40 : 24))
-                // Use nearly full width on iPad while keeping a margin from the edges
+                .padding(.top, isRegularWidth ? 6 : 8)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, isRegularWidth ? 32 : 28)
+                .frame(maxWidth: contentMaxWidth, alignment: .topLeading)
                 .frame(maxWidth: .infinity, alignment: .top)
             }
             .scrollIndicators(.hidden)
-            .navigationTitle("Details")
+            .safeAreaInset(edge: .bottom) {
+                Color.clear
+                    .frame(height: isRegularWidth ? 16 : 20)
+            }
+            .navigationTitle(viewModel.habit.title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Edit") {
+                        showEditHabit = true
+                    }
+                }
+            }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .onAppear { viewModel.refreshFromStore() }
             .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in
@@ -132,16 +104,17 @@ struct HabitDetailView: View {
                 viewModel.refreshFromStore()
             }
         }
+        .sheet(isPresented: $showEditHabit) {
+            AddOrEditHabitForm(mode: .edit, habit: viewModel.habit)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
     }
 
-    // MARK: - Header / Streaks
+    // MARK: - Header
     private var headerSection: some View {
-        let streaks = viewModel.streaks()
-
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .center, spacing: 12) {
-
-                // icon bubble
                 ZStack {
                     Circle()
                         .fill(viewModel.habitTint.opacity(0.18))
@@ -156,68 +129,227 @@ struct HabitDetailView: View {
                         .foregroundStyle(viewModel.habitTint)
                 }
 
-                // title + streaks
                 VStack(alignment: .leading, spacing: 4) {
+                    Text("Habit")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(GlowTheme.textSecondary)
+
                     Text(viewModel.habit.title)
-                        .font(.headline.weight(.semibold))
+                        .font(.title3.weight(.semibold))
                         .foregroundStyle(GlowTheme.textPrimary)
 
-                    HStack(spacing: 12) {
-                        Label {
-                            Text("\(streaks.current)d streak")
-                                .monospacedDigit()
-                        } icon: {
-                            Image(systemName: "flame.fill")
-                        }
+                    Text(scheduleDueStatusText)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(GlowTheme.textPrimary)
 
-                        Label {
-                            Text("best \(streaks.best)d")
-                                .monospacedDigit()
-                        } icon: {
-                            Image(systemName: "trophy.fill")
-                        }
-                    }
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(GlowTheme.textSecondary)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("Current streak \(streaks.current) days. Best streak \(streaks.best) days.")
+                    Text(scheduleSummaryText)
+                        .font(.subheadline)
+                        .foregroundStyle(GlowTheme.textSecondary)
                 }
 
                 Spacer(minLength: 8)
             }
+
+            Divider()
+
+            Label(reminderStatusText, systemImage: reminderStatusSymbol)
+                .font(.footnote)
+                .foregroundStyle(GlowTheme.textSecondary)
         }
         .padding(16)
         .glowSurfaceCard(cornerRadius: 20)
+        .accessibilityElement(children: .combine)
     }
-}
 
-// MARK: - WeeklyProgressRing
-private struct WeeklyProgressRing: View {
-    let percent: Double
-    let tint: Color
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    private var progressSummarySection: some View {
+        let streaks = viewModel.streaks()
+        let recentDone = viewModel.cachedRecentCompleted14
+        let weeklyPercent = Int((viewModel.weeklyPercent() * 100).rounded())
 
-    var body: some View {
-        let isRegularWidth = horizontalSizeClass == .regular
-        ZStack {
-            Circle()
-                .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: isRegularWidth ? 14 : 12)
+        return VStack(alignment: .leading, spacing: 12) {
+            GlowSectionHeader("Current Momentum")
 
-            Circle()
-                .trim(from: 0, to: max(0, min(1, percent)))
-                .stroke(
-                    tint,
-                    style: StrokeStyle(lineWidth: isRegularWidth ? 16 : 12, lineCap: .round)
+            HStack(spacing: 12) {
+                progressMetric(
+                    title: "Current",
+                    value: "\(streaks.current)d",
+                    symbol: "flame.fill"
                 )
-                .rotationEffect(.degrees(-90))
-                .animation(.easeInOut(duration: 0.3), value: percent)
+                progressMetric(
+                    title: "Best",
+                    value: "\(streaks.best)d",
+                    symbol: "trophy.fill"
+                )
+                progressMetric(
+                    title: "Weekly",
+                    value: "\(weeklyPercent)%",
+                    symbol: "chart.line.uptrend.xyaxis"
+                )
+            }
 
-            Text("\(Int(percent * 100))%")
-                .font((isRegularWidth ? Font.title2 : Font.headline).monospacedDigit())
+            Text("\(recentDone) of the last 14 days completed")
+                .font(.footnote)
+                .foregroundStyle(GlowTheme.textSecondary)
+        }
+        .padding(16)
+        .glowSurfaceCard(cornerRadius: 20)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "Current streak \(streaks.current) days. Best streak \(streaks.best) days. Weekly completion \(weeklyPercent) percent. \(recentDone) of the last 14 days completed."
+        )
+    }
+
+    private var weeklyCompletionSection: some View {
+        let weeklyPercent = max(0, min(1, viewModel.weeklyPercent()))
+        let weeklyPercentText = Int((weeklyPercent * 100).rounded())
+        let completedDays = viewModel.cachedRecentCompleted7
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("This week")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(GlowTheme.textPrimary)
+
+                Spacer()
+
+                Text("\(weeklyPercentText)%")
+                    .font(.subheadline.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(GlowTheme.textPrimary)
+            }
+
+            ProgressView(value: weeklyPercent)
+                .tint(viewModel.habitTint)
+
+            Text("\(completedDays) of the last 7 days completed")
+                .font(.footnote)
+                .foregroundStyle(GlowTheme.textSecondary)
+        }
+        .padding(16)
+        .glowSurfaceCard(cornerRadius: 16)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Weekly completion \(weeklyPercentText) percent. \(completedDays) of the last 7 days completed.")
+    }
+
+    private var managementSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            GlowSectionHeader("Actions")
+
+            Button {
+                showEditHabit = true
+            } label: {
+                actionRow(
+                    title: "Edit Habit",
+                    subtitle: "Update name, icon, and schedule.",
+                    systemImage: "pencil"
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                showEditHabit = true
+            } label: {
+                actionRow(
+                    title: viewModel.habit.reminderEnabled ? "Manage Reminder" : "Set Reminder",
+                    subtitle: reminderStatusText,
+                    systemImage: reminderStatusSymbol
+                )
+            }
+            .buttonStyle(.plain)
+
+            Button {
+                toggleArchive()
+            } label: {
+                actionRow(
+                    title: viewModel.habit.isArchived ? "Unarchive Habit" : "Archive Habit",
+                    subtitle: viewModel.habit.isArchived
+                        ? "Restore this habit to active lists."
+                        : "Move this habit out of active lists.",
+                    systemImage: viewModel.habit.isArchived ? "archivebox" : "archivebox.fill"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(16)
+        .glowSurfaceCard(cornerRadius: 16)
+    }
+
+    private func progressMetric(title: String, value: String, symbol: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Label(title, systemImage: symbol)
+                .font(.caption)
+                .foregroundStyle(GlowTheme.textSecondary)
+
+            Text(value)
+                .font(.title3.monospacedDigit().weight(.semibold))
                 .foregroundStyle(GlowTheme.textPrimary)
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Weekly completion \(Int(percent * 100)) percent")
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(GlowTheme.bgSurface)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(GlowTheme.borderMuted.opacity(0.3), lineWidth: 1)
+        )
+    }
+
+    private func actionRow(title: String, subtitle: String, systemImage: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .foregroundStyle(viewModel.habitTint)
+                .frame(width: 22, height: 22)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.body.weight(.semibold))
+                    .foregroundStyle(GlowTheme.textPrimary)
+
+                Text(subtitle)
+                    .font(.footnote)
+                    .foregroundStyle(GlowTheme.textSecondary)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(GlowTheme.textSecondary)
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var scheduleSummaryText: String {
+        SchedulePresentation.summaryText(for: viewModel.habit.schedule)
+    }
+
+    private var scheduleDueStatusText: String {
+        SchedulePresentation.dueStatusText(
+            for: viewModel.habit.schedule,
+            isArchived: viewModel.habit.isArchived
+        )
+    }
+
+    private var reminderStatusText: String {
+        ReminderPresentation.statusText(for: viewModel.habit)
+    }
+
+    private var reminderStatusSymbol: String {
+        viewModel.habit.reminderEnabled ? "bell.fill" : "bell.slash"
+    }
+
+    private func toggleArchive() {
+        let willArchive = !viewModel.habit.isArchived
+        viewModel.habit.isArchived = willArchive
+        context.saveSafely()
+        viewModel.refreshFromStore()
+
+        Task {
+            await NotificationManager.syncAfterArchiveStateChange(for: viewModel.habit)
+        }
     }
 }
 
@@ -315,26 +447,27 @@ private struct MonthHeatmap: View {
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             header
             weekdayHeader
             grid
+            legend
             summary
         }
-        .padding(.top, 12)
-        .padding(.bottom, 16)
-        .padding(.horizontal, 12)
+        .padding(.top, 14)
+        .padding(.bottom, 18)
+        .padding(.horizontal, 14)
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(GlowTheme.bgSurface)
         )
         .overlay(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
         )
         .shadow(
             color: Color.black.opacity(0.15),
-            radius: 20, y: 10
+            radius: 8, y: 2
         )
         .accessibilityElement(children: .contain)
     }
@@ -343,23 +476,45 @@ private struct MonthHeatmap: View {
         HStack {
             Button(action: onPrev) {
                 Image(systemName: "chevron.left")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(GlowTheme.bgSurface)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(GlowTheme.borderMuted.opacity(0.5), lineWidth: 1)
+                    )
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Previous month")
 
             Spacer()
 
             Text(model.monthTitle)
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(GlowTheme.textPrimary)
 
             Spacer()
 
             Button(action: onNext) {
                 Image(systemName: "chevron.right")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 32, height: 32)
+                    .background(
+                        Circle()
+                            .fill(GlowTheme.bgSurface)
+                    )
+                    .overlay(
+                        Circle()
+                            .stroke(GlowTheme.borderMuted.opacity(0.5), lineWidth: 1)
+                    )
             }
             .buttonStyle(.plain)
             .frame(minWidth: 44, minHeight: 44)
+            .accessibilityLabel("Next month")
         }
         .accessibilityLabel("Month navigation")
     }
@@ -376,8 +531,8 @@ private struct MonthHeatmap: View {
     }
 
     private var grid: some View {
-        let vSpacing: CGFloat = horizontalSizeClass == .regular ? 8 : 6
-        let hSpacing: CGFloat = horizontalSizeClass == .regular ? 8 : 6
+        let vSpacing: CGFloat = horizontalSizeClass == .regular ? 8 : 7
+        let hSpacing: CGFloat = horizontalSizeClass == .regular ? 8 : 7
         return VStack(spacing: vSpacing) {
             ForEach(0..<model.gridDates.count, id: \.self) { row in
                 HStack(spacing: hSpacing) {
@@ -397,14 +552,50 @@ private struct MonthHeatmap: View {
         }
     }
 
+    private var legend: some View {
+        HStack(spacing: 12) {
+            legendItem(title: "Completed", fill: tint.opacity(0.85))
+            legendItem(title: "Not completed", fill: GlowTheme.borderMuted.opacity(0.15))
+        }
+        .font(.caption)
+        .foregroundStyle(GlowTheme.textSecondary)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Legend: completed and not completed days.")
+    }
+
+    private func legendItem(title: String, fill: Color) -> some View {
+        HStack(spacing: 6) {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(fill)
+                .frame(width: 14, height: 14)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .stroke(GlowTheme.borderMuted.opacity(0.35), lineWidth: 0.5)
+                )
+
+            Text(title)
+        }
+    }
+
     private var summary: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 10) {
             HStack(spacing: 4) {
                 Image(systemName: "calendar")
-                Text("\(model.pct)% this month")
+                Text("\(model.pct)% complete")
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(GlowTheme.bgSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(GlowTheme.borderMuted.opacity(0.35), lineWidth: 1)
+            )
 
             HStack(spacing: 4) {
                 Image(systemName: "flame.fill")
@@ -412,12 +603,20 @@ private struct MonthHeatmap: View {
                     .monospacedDigit()
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .background(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(GlowTheme.bgSurface)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(GlowTheme.borderMuted.opacity(0.35), lineWidth: 1)
+            )
         }
         .font(.footnote)
         .foregroundStyle(GlowTheme.textSecondary)
-        .padding(.top, 6)
-        .padding(.horizontal, 4)
-        .padding(.bottom, 4)
+        .padding(.top, 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
             "Month completion \(model.pct) percent. Current month streak \(model.monthStreak) days."
@@ -615,7 +814,7 @@ private struct DayCell: View {
     }
 
     private var cellHeight: CGFloat {
-        horizontalSizeClass == .regular ? 32 : 24
+        horizontalSizeClass == .regular ? 34 : 26
     }
 }
 
@@ -633,7 +832,7 @@ private extension View {
             )
             .shadow(
                 color: Color.black.opacity(0.15),
-                radius: 20, y: 10
+                radius: 12, y: 4
             )
     }
 }

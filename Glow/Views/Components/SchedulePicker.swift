@@ -5,59 +5,63 @@ struct SchedulePicker: View {
 
     @State private var isCustom: Bool = false
     @State private var setDays: Set<Weekday> = Set(Weekday.allCases)
+    private let dayColumns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 7)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 12) {
-                Toggle(isOn: Binding(
-                    get: { !isCustom },
+        VStack(alignment: .leading, spacing: 12) {
+            Picker(
+                "Frequency",
+                selection: Binding(
+                    get: { isCustom ? 1 : 0 },
                     set: { newValue in
-                        isCustom = !newValue
+                        isCustom = (newValue == 1)
                         updateSelection()
                     }
-                )) {
-                    Text("Every day")
-                        .foregroundStyle(GlowTheme.textPrimary)
-                }
-                .toggleStyle(.switch)
+                )
+            ) {
+                Text("Daily").tag(0)
+                Text("Custom").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityLabel("Schedule frequency")
 
-                if isCustom {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Which days?")
-                            .font(.subheadline.weight(.medium))
-                            .foregroundStyle(GlowTheme.textPrimary)
+            if isCustom {
+                Text("Select the days this habit should appear.")
+                    .font(.footnote)
+                    .foregroundStyle(GlowTheme.textSecondary)
 
-                        HStack(spacing: 8) {
-                            ForEach(Weekday.allCases, id: \.self) { day in
-                                let active = setDays.contains(day)
+                LazyVGrid(columns: dayColumns, spacing: 8) {
+                    ForEach(Weekday.allCases, id: \.self) { day in
+                        let active = setDays.contains(day)
 
-                                DayChip(
-                                    label: shortLabel(for: day),
-                                    active: active
-                                ) {
-                                    if active {
-                                        setDays.remove(day)
-                                    } else {
-                                        setDays.insert(day)
-                                    }
-                                    updateSelection()
-                                }
-                                .accessibilityLabel("Toggle \(fullLabel(for: day))")
+                        DayChip(
+                            label: shortLabel(for: day),
+                            active: active
+                        ) {
+                            if active {
+                                setDays.remove(day)
+                            } else {
+                                setDays.insert(day)
                             }
+                            updateSelection()
                         }
-                        .frame(maxWidth: .infinity)
+                        .accessibilityLabel("Toggle \(fullLabel(for: day))")
+                        .accessibilityValue(active ? "Selected" : "Not selected")
                     }
                 }
+
+                Text(customSelectionSummaryText)
+                    .font(.footnote)
+                    .foregroundStyle(setDays.isEmpty ? .orange : GlowTheme.textSecondary)
+
+                Text(customNextDueText)
+                    .font(.footnote)
+                    .foregroundStyle(GlowTheme.textSecondary)
+            } else {
+                Text("This habit is due every day.")
+                    .font(.footnote)
+                    .foregroundStyle(GlowTheme.textSecondary)
             }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(GlowTheme.bgSurface)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .stroke(GlowTheme.borderMuted.opacity(0.4), lineWidth: 1)
-            )
         }
         .onAppear {
             isCustom = (selection.kind == .custom)
@@ -76,13 +80,13 @@ struct SchedulePicker: View {
 
     private func shortLabel(for day: Weekday) -> String {
         switch day {
-        case .sun: return "S"
+        case .sun: return "Su"
         case .mon: return "M"
-        case .tue: return "T"
+        case .tue: return "Tu"
         case .wed: return "W"
         case .thu: return "Th"
         case .fri: return "F"
-        case .sat: return "S"
+        case .sat: return "Sa"
         }
     }
 
@@ -96,6 +100,16 @@ struct SchedulePicker: View {
         case .fri: return "Friday"
         case .sat: return "Saturday"
         }
+    }
+
+    private var customSelectionSummaryText: String {
+        let previewSchedule = HabitSchedule.weekdays(Array(setDays))
+        return SchedulePresentation.customDaysReviewText(for: previewSchedule)
+    }
+
+    private var customNextDueText: String {
+        let previewSchedule = HabitSchedule.weekdays(Array(setDays))
+        return SchedulePresentation.dueStatusText(for: previewSchedule)
     }
 }
 
@@ -134,7 +148,6 @@ private struct DayChip: View {
         }
         .buttonStyle(.plain)
         .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .frame(maxWidth: .infinity)
         .accessibilityAddTraits(active ? [.isSelected] : [])
     }
 }

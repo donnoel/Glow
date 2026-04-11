@@ -45,8 +45,12 @@ struct AddOrEditHabitForm: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Details") {
+                Section {
                     TextField("Title", text: $title)
+                        .accessibilityIdentifier("practiceTitleField")
+                        .font(.title3.weight(.semibold))
+                        .padding(.vertical, 4)
+                        .submitLabel(.done)
                         .textInputAutocapitalization(.words)
                         .onChange(of: title) { _, newValue in
                             guard mode == .add else { return }
@@ -66,26 +70,67 @@ struct AddOrEditHabitForm: View {
                                 iconName = freshGuess
                             }
                         }
+
+                    Text("Choose a clear name you can recognize at a glance.")
+                        .font(.footnote)
+                        .foregroundStyle(GlowTheme.textSecondary)
+                } header: {
+                    GlowSectionHeader("Title")
                 }
 
-                Section("Schedule") {
+                Section {
+                    Text(schedulePreviewText)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(GlowTheme.textPrimary)
+
+                    Text(scheduleDuePreviewText)
+                        .font(.footnote)
+                        .foregroundStyle(GlowTheme.textSecondary)
+
                     SchedulePicker(selection: $schedule)
+                } header: {
+                    GlowSectionHeader("Schedule")
                 }
 
-                Section("Icon") {
+                Section {
+                    Text("Selected: \(selectedIconLabel)")
+                        .font(.footnote)
+                        .foregroundStyle(GlowTheme.textSecondary)
                     IconPickerRow(selection: $iconName)
+                } header: {
+                    GlowSectionHeader("Icon")
                 }
 
-                Section("Reminder") {
+                Section {
+                    LabeledContent("Status", value: remindMe ? "On" : "Off")
+                        .font(.subheadline.weight(.medium))
+
                     Toggle("Remind me", isOn: $remindMe)
+                        .accessibilityHint("Turns reminder notifications on or off for this habit")
                     if remindMe {
-                        DatePicker("Time",
+                        DatePicker("Reminder time",
                                    selection: $reminderTime,
                                    displayedComponents: .hourAndMinute)
-                            .datePickerStyle(.wheel)
-                            .labelsHidden()
+                            .datePickerStyle(.compact)
                             .accessibilityLabel("Reminder time")
+
+                        Text(reminderPreviewText)
+                            .font(.footnote)
+                            .foregroundStyle(GlowTheme.textSecondary)
+                            .accessibilityLabel(reminderPreviewText)
+                    } else {
+                        Text("Reminder is off.")
+                            .font(.footnote)
+                            .foregroundStyle(GlowTheme.textSecondary)
                     }
+
+                    if isEditingArchivedHabit {
+                        Text("Archived habits pause reminders until unarchived.")
+                            .font(.footnote)
+                            .foregroundStyle(GlowTheme.textSecondary)
+                    }
+                } header: {
+                    GlowSectionHeader("Reminder")
                 }
             }
             .navigationTitle(mode == .add ? "New Practice" : "Edit Practice")
@@ -97,13 +142,13 @@ struct AddOrEditHabitForm: View {
                     Button(mode == .add ? "Save" : "Done") {
                         Task { await handleSave() }
                     }
+                    .accessibilityIdentifier("savePracticeButton")
                     .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
         }
         .glowTint()
         .glowScreenBackground()
-        .presentationDetents([.medium])
     }
 
     // MARK: - Save
@@ -116,15 +161,19 @@ struct AddOrEditHabitForm: View {
         case .add:
             let newHabit = createHabit(from: trimmed)
             context.insert(newHabit)
-            context.saveSafelyReturningSuccess()
-            await applyNotificationsAfterAdd(for: newHabit)
+            let didSave = context.saveSafelyReturningSuccess()
+            if didSave {
+                await NotificationManager.syncAfterCreate(for: newHabit)
+            }
 
         case .edit:
             guard let habit else { break }
             let wasEnabled = habit.reminderEnabled
             update(habit: habit, with: trimmed)
-            context.saveSafelyReturningSuccess()
-            await applyNotificationsAfterEdit(for: habit, wasEnabled: wasEnabled)
+            let didSave = context.saveSafelyReturningSuccess()
+            if didSave {
+                await NotificationManager.syncAfterEdit(for: habit, wasReminderEnabled: wasEnabled)
+            }
         }
 
         dismiss()
@@ -158,8 +207,6 @@ struct AddOrEditHabitForm: View {
         applyReminderFields(to: habit)
     }
 
-    // MARK: - Notifications
-
     private func applyReminderFields(to habit: Habit) {
         habit.reminderEnabled = remindMe
         if remindMe {
@@ -167,28 +214,35 @@ struct AddOrEditHabitForm: View {
         }
     }
 
-    private func applyNotificationsAfterAdd(for habit: Habit) async {
-        guard remindMe else { return }
-        let ok = await NotificationManager.requestAuthorizationIfNeeded()
-        if ok {
-            await NotificationManager.scheduleNotifications(for: habit)
-        }
-    }
-
-    private func applyNotificationsAfterEdit(for habit: Habit, wasEnabled: Bool) async {
-        if habit.isArchived {
-            await NotificationManager.cancelNotifications(for: habit)
-        } else if habit.reminderEnabled {
-            let ok = await NotificationManager.requestAuthorizationIfNeeded()
-            if ok {
-                await NotificationManager.scheduleNotifications(for: habit)
-            }
-        } else if wasEnabled && !habit.reminderEnabled {
-            await NotificationManager.cancelNotifications(for: habit)
-        }
-    }
-
     // MARK: - Helpers
+
+    private var isEditingArchivedHabit: Bool {
+        mode == .edit && (habit?.isArchived ?? false)
+    }
+
+    private var selectedIconLabel: String {
+        HabitIconLibrary.all.first(where: { $0.name == iconName })?.label ?? iconName
+    }
+
+    private var schedulePreviewText: String {
+        SchedulePresentation.summaryText(for: schedule)
+    }
+
+    private var scheduleDuePreviewText: String {
+        SchedulePresentation.dueStatusText(
+            for: schedule,
+            isArchived: isEditingArchivedHabit
+        )
+    }
+
+    private var reminderPreviewText: String {
+        ReminderPresentation.statusText(
+            reminderEnabled: remindMe,
+            reminderTime: reminderTime,
+            schedule: schedule,
+            isArchived: isEditingArchivedHabit
+        )
+    }
 
     private func nextSortOrder() -> Int {
         var descriptor = FetchDescriptor<Habit>()
