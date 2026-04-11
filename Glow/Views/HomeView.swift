@@ -10,7 +10,6 @@ import LinkPresentation
 struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @Query(sort: [
         SortDescriptor(\Habit.sortOrder, order: .forward),
@@ -39,173 +38,30 @@ struct HomeView: View {
     // Share
     @State private var showShare = false
 
-    // Sidebar
-    @State private var showSidebar = false
-    @State private var selectedTab: SidebarTab = .home
-    @State private var showTrends = false
-    @State private var showAbout = false
-    @State private var showYou = false
-    @State private var showArchive = false
-    @State private var showReminders = false
-
     // Fires every 30s so we can notice when the day boundary changes.
     private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
-    @State private var highlightTodayCard = false
-    @State private var lastPercent: Double = 0.0
     @State private var pendingRefreshTask: Task<Void, Never>?
 
     // MARK: - body
 
     var body: some View {
-        ZStack {
-            NavigationStack {
-                homeRoot
-                    .navigationBarHidden(true)
-                    .sheet(
-                        isPresented: Binding(
-                            get: { habitToEdit != nil },
-                            set: { if !$0 { habitToEdit = nil } }
-                        )
-                    ) {
-                        if let habitToEdit {
-                            AddOrEditHabitForm(mode: .edit, habit: habitToEdit)
-                                .presentationDetents([.large])
-                                .presentationDragIndicator(.visible)
-                        }
-                    }
-                    .sheet(isPresented: $showAdd) {
-                        addSheet
-                    }
-                    .confirmationDialog(
-                        "Delete practice?",
-                        isPresented: Binding(
-                            get: { habitToDelete != nil },
-                            set: { if !$0 { habitToDelete = nil } }
-                        ),
-                        presenting: habitToDelete
-                    ) { h in
-                        Button("Delete “\(h.title)”", role: .destructive) {
-                            GlowTheme.tapHaptic()
-                            Task { await NotificationManager.cancelNotifications(for: h) }
-                            context.delete(h)
-                            do { try context.save() } catch {
-                                print("SwiftData save error:", error)
-                            }
-                            habitToDelete = nil
-                        }
-                        Button("Cancel", role: .cancel) { habitToDelete = nil }
-                    }
-            }
-            .glowTint()
-            .glowScreenBackground()
-            .onReceive(dayTimer) { _ in
-                checkForNewDay()
-            }
-            .onAppear {
-                refreshFromHabits()
-            }
-        
-            .onChange(of: habits) { _, _ in
-                scheduleRefresh()
-            }
-            // Refresh when app returns to foreground (fixes stale lists/state after backgrounding)
-            .onChange(of: scenePhase) { _, phase in
-                guard phase == .active else { return }
-                let startOfNow = Calendar.current.startOfDay(for: Date())
-                viewModel.advanceToToday(startOfNow)
-                scheduleRefresh()
-            }
-            // React to DST/manual time change or midnight rollover while app is running
-            .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
-                checkForNewDay()
-                scheduleRefresh()
-            }
-            // React to our custom "data changed" signal
-            .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
-                scheduleRefresh(reloadListID: true)
-            }
-            // React to any SwiftData save (including CloudKit merges)
-            .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in
-                scheduleRefresh(reloadListID: true)
-            }
-
-            // extra sheets
-            .sheet(isPresented: $showTrends) {
-                TrendsView()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .glowShowTrends)) { _ in
-                showTrends = true
-            }
-            .sheet(isPresented: $showAbout) {
-                AboutGlowView()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .glowShowAbout)) { _ in
-                showAbout = true
-            }
-            .sheet(isPresented: $showYou) {
-                YouView(
-                    currentStreak: viewModel.globalStreak.current,
-                    bestStreak: viewModel.globalStreak.best,
-                    favoriteTitle: viewModel.mostConsistentHabit.title,
-                    favoriteHits: viewModel.mostConsistentHabit.hits,
-                    favoriteWindow: viewModel.mostConsistentHabit.window,
-                    checkInTime: viewModel.typicalCheckInTime,
-                    recentActiveDays: viewModel.recentActiveDays,
-                    lifetimeActiveDays: viewModel.lifetimeActiveDays,
-                    lifetimeCompletions: viewModel.lifetimeCompletions
-                )
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .glowShowYou)) { _ in
-                showYou = true
-            }
-            .sheet(isPresented: $showArchive) {
-                ArchiveView()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .glowShowArchive)) { _ in
-                showArchive = true
-            }
-            .sheet(isPresented: $showReminders) {
-                RemindersView()
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .glowShowReminders)) { _ in
-                showReminders = true
-            }
-
-            if showSidebar {
-                SidebarOverlay(
-                    selectedTab: $selectedTab,
-                    close: {
-                        showSidebar = false   // overlay slides/fades, *then* we remove it
-                    }
-                )
-            }
-        }
-        .sheet(isPresented: $showShare) {
-            ShareSheet(message: "")
-        }
-    }
-
-    // MARK: - Home Root View with Chrome Overlay
-    private var homeRoot: some View {
-        contentList
-            .overlay(alignment: .topLeading) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        SidebarHandleButton {
-                            showSidebar = true     // let SidebarOverlay animate itself
-                            GlowTheme.tapHaptic()
-                        }
-                        .accessibilityIdentifier("menuButton") // UITest stable id
-
-                        Spacer()
-
-                        NavShareButton {
+        NavigationStack {
+            contentList
+                .navigationTitle("Today")
+                .navigationBarTitleDisplayMode(.large)
+                .toolbar {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        Button {
                             showShare = true
                             GlowTheme.tapHaptic()
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
                         }
+                        .accessibilityLabel("Share Glow")
+                        .accessibilityHint("Opens the system share sheet")
 
-                        NavAddButton {
+                        Button {
                             newTitle = ""
                             newSchedule = .daily
                             newIconName = HabitIconLibrary.guessIcon(for: newTitle)
@@ -215,16 +71,82 @@ struct HomeView: View {
 
                             showAdd = true
                             GlowTheme.tapHaptic()
+                        } label: {
+                            Image(systemName: "plus")
                         }
                         .accessibilityLabel("Add practice")
-                        .accessibilityIdentifier("addPracticeButton") // UITest stable id
+                        .accessibilityIdentifier("addPracticeButton")
                     }
-                    .padding(.horizontal, chromeHorizontalPadding)
-                    .padding(.top, 48)
-                    Spacer()
                 }
-                .ignoresSafeArea()
-            }
+                .sheet(
+                    isPresented: Binding(
+                        get: { habitToEdit != nil },
+                        set: { if !$0 { habitToEdit = nil } }
+                    )
+                ) {
+                    if let habitToEdit {
+                        AddOrEditHabitForm(mode: .edit, habit: habitToEdit)
+                            .presentationDetents([.large])
+                            .presentationDragIndicator(.visible)
+                    }
+                }
+                .sheet(isPresented: $showAdd) {
+                    addSheet
+                }
+                .confirmationDialog(
+                    "Delete practice?",
+                    isPresented: Binding(
+                        get: { habitToDelete != nil },
+                        set: { if !$0 { habitToDelete = nil } }
+                    ),
+                    presenting: habitToDelete
+                ) { h in
+                    Button("Delete “\(h.title)”", role: .destructive) {
+                        GlowTheme.tapHaptic()
+                        Task { await NotificationManager.cancelNotifications(for: h) }
+                        context.delete(h)
+                        do { try context.save() } catch {
+                            print("SwiftData save error:", error)
+                        }
+                        habitToDelete = nil
+                    }
+                    Button("Cancel", role: .cancel) { habitToDelete = nil }
+                }
+        }
+        .glowTint()
+        .glowScreenBackground()
+        .onReceive(dayTimer) { _ in
+            checkForNewDay()
+        }
+        .onAppear {
+            refreshFromHabits()
+        }
+        .onChange(of: habits) { _, _ in
+            scheduleRefresh()
+        }
+        // Refresh when app returns to foreground (fixes stale lists/state after backgrounding)
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            let startOfNow = Calendar.current.startOfDay(for: Date())
+            viewModel.advanceToToday(startOfNow)
+            scheduleRefresh()
+        }
+        // React to DST/manual time change or midnight rollover while app is running
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+            checkForNewDay()
+            scheduleRefresh()
+        }
+        // React to our custom "data changed" signal
+        .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
+            scheduleRefresh(reloadListID: true)
+        }
+        // React to any SwiftData save (including CloudKit merges)
+        .onReceive(NotificationCenter.default.publisher(for: ModelContext.didSave)) { _ in
+            scheduleRefresh(reloadListID: true)
+        }
+        .sheet(isPresented: $showShare) {
+            ShareSheet(message: "")
+        }
     }
 
     // MARK: - Add Practice sheet
@@ -334,31 +256,8 @@ struct HomeView: View {
     // MARK: - List Content
     private var contentList: some View {
         List {
-            // HERO
             Section {
-                HeroCardGlass(
-                    highlightTodayCard: $highlightTodayCard,
-                    lastPercent: $lastPercent,
-                    done: viewModel.todayCompletion.done,
-                    total: viewModel.todayCompletion.total,
-                    percent: viewModel.todayCompletion.percent,
-                    bonus: viewModel.bonusCompletedToday.count,
-                    allDone: viewModel.todayCompletion.done + viewModel.bonusCompletedToday.count
-                )
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel("Today’s progress")
-                .accessibilityValue("\(viewModel.todayCompletion.done) of \(viewModel.todayCompletion.total) practices completed")
-                .padding(.top, heroTopPadding)
-                .listRowInsets(
-                    EdgeInsets(
-                        top: GlowTheme.Spacing.small,
-                        leading: GlowTheme.Spacing.medium,
-                        bottom: GlowTheme.Spacing.medium,
-                        trailing: GlowTheme.Spacing.medium
-                    )
-                )
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
+                dailySummaryCard
             }
 
             if viewModel.activeHabits.isEmpty && viewModel.archivedHabits.isEmpty {
@@ -374,62 +273,35 @@ struct HomeView: View {
                     .listRowSeparator(.hidden)
                 }
             } else {
-                if !viewModel.completedToday.isEmpty {
-                    Section("Today’s Wins") {
-                        ForEach(viewModel.completedToday) { habit in
-                            rowCell(habit: habit, isArchived: false)
-                        }
-                        .onMove { indices, newOffset in
-                            handleMove(
-                                indices: indices,
-                                newOffset: newOffset,
-                                sourceArray: viewModel.completedToday
-                            )
-                        }
-                    }
-                }
-
-                if !viewModel.dueButNotDoneToday.isEmpty {
-                    Section("Today’s Focus") {
+                Section("Due Today") {
+                    if viewModel.dueButNotDoneToday.isEmpty {
+                        Text("Nothing due right now.")
+                            .foregroundStyle(GlowTheme.textSecondary)
+                    } else {
                         ForEach(viewModel.dueButNotDoneToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
-                        .onMove { indices, newOffset in
-                            handleMove(
-                                indices: indices,
-                                newOffset: newOffset,
-                                sourceArray: viewModel.dueButNotDoneToday
-                            )
-                        }
                     }
                 }
 
-                if !viewModel.notDueToday.isEmpty {
-                    Section("Coming Up") {
-                        ForEach(viewModel.notDueToday) { habit in
+                Section("Completed Today") {
+                    if viewModel.completedToday.isEmpty {
+                        Text("No completed habits yet.")
+                            .foregroundStyle(GlowTheme.textSecondary)
+                    } else {
+                        ForEach(viewModel.completedToday) { habit in
                             rowCell(habit: habit, isArchived: false)
                         }
-                        .onMove { indices, newOffset in
-                            handleMove(
-                                indices: indices,
-                                newOffset: newOffset,
-                                sourceArray: viewModel.notDueToday
-                            )
-                        }
                     }
                 }
 
-                if !viewModel.archivedHabits.isEmpty {
-                    Section("Archived") {
-                        ForEach(viewModel.archivedHabits) { habit in
-                            rowCell(habit: habit, isArchived: true)
-                        }
-                        .onMove { indices, newOffset in
-                            handleMove(
-                                indices: indices,
-                                newOffset: newOffset,
-                                sourceArray: viewModel.archivedHabits
-                            )
+                Section("Coming Up") {
+                    if viewModel.notDueToday.isEmpty {
+                        Text("No upcoming habits.")
+                            .foregroundStyle(GlowTheme.textSecondary)
+                    } else {
+                        ForEach(viewModel.notDueToday) { habit in
+                            rowCell(habit: habit, isArchived: false)
                         }
                     }
                 }
@@ -444,16 +316,16 @@ struct HomeView: View {
             }
         }
         .listSectionSeparator(.hidden)
-        .listSectionSpacing(.custom(10))
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
+        .listSectionSpacing(.compact)
+        .listStyle(.insetGrouped)
         .id(listRefreshID)
-        .padding(.horizontal, contentHorizontalInset)
     }
 
     // MARK: - Row builder
     @ViewBuilder
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
+        let completed = isCompletedToday(habit)
+
         ZStack {
             // Invisible full-row tap target for navigation (no chevron)
             NavigationLink {
@@ -465,17 +337,47 @@ struct HomeView: View {
                 EmptyView()
             }
             .opacity(0)                 // keep hit area, hide visuals
-            .accessibilityHidden(true)  // let HabitRowGlass handle VoiceOver
+            .accessibilityHidden(true)
 
-            // Our custom glass row UI
-            HabitRowGlass(habit: habit, isArchived: isArchived) {
-                toggleToday(habit)
+            HStack(spacing: 12) {
+                Image(systemName: habit.iconName)
+                    .foregroundStyle(habit.accentColor)
+                    .frame(width: 24, height: 24)
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(habit.title)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(GlowTheme.textPrimary)
+
+                    Text(habit.schedule.isScheduled(on: viewModel.todayStartOfDay) ? "Due today" : "Not due today")
+                        .font(.caption)
+                        .foregroundStyle(GlowTheme.textSecondary)
+                }
+
+                Spacer()
+
+                if !isArchived {
+                    Button {
+                        toggleToday(habit)
+                    } label: {
+                        Image(systemName: completed ? "checkmark.circle.fill" : "circle")
+                            .font(.title3)
+                            .foregroundStyle(completed ? Color.green : GlowTheme.borderMuted)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(completed ? "Mark \(habit.title) not done today" : "Mark \(habit.title) done today")
+                }
             }
+            .padding(.vertical, 4)
         }
-        .listRowBackground(Color.clear)
-        .listRowSeparator(.hidden)
-        .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button {
+                toggleToday(habit)
+            } label: {
+                Label(completed ? "Undo" : "Complete", systemImage: completed ? "arrow.uturn.backward.circle" : "checkmark.circle")
+            }
+            .tint(.green)
+
             Button {
                 habitToEdit = habit
             } label: {
@@ -505,19 +407,64 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Row helpers
-    private func handleMove(indices: IndexSet, newOffset: Int, sourceArray: [Habit]) {
-        var working = sourceArray
-        working.move(fromOffsets: indices, toOffset: newOffset)
+    private var dailySummaryCard: some View {
+        let doneScheduled = viewModel.todayCompletion.done
+        let totalScheduled = viewModel.todayCompletion.total
+        let bonus = viewModel.bonusCompletedToday.count
+        let completedCount = doneScheduled + bonus
+        let percent = totalScheduled == 0
+            ? (bonus > 0 ? 100 : 0)
+            : Int((Double(completedCount) / Double(totalScheduled) * 100).rounded())
+        let currentStreak = viewModel.globalStreak.current
+        let bestStreak = viewModel.globalStreak.best
 
-        for (idx, habit) in working.enumerated() {
-            habit.sortOrder = idx
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Daily Summary")
+                    .font(.headline)
+                Spacer()
+                Text("\(percent)%")
+                    .font(.title3.monospacedDigit().weight(.semibold))
+                    .foregroundStyle(GlowTheme.accentPrimary)
+            }
+
+            HStack(spacing: 16) {
+                Label("\(completedCount) done", systemImage: "checkmark.circle.fill")
+                Label("\(totalScheduled) due", systemImage: "calendar")
+                Label("\(currentStreak)d streak", systemImage: "flame.fill")
+            }
+            .font(.subheadline.monospacedDigit())
+            .foregroundStyle(GlowTheme.textSecondary)
+
+            Text(summarySupportingLine(done: completedCount, total: totalScheduled, streak: currentStreak, bestStreak: bestStreak))
+                .font(.footnote)
+                .foregroundStyle(GlowTheme.textSecondary)
+                .lineLimit(1)
         }
+        .padding(.vertical, 6)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Daily summary")
+        .accessibilityValue("\(completedCount) completed, \(totalScheduled) due, \(percent) percent, current streak \(currentStreak) days, best streak \(bestStreak) days")
+    }
 
-        do {
-            try context.save()
-        } catch {
-            print("Reorder save error:", error)
+    private func summarySupportingLine(done: Int, total: Int, streak: Int, bestStreak: Int) -> String {
+        if total == 0 {
+            return done > 0 ? "Bonus progress captured even without scheduled habits." : "No scheduled habits today."
+        }
+        if done >= total {
+            return "All due habits complete today."
+        }
+        if streak > 0 {
+            return "Current streak: \(streak) day\(streak == 1 ? "" : "s")."
+        }
+        return bestStreak > 0 ? "Best streak so far: \(bestStreak) days." : "One check-in starts your streak."
+    }
+
+    private func isCompletedToday(_ habit: Habit) -> Bool {
+        let cal = Calendar.current
+        let today = viewModel.todayStartOfDay
+        return (habit.logs ?? []).contains { log in
+            cal.startOfDay(for: log.date) == today && log.completed
         }
     }
 
@@ -597,118 +544,6 @@ struct HomeView: View {
             listRefreshID = UUID()
         }
     }
-
-
-    // MARK: - Layout helpers
-    /// Extra top padding for the hero card.
-    /// On iPad (regular width) we nudge it down a bit so it doesn’t crowd the nav chrome.
-    private var heroTopPadding: CGFloat {
-        horizontalSizeClass == .regular
-        ? GlowTheme.Spacing.xlarge * 3.5
-        : GlowTheme.Spacing.xlarge * 2
-    }
-    /// Horizontal inset for the main content column.
-    /// On iPad (regular width) we match the Details screen with a ~1-inch gutter.
-    /// On iPhone we leave it at 0 so the existing layout is unchanged.
-    private var contentHorizontalInset: CGFloat {
-        horizontalSizeClass == .regular ? 96 : 0
-    }
-
-    /// Horizontal padding for the nav chrome overlay.
-    /// On iPad this aligns the buttons with the main content column.
-    /// On iPhone we keep the original 16pt padding.
-    private var chromeHorizontalPadding: CGFloat {
-        horizontalSizeClass == .regular ? 96 : 16
-    }
-
-    // MARK: - Sidebar buttons (unchanged except identifiers)
-    private struct SidebarHandleButton: View {
-        @Environment(\.colorScheme) private var colorScheme
-        let action: () -> Void
-
-        var body: some View {
-            Button(action: action) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 29, weight: .semibold))
-                    .foregroundStyle(
-                        colorScheme == .dark
-                        ? GlowTheme.accentPrimary
-                        : GlowTheme.textPrimary
-                    )
-                    .padding(10)
-                    .background(
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .shadow(
-                                color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
-                                radius: 20, y: 10
-                            )
-                    )
-            }
-            .accessibilityLabel("Menu")
-            .accessibilityHint("Opens Glow navigation")
-        }
-    }
-
-    private struct NavAddButton: View {
-        @Environment(\.colorScheme) private var colorScheme
-        let action: () -> Void
-
-        var body: some View {
-            Button(action: action) {
-                Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 29, weight: .semibold))
-                    .foregroundStyle(navIconColor)
-                    .padding(10)
-                    .background(
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .shadow(
-                                color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
-                                radius: 20, y: 10
-                            )
-                    )
-            }
-            .accessibilityLabel("Add practice")
-        }
-
-        private var navIconColor: Color {
-            switch colorScheme {
-            case .light: return GlowTheme.textPrimary
-            case .dark:  return GlowTheme.accentPrimary
-            @unknown default: return GlowTheme.accentPrimary
-            }
-        }
-    }
-
-    private struct NavShareButton: View {
-        @Environment(\.colorScheme) private var colorScheme
-        let action: () -> Void
-
-        var body: some View {
-            Button(action: action) {
-                Image(systemName: "square.and.arrow.up.circle")
-                    .font(.system(size: 27, weight: .semibold))
-                    .foregroundStyle(
-                        colorScheme == .dark
-                        ? GlowTheme.accentPrimary.opacity(0.75)
-                        : GlowTheme.textSecondary
-                    )
-                    .padding(10)
-                    .background(
-                        Circle()
-                            .fill(.ultraThinMaterial)
-                            .shadow(
-                                color: Color.black.opacity(colorScheme == .dark ? 0.6 : 0.08),
-                                radius: 20, y: 10
-                            )
-                    )
-            }
-            .accessibilityLabel("Share Glow")
-            .accessibilityHint("Opens the system share sheet")
-        }
-    }
-
     // MARK: - Static helpers
     private static func defaultReminderTime() -> Date {
         let cal = Calendar.current
@@ -787,7 +622,5 @@ private final class GlowShareItemSource: NSObject, UIActivityItemSource {
 }
 
 extension Notification.Name {
-    static let glowShowArchive = Notification.Name("glowShowArchive")
-    static let glowShowReminders = Notification.Name("glowShowReminders")
     static let glowDataDidChange = Notification.Name("glowDataDidChange")
 }
