@@ -161,7 +161,7 @@ struct HabitDetailView: View {
 
     private var progressSummarySection: some View {
         let streaks = viewModel.streaks()
-        let recentDone = recentCompletedDays(count: 14)
+        let recentDone = viewModel.cachedRecentCompleted14
         let weeklyPercent = Int((viewModel.weeklyPercent() * 100).rounded())
 
         return VStack(alignment: .leading, spacing: 12) {
@@ -200,6 +200,7 @@ struct HabitDetailView: View {
     private var weeklyCompletionSection: some View {
         let weeklyPercent = max(0, min(1, viewModel.weeklyPercent()))
         let weeklyPercentText = Int((weeklyPercent * 100).rounded())
+        let completedDays = viewModel.cachedRecentCompleted7
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -217,14 +218,14 @@ struct HabitDetailView: View {
             ProgressView(value: weeklyPercent)
                 .tint(viewModel.habitTint)
 
-            Text("\(recentCompletedDays(count: 7)) of the last 7 days completed")
+            Text("\(completedDays) of the last 7 days completed")
                 .font(.footnote)
                 .foregroundStyle(GlowTheme.textSecondary)
         }
         .padding(16)
         .glowSurfaceCard(cornerRadius: 16)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Weekly completion \(weeklyPercentText) percent. \(recentCompletedDays(count: 7)) of the last 7 days completed.")
+        .accessibilityLabel("Weekly completion \(weeklyPercentText) percent. \(completedDays) of the last 7 days completed.")
     }
 
     private var managementSection: some View {
@@ -336,21 +337,6 @@ struct HabitDetailView: View {
 
     private var reminderStatusSymbol: String {
         viewModel.habit.reminderEnabled ? "bell.fill" : "bell.slash"
-    }
-
-    private func recentCompletedDays(count: Int) -> Int {
-        let cal = Calendar.current
-        let today = cal.startOfDay(for: Date())
-        guard let start = cal.date(byAdding: .day, value: -(count - 1), to: today) else {
-            return 0
-        }
-        let completed = Set(
-            viewModel.logs
-                .filter { $0.completed }
-                .map { cal.startOfDay(for: $0.date) }
-                .filter { $0 >= start && $0 <= today }
-        )
-        return completed.count
     }
 
     private func toggleArchive() {

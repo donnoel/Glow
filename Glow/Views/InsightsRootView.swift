@@ -2,6 +2,10 @@ import SwiftUI
 import SwiftData
 
 struct InsightsRootView: View {
+    private static let cachedWeekSymbols: [String] = {
+        Calendar.current.shortWeekdaySymbols.map { String($0.prefix(3)) }
+    }()
+
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @Query(sort: [
@@ -240,8 +244,7 @@ struct InsightsRootView: View {
     }
 
     private var weekSymbols: [String] {
-        let formatter = DateFormatter()
-        return formatter.shortWeekdaySymbols.map { String($0.prefix(3)) }
+        Self.cachedWeekSymbols
     }
 
     private var mostConsistentLabel: String {

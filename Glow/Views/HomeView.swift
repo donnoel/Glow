@@ -279,7 +279,7 @@ struct HomeView: View {
     // MARK: - Row builder
     @ViewBuilder
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
-        let completed = isCompletedToday(habit)
+        let completed = viewModel.completedTodayHabitIDs.contains(habit.id)
 
         ZStack {
             // Invisible full-row tap target for navigation (no chevron)
@@ -421,14 +421,6 @@ struct HomeView: View {
             for: habit.schedule,
             on: viewModel.todayStartOfDay
         )
-    }
-
-    private func isCompletedToday(_ habit: Habit) -> Bool {
-        let cal = Calendar.current
-        let today = viewModel.todayStartOfDay
-        return (habit.logs ?? []).contains { log in
-            cal.startOfDay(for: log.date) == today && log.completed
-        }
     }
 
     private func toggleToday(_ habit: Habit) {

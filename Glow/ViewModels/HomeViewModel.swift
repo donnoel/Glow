@@ -14,6 +14,7 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var archivedHabits: [Habit] = []
     @Published private(set) var scheduledTodayHabits: [Habit] = []
     @Published private(set) var completedToday: [Habit] = []
+    @Published private(set) var completedTodayHabitIDs: Set<String> = []
     @Published private(set) var dueButNotDoneToday: [Habit] = []
     @Published private(set) var notDueToday: [Habit] = []
     @Published private(set) var bonusCompletedToday: [Habit] = []
@@ -78,6 +79,7 @@ final class HomeViewModel: ObservableObject {
                 hasCompletedToday: hasToday
             )
         }
+        let cacheByID = Dictionary(uniqueKeysWithValues: habitCaches.map { ($0.habit.id, $0) })
         
         // 1) split active vs archived
         let activeCaches = habitCaches.filter { !$0.habit.isArchived }
@@ -92,12 +94,12 @@ final class HomeViewModel: ObservableObject {
         
         // 3) completed today (scheduled)
         let completedScheduled = scheduled.filter { habit in
-            habitCaches.first(where: { $0.habit.id == habit.id })?.hasCompletedToday ?? false
+            cacheByID[habit.id]?.hasCompletedToday ?? false
         }
         
         // 4) due but not done (scheduled but no completed log today)
         let dueNotDone = scheduled.filter { habit in
-            !(habitCaches.first(where: { $0.habit.id == habit.id })?.hasCompletedToday ?? false)
+            !(cacheByID[habit.id]?.hasCompletedToday ?? false)
         }
         
         // 5) not due today (active but not scheduled)
@@ -107,8 +109,13 @@ final class HomeViewModel: ObservableObject {
         
         // 6) bonus completions (not scheduled but completed today)
         let bonus = notDue.filter { habit in
-            habitCaches.first(where: { $0.habit.id == habit.id })?.hasCompletedToday ?? false
+            cacheByID[habit.id]?.hasCompletedToday ?? false
         }
+        let completedTodayIDs = Set(
+            activeCaches
+                .filter { $0.hasCompletedToday }
+                .map { $0.habit.id }
+        )
         
         // 7) hero numbers
         let totalScheduled = scheduled.count
@@ -195,6 +202,7 @@ final class HomeViewModel: ObservableObject {
         self.archivedHabits = archived
         self.scheduledTodayHabits = scheduled
         self.completedToday = completedScheduled
+        self.completedTodayHabitIDs = completedTodayIDs
         self.dueButNotDoneToday = dueNotDone
         self.notDueToday = notDue
         self.bonusCompletedToday = bonus
