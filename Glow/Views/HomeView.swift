@@ -8,6 +8,12 @@ import LinkPresentation
 // MARK: - HomeView
 
 struct HomeView: View {
+    private struct CompletionUndoChange {
+        let habitID: String
+        let previousCompleted: Bool
+        let createdNewLog: Bool
+    }
+
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -36,9 +42,17 @@ struct HomeView: View {
     private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     @State private var pendingRefreshTask: Task<Void, Never>?
+    @State private var undoAutoDismissTask: Task<Void, Never>?
+    @State private var completionUndoChange: CompletionUndoChange?
+    @State private var completionUndoMessage = ""
+    @State private var showCompletionUndo = false
 
     private var isIPadRegularWidth: Bool {
         horizontalSizeClass == .regular
+    }
+
+    private var hasOnlyArchivedHabits: Bool {
+        viewModel.activeHabits.isEmpty && !viewModel.archivedHabits.isEmpty
     }
 
     // MARK: - body
@@ -109,6 +123,14 @@ struct HomeView: View {
         }
         .glowTint()
         .glowScreenBackground()
+        .safeAreaInset(edge: .bottom) {
+            if showCompletionUndo {
+                completionUndoBar
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 8)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
         .onReceive(dayTimer) { _ in
             checkForNewDay()
         }
@@ -141,6 +163,9 @@ struct HomeView: View {
         .sheet(isPresented: $showShare) {
             ShareSheet(message: "")
         }
+        .onDisappear {
+            undoAutoDismissTask?.cancel()
+        }
     }
 
     // MARK: - Midnight / new-day watcher
@@ -149,6 +174,7 @@ struct HomeView: View {
         let startOfNow = cal.startOfDay(for: Date())
         if startOfNow != viewModel.todayStartOfDay {
             viewModel.advanceToToday(startOfNow)
+            clearCompletionUndo(animated: false)
         }
     }
 
@@ -161,20 +187,45 @@ struct HomeView: View {
 
             if viewModel.activeHabits.isEmpty && viewModel.archivedHabits.isEmpty {
                 Section {
-                    ContentUnavailableView(
-                        "No practices yet",
-                        systemImage: "sparkles",
-                        description: Text("Tap + to add your first practice")
-                    )
-                    .accessibilityAddTraits(.isHeader)
-                    .frame(maxWidth: .infinity, minHeight: 200)
+                    VStack(spacing: 12) {
+                        ContentUnavailableView(
+                            "No habits yet",
+                            systemImage: "sparkles",
+                            description: Text("Start with one small habit for today.")
+                        )
+                        .accessibilityAddTraits(.isHeader)
+                        .frame(maxWidth: .infinity, minHeight: 180)
+
+                        Button {
+                            showAdd = true
+                            GlowTheme.tapHaptic()
+                        } label: {
+                            Label("Add your first habit", systemImage: "plus")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                    }
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                 }
             } else {
+                if hasOnlyArchivedHabits {
+                    Section {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("All habits are archived", systemImage: "archivebox")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(GlowTheme.textPrimary)
+                            Text("Unarchive a habit in Library or add a new one to continue today.")
+                                .font(.footnote)
+                                .foregroundStyle(GlowTheme.textSecondary)
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+
                 Section {
                     if viewModel.dueButNotDoneToday.isEmpty {
-                        Text("Nothing due right now.")
+                        Text("Nothing due right now. You’re caught up.")
                             .foregroundStyle(GlowTheme.textSecondary)
                     } else {
                         ForEach(viewModel.dueButNotDoneToday) { habit in
@@ -187,7 +238,7 @@ struct HomeView: View {
 
                 Section {
                     if viewModel.completedToday.isEmpty {
-                        Text("No completed habits yet.")
+                        Text("Complete a habit to see it here.")
                             .foregroundStyle(GlowTheme.textSecondary)
                     } else {
                         ForEach(viewModel.completedToday) { habit in
@@ -200,7 +251,7 @@ struct HomeView: View {
 
                 Section {
                     if viewModel.notDueToday.isEmpty {
-                        Text("No upcoming habits.")
+                        Text("Upcoming habits will appear as their schedule approaches.")
                             .foregroundStyle(GlowTheme.textSecondary)
                     } else {
                         ForEach(viewModel.notDueToday) { habit in
@@ -267,6 +318,7 @@ struct HomeView: View {
                         Image(systemName: completed ? "checkmark.circle.fill" : "circle")
                             .font(.title3)
                             .foregroundStyle(completed ? Color.green : GlowTheme.borderMuted)
+                            .contentTransition(.symbolEffect(.replace))
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(completed ? "Mark \(habit.title) not done today" : "Mark \(habit.title) done today")
@@ -375,13 +427,17 @@ struct HomeView: View {
     private func toggleToday(_ habit: Habit) {
         let cal = Calendar.current
         let today = viewModel.todayStartOfDay
+        var previousCompleted = false
+        var createdNewLog = false
 
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
             if let log = (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today }) {
+                previousCompleted = log.completed
                 log.completed.toggle()
             } else {
                 let log = HabitLog(date: today, completed: true, habit: habit)
                 context.insert(log)
+                createdNewLog = true
             }
         }
 
@@ -390,6 +446,112 @@ struct HomeView: View {
 
         // tell the view model to recompute and push to the widget
         viewModel.updateHabits(Array(habits))
+
+        presentCompletionUndo(
+            for: habit,
+            previousCompleted: previousCompleted,
+            createdNewLog: createdNewLog
+        )
+    }
+
+    private var completionUndoBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.green)
+                .font(.subheadline)
+
+            Text(completionUndoMessage)
+                .font(.subheadline)
+                .foregroundStyle(GlowTheme.textPrimary)
+                .lineLimit(2)
+
+            Spacer(minLength: 8)
+
+            Button("Undo") {
+                undoLastCompletionChange()
+            }
+            .font(.subheadline.weight(.semibold))
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .fill(.ultraThinMaterial)
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                .stroke(GlowTheme.borderMuted.opacity(0.45), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.12), radius: 6, y: 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(completionUndoMessage). Undo.")
+    }
+
+    private func presentCompletionUndo(for habit: Habit, previousCompleted: Bool, createdNewLog: Bool) {
+        completionUndoChange = CompletionUndoChange(
+            habitID: habit.id,
+            previousCompleted: previousCompleted,
+            createdNewLog: createdNewLog
+        )
+        completionUndoMessage = previousCompleted
+            ? "\(habit.title) marked not done."
+            : "\(habit.title) completed."
+
+        withAnimation(.easeInOut(duration: 0.2)) {
+            showCompletionUndo = true
+        }
+
+        undoAutoDismissTask?.cancel()
+        undoAutoDismissTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            clearCompletionUndo(animated: true)
+        }
+    }
+
+    private func undoLastCompletionChange() {
+        guard let change = completionUndoChange else { return }
+        guard let habit = habits.first(where: { $0.id == change.habitID }) else {
+            clearCompletionUndo(animated: true)
+            return
+        }
+
+        let cal = Calendar.current
+        let today = viewModel.todayStartOfDay
+        let existingLog = (habit.logs ?? []).first { cal.startOfDay(for: $0.date) == today }
+
+        withAnimation(.spring(response: 0.2, dampingFraction: 0.85)) {
+            if change.createdNewLog {
+                if let existingLog {
+                    context.delete(existingLog)
+                }
+            } else if let existingLog {
+                existingLog.completed = change.previousCompleted
+            } else if change.previousCompleted {
+                let restoredLog = HabitLog(date: today, completed: true, habit: habit)
+                context.insert(restoredLog)
+            }
+        }
+
+        GlowTheme.tapHaptic()
+        context.saveSafely()
+        viewModel.updateHabits(Array(habits))
+        clearCompletionUndo(animated: true)
+    }
+
+    private func clearCompletionUndo(animated: Bool) {
+        undoAutoDismissTask?.cancel()
+        undoAutoDismissTask = nil
+        completionUndoChange = nil
+        completionUndoMessage = ""
+
+        if animated {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                showCompletionUndo = false
+            }
+        } else {
+            showCompletionUndo = false
+        }
     }
 
     private func toggleArchive(_ habit: Habit, archived: Bool) {
