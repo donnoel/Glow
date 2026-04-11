@@ -3,6 +3,7 @@ import SwiftData
 
 struct LibraryRootView: View {
     @Environment(\.modelContext) private var context
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @Query(sort: [
         SortDescriptor(\Habit.sortOrder, order: .forward),
@@ -12,6 +13,10 @@ struct LibraryRootView: View {
 
     @State private var showAddHabit = false
     @State private var habitToEdit: Habit?
+
+    private var isIPadRegularWidth: Bool {
+        horizontalSizeClass == .regular
+    }
     
     private var activeHabits: [Habit] {
         habits.filter { !$0.isArchived }
@@ -24,7 +29,7 @@ struct LibraryRootView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Active Habits") {
+                Section {
                     if activeHabits.isEmpty {
                         ContentUnavailableView(
                             "No active habits",
@@ -36,9 +41,11 @@ struct LibraryRootView: View {
                             habitRow(habit: habit, isArchived: false)
                         }
                     }
+                } header: {
+                    GlowSectionHeader("Active Habits")
                 }
 
-                Section("Archived Habits") {
+                Section {
                     if archivedHabits.isEmpty {
                         Text("No archived habits")
                             .foregroundStyle(GlowTheme.textSecondary)
@@ -47,17 +54,24 @@ struct LibraryRootView: View {
                             habitRow(habit: habit, isArchived: true)
                         }
                     }
+                } header: {
+                    GlowSectionHeader("Archived Habits")
                 }
 
-                Section("Reminders") {
+                Section {
                     NavigationLink {
                         RemindersView()
                     } label: {
                         Label("Manage reminders", systemImage: "bell.badge")
                     }
+                } header: {
+                    GlowSectionHeader("Reminders")
                 }
             }
+            .glowCoreListRhythm()
             .navigationTitle("Library")
+            .navigationBarTitleDisplayMode(isIPadRegularWidth ? .inline : .large)
+            .glowIPadPageContainer(maxWidth: 900)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -129,14 +143,7 @@ struct LibraryRootView: View {
         context.saveSafely()
 
         Task {
-            if isArchived {
-                await NotificationManager.cancelNotifications(for: habit)
-            } else if habit.reminderEnabled {
-                let ok = await NotificationManager.requestAuthorizationIfNeeded()
-                if ok {
-                    await NotificationManager.scheduleNotifications(for: habit)
-                }
-            }
+            await NotificationManager.syncAfterArchiveStateChange(for: habit)
         }
     }
     

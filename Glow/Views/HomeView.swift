@@ -10,6 +10,7 @@ import LinkPresentation
 struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
     @Query(sort: [
         SortDescriptor(\Habit.sortOrder, order: .forward),
@@ -22,13 +23,6 @@ struct HomeView: View {
     // Add Sheet / New Practice fields
     @State private var listRefreshID = UUID()
     @State private var showAdd = false
-    @State private var newTitle = ""
-    @State private var newSchedule: HabitSchedule = .daily
-    @State private var newIconName: String = "checkmark.circle"
-
-    // Reminder fields for creation
-    @State private var newReminderEnabled = false
-    @State private var newReminderTime: Date = HomeView.defaultReminderTime()
 
     // Edit / Delete state
     @State private var habitToEdit: Habit?
@@ -43,13 +37,18 @@ struct HomeView: View {
 
     @State private var pendingRefreshTask: Task<Void, Never>?
 
+    private var isIPadRegularWidth: Bool {
+        horizontalSizeClass == .regular
+    }
+
     // MARK: - body
 
     var body: some View {
         NavigationStack {
             contentList
                 .navigationTitle("Today")
-                .navigationBarTitleDisplayMode(.large)
+                .navigationBarTitleDisplayMode(isIPadRegularWidth ? .inline : .large)
+                .glowIPadPageContainer(maxWidth: 920)
                 .toolbar {
                     ToolbarItemGroup(placement: .topBarTrailing) {
                         Button {
@@ -62,13 +61,6 @@ struct HomeView: View {
                         .accessibilityHint("Opens the system share sheet")
 
                         Button {
-                            newTitle = ""
-                            newSchedule = .daily
-                            newIconName = HabitIconLibrary.guessIcon(for: newTitle)
-
-                            newReminderEnabled = false
-                            newReminderTime = HomeView.defaultReminderTime()
-
                             showAdd = true
                             GlowTheme.tapHaptic()
                         } label: {
@@ -91,7 +83,9 @@ struct HomeView: View {
                     }
                 }
                 .sheet(isPresented: $showAdd) {
-                    addSheet
+                    AddOrEditHabitForm(mode: .add)
+                        .presentationDetents([.large])
+                        .presentationDragIndicator(.visible)
                 }
                 .confirmationDialog(
                     "Delete practice?",
@@ -149,101 +143,6 @@ struct HomeView: View {
         }
     }
 
-    // MARK: - Add Practice sheet
-    private var addSheet: some View {
-        NavigationStack {
-            Form {
-                Section("Details") {
-                    TextField("Title", text: $newTitle)
-                        .accessibilityIdentifier("practiceTitleField") // UITest stable id
-                        .textInputAutocapitalization(.words)
-                        .onChange(of: newTitle) { _, newValue in
-                            guard newValue.count > 2 else { return }
-                            let guess = HabitIconLibrary.guessIcon(for: newValue)
-                            if newIconName == "checkmark.circle" || newIconName.isEmpty {
-                                newIconName = guess
-                            }
-                        }
-                }
-
-                Section("Schedule") {
-                    SchedulePicker(selection: $newSchedule)
-                }
-
-                Section("Icon") {
-                    IconPickerRow(selection: $newIconName)
-                }
-
-                Section("Reminder") {
-                    Toggle("Remind me", isOn: $newReminderEnabled)
-
-                    if newReminderEnabled {
-                        DatePicker(
-                            "Time",
-                            selection: $newReminderTime,
-                            displayedComponents: .hourAndMinute
-                        )
-                        .datePickerStyle(.wheel)
-                        .labelsHidden()
-                        .accessibilityLabel("Reminder time")
-                    }
-                }
-            }
-            .navigationTitle("New Practice")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { showAdd = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
-                        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !trimmed.isEmpty else { return }
-
-                        let maxOrder = (habits.map { $0.sortOrder }.max() ?? 9_998)
-                        let newOrder = maxOrder + 1
-
-                        let comps = Calendar.current.dateComponents([.hour, .minute], from: newReminderTime)
-                        let hour = comps.hour
-                        let minute = comps.minute
-
-                        let h = Habit(
-                            title: trimmed,
-                            createdAt: .now,
-                            isArchived: false,
-                            schedule: newSchedule,
-                            reminderEnabled: newReminderEnabled,
-                            reminderHour: hour,
-                            reminderMinute: minute,
-                            iconName: newIconName.isEmpty
-                                ? HabitIconLibrary.guessIcon(for: trimmed)
-                                : newIconName,
-                            sortOrder: newOrder
-                        )
-
-                        context.insert(h)
-                        context.saveSafely()
-
-                        if newReminderEnabled {
-                            Task {
-                                let ok = await NotificationManager.requestAuthorizationIfNeeded()
-                                if ok {
-                                    await NotificationManager.scheduleNotifications(for: h)
-                                }
-                            }
-                        }
-
-                        showAdd = false
-                        GlowTheme.tapHaptic()
-                    }
-                    .accessibilityIdentifier("savePracticeButton") // UITest stable id
-                    .disabled(newTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-            }
-        }
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
-    }
-
     // MARK: - Midnight / new-day watcher
     private func checkForNewDay() {
         let cal = Calendar.current
@@ -273,7 +172,7 @@ struct HomeView: View {
                     .listRowSeparator(.hidden)
                 }
             } else {
-                Section("Due Today") {
+                Section {
                     if viewModel.dueButNotDoneToday.isEmpty {
                         Text("Nothing due right now.")
                             .foregroundStyle(GlowTheme.textSecondary)
@@ -282,9 +181,11 @@ struct HomeView: View {
                             rowCell(habit: habit, isArchived: false)
                         }
                     }
+                } header: {
+                    GlowSectionHeader("Due Today")
                 }
 
-                Section("Completed Today") {
+                Section {
                     if viewModel.completedToday.isEmpty {
                         Text("No completed habits yet.")
                             .foregroundStyle(GlowTheme.textSecondary)
@@ -293,9 +194,11 @@ struct HomeView: View {
                             rowCell(habit: habit, isArchived: false)
                         }
                     }
+                } header: {
+                    GlowSectionHeader("Completed Today")
                 }
 
-                Section("Coming Up") {
+                Section {
                     if viewModel.notDueToday.isEmpty {
                         Text("No upcoming habits.")
                             .foregroundStyle(GlowTheme.textSecondary)
@@ -304,6 +207,8 @@ struct HomeView: View {
                             rowCell(habit: habit, isArchived: false)
                         }
                     }
+                } header: {
+                    GlowSectionHeader("Coming Up")
                 }
             }
 
@@ -316,8 +221,7 @@ struct HomeView: View {
             }
         }
         .listSectionSeparator(.hidden)
-        .listSectionSpacing(.compact)
-        .listStyle(.insetGrouped)
+        .glowCoreListRhythm()
         .id(listRefreshID)
     }
 
@@ -496,14 +400,7 @@ struct HomeView: View {
         }
         viewModel.updateHabits(Array(habits))
         Task {
-            if archived {
-                await NotificationManager.cancelNotifications(for: habit)
-            } else if habit.reminderEnabled {
-                let ok = await NotificationManager.requestAuthorizationIfNeeded()
-                if ok {
-                    await NotificationManager.scheduleNotifications(for: habit)
-                }
-            }
+            await NotificationManager.syncAfterArchiveStateChange(for: habit)
         }
     }
 
@@ -543,15 +440,6 @@ struct HomeView: View {
         if reloadListID {
             listRefreshID = UUID()
         }
-    }
-    // MARK: - Static helpers
-    private static func defaultReminderTime() -> Date {
-        let cal = Calendar.current
-        let now = Date()
-        if let eightPM = cal.date(bySettingHour: 20, minute: 0, second: 0, of: now) {
-            return eightPM
-        }
-        return now
     }
 }
 
