@@ -108,6 +108,40 @@ enum NotificationManager {
             }
         }
     }
+
+    // MARK: - Consistency helpers
+
+    /// Sync reminder scheduling after creating a habit.
+    static func syncAfterCreate(for habit: Habit) async {
+        guard habit.reminderEnabled, !habit.isArchived else { return }
+        await requestAndScheduleIfPossible(for: habit)
+    }
+
+    /// Sync reminder scheduling after editing a habit or reminder fields.
+    static func syncAfterEdit(for habit: Habit, wasReminderEnabled: Bool) async {
+        if habit.isArchived {
+            await cancelNotifications(for: habit)
+            return
+        }
+
+        if habit.reminderEnabled {
+            await requestAndScheduleIfPossible(for: habit)
+        } else if wasReminderEnabled {
+            await cancelNotifications(for: habit)
+        }
+    }
+
+    /// Sync reminder scheduling when archive state changes.
+    static func syncAfterArchiveStateChange(for habit: Habit) async {
+        if habit.isArchived {
+            await cancelNotifications(for: habit)
+        } else if habit.reminderEnabled {
+            await requestAndScheduleIfPossible(for: habit)
+        } else {
+            // Defensive cleanup in case stale requests exist.
+            await cancelNotifications(for: habit)
+        }
+    }
     
     // MARK: - Cancellation
     
@@ -116,5 +150,12 @@ enum NotificationManager {
         // regardless of current schedule or reminder state.
         let ids = Weekday.allCases.map { identifier(for: habit, weekday: $0) }
         center.removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    private static func requestAndScheduleIfPossible(for habit: Habit) async {
+        let ok = await requestAuthorizationIfNeeded()
+        if ok {
+            await scheduleNotifications(for: habit)
+        }
     }
 }
