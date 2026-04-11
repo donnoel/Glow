@@ -80,6 +80,10 @@ struct AddOrEditHabitForm: View {
 
                 Section {
                     Text(schedulePreviewText)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(GlowTheme.textPrimary)
+
+                    Text(scheduleDuePreviewText)
                         .font(.footnote)
                         .foregroundStyle(GlowTheme.textSecondary)
 
@@ -221,7 +225,14 @@ struct AddOrEditHabitForm: View {
     }
 
     private var schedulePreviewText: String {
-        ReminderPresentation.scheduleContextText(for: schedule).capitalized
+        SchedulePresentation.summaryText(for: schedule)
+    }
+
+    private var scheduleDuePreviewText: String {
+        SchedulePresentation.dueStatusText(
+            for: schedule,
+            isArchived: isEditingArchivedHabit
+        )
     }
 
     private var reminderPreviewText: String {

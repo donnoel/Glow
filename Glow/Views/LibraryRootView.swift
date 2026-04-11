@@ -26,16 +26,36 @@ struct LibraryRootView: View {
         habits.filter { $0.isArchived }
     }
 
+    private var activeReminderCount: Int {
+        activeHabits.filter {
+            $0.reminderEnabled
+                && $0.reminderHour != nil
+                && $0.reminderMinute != nil
+        }.count
+    }
+
     var body: some View {
         NavigationStack {
             List {
                 Section {
                     if activeHabits.isEmpty {
-                        ContentUnavailableView(
-                            "No active habits",
-                            systemImage: "checkmark.circle",
-                            description: Text("Add a habit to get started.")
-                        )
+                        VStack(spacing: 12) {
+                            ContentUnavailableView(
+                                "No active habits",
+                                systemImage: "checkmark.circle",
+                                description: Text("Add one habit to get your daily loop started.")
+                            )
+                            .frame(maxWidth: .infinity, minHeight: 150)
+
+                            Button {
+                                showAddHabit = true
+                            } label: {
+                                Label("Add your first habit", systemImage: "plus")
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                     } else {
                         ForEach(activeHabits) { habit in
                             habitRow(habit: habit, isArchived: false)
@@ -47,8 +67,15 @@ struct LibraryRootView: View {
 
                 Section {
                     if archivedHabits.isEmpty {
-                        Text("No archived habits")
-                            .foregroundStyle(GlowTheme.textSecondary)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Label("No archived habits yet", systemImage: "archivebox")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(GlowTheme.textPrimary)
+                            Text("Archived habits will appear here when you want to pause one.")
+                                .font(.footnote)
+                                .foregroundStyle(GlowTheme.textSecondary)
+                        }
+                        .padding(.vertical, 4)
                     } else {
                         ForEach(archivedHabits) { habit in
                             habitRow(habit: habit, isArchived: true)
@@ -62,7 +89,16 @@ struct LibraryRootView: View {
                     NavigationLink {
                         RemindersView()
                     } label: {
-                        Label("Manage reminders", systemImage: "bell.badge")
+                        VStack(alignment: .leading, spacing: 3) {
+                            Label("Manage reminders", systemImage: "bell.badge")
+                            Text(
+                                activeReminderCount == 0
+                                    ? "No reminders turned on yet."
+                                    : "\(activeReminderCount) active reminder\(activeReminderCount == 1 ? "" : "s")"
+                            )
+                            .font(.footnote)
+                            .foregroundStyle(GlowTheme.textSecondary)
+                        }
                     }
                 } header: {
                     GlowSectionHeader("Reminders")
@@ -109,7 +145,7 @@ struct LibraryRootView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(habit.title)
-                    Text(scheduleDisplayLabel(for: habit.schedule))
+                    Text(scheduleSubtitle(for: habit, isArchived: isArchived))
                         .font(.footnote)
                         .foregroundStyle(GlowTheme.textSecondary)
                 }
@@ -147,29 +183,10 @@ struct LibraryRootView: View {
         }
     }
     
-    private func scheduleDisplayLabel(for schedule: HabitSchedule) -> String {
-        switch schedule.kind {
-        case .daily:
-            return "Every day"
-        case .custom:
-            if schedule.days.isEmpty {
-                return "Custom"
-            }
-            let ordered = Weekday.allCases.filter { schedule.days.contains($0) }
-            let names = ordered.map { shortName(for: $0) }
-            return names.joined(separator: ", ")
-        }
-    }
-    
-    private func shortName(for weekday: Weekday) -> String {
-        switch weekday {
-        case .sun: return "Sun"
-        case .mon: return "Mon"
-        case .tue: return "Tue"
-        case .wed: return "Wed"
-        case .thu: return "Thu"
-        case .fri: return "Fri"
-        case .sat: return "Sat"
-        }
+    private func scheduleSubtitle(for habit: Habit, isArchived: Bool) -> String {
+        SchedulePresentation.statusAndSummaryText(
+            for: habit.schedule,
+            isArchived: isArchived
+        )
     }
 }

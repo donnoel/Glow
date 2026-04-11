@@ -136,6 +136,10 @@ struct HabitDetailView: View {
                         .font(.title3.weight(.semibold))
                         .foregroundStyle(GlowTheme.textPrimary)
 
+                    Text(scheduleDueStatusText)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(GlowTheme.textPrimary)
+
                     Text(scheduleSummaryText)
                         .font(.subheadline)
                         .foregroundStyle(GlowTheme.textSecondary)
@@ -316,17 +320,14 @@ struct HabitDetailView: View {
     }
 
     private var scheduleSummaryText: String {
-        switch viewModel.habit.schedule.kind {
-        case .daily:
-            return "Every day"
-        case .custom:
-            if viewModel.habit.schedule.days.isEmpty {
-                return "Custom schedule"
-            }
-            let ordered = Weekday.allCases.filter { viewModel.habit.schedule.days.contains($0) }
-            let shortNames = ordered.map { shortName(for: $0) }
-            return shortNames.joined(separator: ", ")
-        }
+        SchedulePresentation.summaryText(for: viewModel.habit.schedule)
+    }
+
+    private var scheduleDueStatusText: String {
+        SchedulePresentation.dueStatusText(
+            for: viewModel.habit.schedule,
+            isArchived: viewModel.habit.isArchived
+        )
     }
 
     private var reminderStatusText: String {
@@ -350,18 +351,6 @@ struct HabitDetailView: View {
                 .filter { $0 >= start && $0 <= today }
         )
         return completed.count
-    }
-
-    private func shortName(for weekday: Weekday) -> String {
-        switch weekday {
-        case .sun: return "Sun"
-        case .mon: return "Mon"
-        case .tue: return "Tue"
-        case .wed: return "Wed"
-        case .thu: return "Thu"
-        case .fri: return "Fri"
-        case .sat: return "Sat"
-        }
     }
 
     private func toggleArchive() {

@@ -304,7 +304,7 @@ struct HomeView: View {
                         .font(.body.weight(.semibold))
                         .foregroundStyle(GlowTheme.textPrimary)
 
-                    Text(habit.schedule.isScheduled(on: viewModel.todayStartOfDay) ? "Due today" : "Not due today")
+                    Text(todayScheduleSubtitle(for: habit))
                         .font(.caption)
                         .foregroundStyle(GlowTheme.textSecondary)
                 }
@@ -414,6 +414,13 @@ struct HomeView: View {
             return "Current streak: \(streak) day\(streak == 1 ? "" : "s")."
         }
         return bestStreak > 0 ? "Best streak so far: \(bestStreak) days." : "One check-in starts your streak."
+    }
+
+    private func todayScheduleSubtitle(for habit: Habit) -> String {
+        SchedulePresentation.statusAndSummaryText(
+            for: habit.schedule,
+            on: viewModel.todayStartOfDay
+        )
     }
 
     private func isCompletedToday(_ habit: Habit) -> Bool {
