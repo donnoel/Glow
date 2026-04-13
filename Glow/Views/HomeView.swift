@@ -427,17 +427,13 @@ struct HomeView: View {
     private func toggleToday(_ habit: Habit) {
         let cal = Calendar.current
         let today = viewModel.todayStartOfDay
-        var previousCompleted = false
-        var createdNewLog = false
 
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
             if let log = (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today }) {
-                previousCompleted = log.completed
                 log.completed.toggle()
             } else {
                 let log = HabitLog(date: today, completed: true, habit: habit)
                 context.insert(log)
-                createdNewLog = true
             }
         }
 
@@ -446,12 +442,6 @@ struct HomeView: View {
 
         // tell the view model to recompute and push to the widget
         viewModel.updateHabits(Array(habits))
-
-        presentCompletionUndo(
-            for: habit,
-            previousCompleted: previousCompleted,
-            createdNewLog: createdNewLog
-        )
     }
 
     private var completionUndoBar: some View {
