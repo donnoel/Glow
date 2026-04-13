@@ -52,14 +52,14 @@ struct InsightsRootView: View {
         guard let top = trendsViewModel.habitStats.first else {
             return trendsFallbackLabel
         }
-        return "\(top.habit.title) (\(top.recentPercent)%)"
+        return "\(top.habit.title) • \(top.recentPercent)%"
     }
 
     private var weakestHabitLabel: String {
         guard let tail = trendsViewModel.habitStats.last else {
             return trendsFallbackLabel
         }
-        return "\(tail.habit.title) (\(tail.recentPercent)%)"
+        return "\(tail.habit.title) • \(tail.recentPercent)%"
     }
 
     var body: some View {
@@ -114,7 +114,7 @@ struct InsightsRootView: View {
                 Section {
                     weekStripRow
                     metricRow(
-                        title: "Active days (last 7)",
+                        title: "Active days, last 7",
                         value: "\(trendsViewModel.weeklyActiveDaysCount)/7",
                         icon: "calendar"
                     )
@@ -252,7 +252,7 @@ struct InsightsRootView: View {
         guard m.hits > 0, m.title != "—" else {
             return trendsFallbackLabel
         }
-        return "\(m.title) (\(m.hits)/\(m.window) days)"
+        return "\(m.title) • \(m.hits)/\(m.window) days"
     }
 
     private func refreshInsights() {
