@@ -194,7 +194,7 @@ Plus a UI test that covers onboarding → add practice.
 
 ## ❤️ Credits
 
-Built with care by **Don Noel** and **Bella**, my AI collaborator ✨
+Built with care by **Don Noel** and my AI collaborator.
 
 ---
 
