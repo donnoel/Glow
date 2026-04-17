@@ -44,6 +44,7 @@ Glow is about *celebrating* the tiny wins that build toward growth.
 - **Integrated Insights root:** Reflection and trend signals are now unified in one core Insights screen.
 - **Unified Add/Edit flow:** Habit creation and editing route through one shared form implementation.
 - **Faster daily loop:** Completion interactions include a lightweight undo path for quick correction.
+- **Settings app version row:** `Settings > Apps > Glow` now shows a single `Version` row using live app bundle version/build values.
 
 ---
 

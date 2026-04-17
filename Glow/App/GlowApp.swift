@@ -4,12 +4,32 @@ import SwiftData
 @main
 struct GlowApp: App {
     @AppStorage("hasSeenGlowOnboarding") private var hasSeenGlowOnboarding = false
+    private static let settingsVersionKey = "app_version_display"
 
     init() {
+        Self.updateSettingsVersionDisplay()
+
         // Skip onboarding during UI tests so Home is visible immediately
         if CommandLine.arguments.contains("--uitesting") {
             UserDefaults.standard.set(true, forKey: "hasSeenGlowOnboarding")
         }
+    }
+
+    private static func updateSettingsVersionDisplay() {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String
+        let build = info?["CFBundleVersion"] as? String
+
+        guard let version, !version.isEmpty else { return }
+
+        let displayValue: String
+        if let build, !build.isEmpty {
+            displayValue = "\(version) (\(build))"
+        } else {
+            displayValue = version
+        }
+
+        UserDefaults.standard.set(displayValue, forKey: settingsVersionKey)
     }
 
     // MARK: - Shared SwiftData + CloudKit container
