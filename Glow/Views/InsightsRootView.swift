@@ -198,6 +198,13 @@ struct InsightsRootView: View {
                 refreshInsights()
             }
         }
+        .background {
+            if isIPadRegularWidth {
+                Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+            } else {
+                GlowTheme.bgPrimary.ignoresSafeArea()
+            }
+        }
     }
 
     @ViewBuilder

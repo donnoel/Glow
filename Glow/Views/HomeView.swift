@@ -122,7 +122,13 @@ struct HomeView: View {
                 }
         }
         .glowTint()
-        .glowScreenBackground()
+        .background {
+            if isIPadRegularWidth {
+                Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+            } else {
+                GlowTheme.bgPrimary.ignoresSafeArea()
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             if showCompletionUndo {
                 completionUndoBar
@@ -367,11 +373,9 @@ struct HomeView: View {
     private var dailySummaryCard: some View {
         let doneScheduled = viewModel.todayCompletion.done
         let totalScheduled = viewModel.todayCompletion.total
-        let bonus = viewModel.bonusCompletedToday.count
-        let completedCount = doneScheduled + bonus
         let percent = totalScheduled == 0
-            ? (bonus > 0 ? 100 : 0)
-            : Int((Double(completedCount) / Double(totalScheduled) * 100).rounded())
+            ? 0
+            : Int((Double(doneScheduled) / Double(totalScheduled) * 100).rounded())
         let currentStreak = viewModel.globalStreak.current
         let bestStreak = viewModel.globalStreak.best
 
@@ -386,14 +390,14 @@ struct HomeView: View {
             }
 
             HStack(spacing: 16) {
-                Label("\(completedCount) done", systemImage: "checkmark.circle.fill")
+                Label("\(doneScheduled) done", systemImage: "checkmark.circle.fill")
                 Label("\(totalScheduled) due", systemImage: "calendar")
                 Label("\(currentStreak)d streak", systemImage: "flame.fill")
             }
             .font(.subheadline.monospacedDigit())
             .foregroundStyle(GlowTheme.textSecondary)
 
-            Text(summarySupportingLine(done: completedCount, total: totalScheduled, streak: currentStreak, bestStreak: bestStreak))
+            Text(summarySupportingLine(done: doneScheduled, total: totalScheduled, streak: currentStreak, bestStreak: bestStreak))
                 .font(.footnote)
                 .foregroundStyle(GlowTheme.textSecondary)
                 .lineLimit(1)
@@ -401,7 +405,7 @@ struct HomeView: View {
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Daily summary")
-        .accessibilityValue("\(completedCount) completed, \(totalScheduled) due, \(percent) percent, current streak \(currentStreak) days, best streak \(bestStreak) days")
+        .accessibilityValue("\(doneScheduled) completed, \(totalScheduled) due, \(percent) percent, current streak \(currentStreak) days, best streak \(bestStreak) days")
     }
 
     private func summarySupportingLine(done: Int, total: Int, streak: Int, bestStreak: Int) -> String {

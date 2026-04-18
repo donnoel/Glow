@@ -129,6 +129,13 @@ struct LibraryRootView: View {
                     .presentationDragIndicator(.visible)
             }
         }
+        .background {
+            if isIPadRegularWidth {
+                Color(uiColor: .systemGroupedBackground).ignoresSafeArea()
+            } else {
+                GlowTheme.bgPrimary.ignoresSafeArea()
+            }
+        }
     }
 
     @ViewBuilder
