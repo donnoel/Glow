@@ -1,24 +1,26 @@
-name: iOS CI
+name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build-and-test:
-    runs-on: macos-15  # macOS 15 is GA and is what macos-latest maps to now
+    runs-on: macos-26
+    env:
+      DERIVED_DATA: ${{ github.workspace }}/DerivedData
+      RESULT_BUNDLE: ${{ github.workspace }}/TestResults/Glow.xcresult
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: latest-stable
 
-      # Optional but speeds things up a lot: cache SwiftPM artifacts
       - name: Cache SwiftPM
         uses: actions/cache@v4
         with:
@@ -32,21 +34,108 @@ jobs:
       - name: Resolve packages
         run: xcodebuild -resolvePackageDependencies -project Glow.xcodeproj
 
-      # Build + test on the latest iOS simulator
+      - name: Show environment
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          xcrun simctl list runtimes
+          xcrun simctl list devicetypes
+          xcodebuild -project Glow.xcodeproj -scheme Glow -showdestinations
+
+      - name: Prepare simulator
+        id: simulator
+        run: |
+          set -euo pipefail
+          SIMULATOR_ID="$(python3 <<'PY'
+          import json
+          import subprocess
+
+          runtimes = json.loads(
+              subprocess.check_output(["xcrun", "simctl", "list", "runtimes", "--json"])
+          )["runtimes"]
+          ios_runtimes = [
+              runtime for runtime in runtimes
+              if runtime.get("platform") == "iOS" and runtime.get("isAvailable")
+          ]
+          if not ios_runtimes:
+              raise SystemExit("No available iOS simulator runtimes.")
+
+          def version_key(runtime):
+              parts = []
+              for part in runtime.get("version", "0").split("."):
+                  try:
+                      parts.append(int(part))
+                  except ValueError:
+                      break
+              return tuple(parts)
+
+          runtime_identifier = sorted(ios_runtimes, key=version_key)[-1]["identifier"]
+
+          device_types = json.loads(
+              subprocess.check_output(["xcrun", "simctl", "list", "devicetypes", "--json"])
+          )["devicetypes"]
+          iphone_types = [
+              device_type for device_type in device_types
+              if device_type.get("name", "").startswith("iPhone")
+          ]
+          if not iphone_types:
+              raise SystemExit("No iPhone simulator device types.")
+
+          preferred_names = [
+              "iPhone 17 Pro",
+              "iPhone 17",
+              "iPhone 16 Pro",
+              "iPhone 16",
+              "iPhone SE (3rd generation)",
+          ]
+          selected_device = next(
+              (
+                  device_type for preferred_name in preferred_names
+                  for device_type in iphone_types
+                  if device_type.get("name") == preferred_name
+              ),
+              iphone_types[-1],
+          )
+
+          simulator_id = subprocess.check_output(
+              [
+                  "xcrun",
+                  "simctl",
+                  "create",
+                  "CI iPhone",
+                  selected_device["identifier"],
+                  runtime_identifier,
+              ],
+              text=True,
+          ).strip()
+          print(simulator_id)
+          PY
+          )"
+          echo "id=${SIMULATOR_ID}" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "${SIMULATOR_ID}" || true
+          xcrun simctl bootstatus "${SIMULATOR_ID}" -b
+
       - name: Build and test
         run: |
-          set -e
+          set -euo pipefail
+          mkdir -p "$(dirname "$RESULT_BUNDLE")"
+          rm -rf "$RESULT_BUNDLE"
           xcodebuild \
             -project Glow.xcodeproj \
             -scheme Glow \
-            -destination "platform=iOS Simulator,OS=latest,name=iPhone 17 Pro Max" \
             -configuration Debug \
-            CODE_SIGNING_ALLOWED=NO \
-            clean test | xcpretty
+            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}' \
+            -derivedDataPath "$DERIVED_DATA" \
+            -resultBundlePath "$RESULT_BUNDLE" \
+            -parallel-testing-enabled NO \
+            -maximum-concurrent-test-simulator-destinations 1 \
+            clean test
 
-      - name: Upload xcodebuild logs (if the job fails)
+      - name: Upload xcodebuild artifacts
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: xcodebuild-logs
-          path: ~/Library/Logs/scan # or fall back to derived logs if you prefer
+          name: xcodebuild-artifacts
+          path: |
+            ${{ env.RESULT_BUNDLE }}
+            ${{ env.DERIVED_DATA }}/Logs/Test
