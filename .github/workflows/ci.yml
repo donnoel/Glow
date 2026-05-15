@@ -129,6 +129,7 @@ jobs:
             -resultBundlePath "$RESULT_BUNDLE" \
             -parallel-testing-enabled NO \
             -maximum-concurrent-test-simulator-destinations 1 \
+            IPHONEOS_DEPLOYMENT_TARGET=26.0 \
             clean test
 
       - name: Upload xcodebuild artifacts
