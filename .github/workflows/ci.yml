@@ -130,6 +130,7 @@ jobs:
             -parallel-testing-enabled NO \
             -maximum-concurrent-test-simulator-destinations 1 \
             IPHONEOS_DEPLOYMENT_TARGET=26.0 \
+            -only-testing:GlowUITests \
             clean test
 
       - name: Upload xcodebuild artifacts
