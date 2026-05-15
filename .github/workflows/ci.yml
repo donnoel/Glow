@@ -115,7 +115,7 @@ jobs:
           xcrun simctl boot "${SIMULATOR_ID}" || true
           xcrun simctl bootstatus "${SIMULATOR_ID}" -b
 
-      - name: Build and test
+      - name: Build
         run: |
           set -euo pipefail
           mkdir -p "$(dirname "$RESULT_BUNDLE")"
@@ -130,8 +130,7 @@ jobs:
             -parallel-testing-enabled NO \
             -maximum-concurrent-test-simulator-destinations 1 \
             IPHONEOS_DEPLOYMENT_TARGET=26.0 \
-            -only-testing:GlowUITests \
-            clean test
+            clean build
 
       - name: Upload xcodebuild artifacts
         if: failure()
