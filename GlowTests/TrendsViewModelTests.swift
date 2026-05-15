@@ -17,7 +17,7 @@ struct TrendsViewModelTests {
     @Test
     func archived_habits_are_excluded_from_global_activity() throws {
         let active = Habit(title: "Active", schedule: dailySchedule())
-        let archived = Habit(title: "Archived", schedule: dailySchedule(), isArchived: true)
+        let archived = Habit(title: "Archived", isArchived: true, schedule: dailySchedule())
 
         // Only the archived habit has activity today.
         archived.logs = [HabitLog(date: today, completed: true, habit: archived)]
