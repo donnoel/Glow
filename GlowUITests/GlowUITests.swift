@@ -58,6 +58,19 @@ final class GlowUITests: XCTestCase {
                       "Home should show the 'Add practice' button.")
     }
 
+    private func openLibrary() {
+        let libraryTab = app.tabBars.buttons["Library"].firstMatch
+        if libraryTab.waitForExistence(timeout: 5) {
+            libraryTab.tap()
+            return
+        }
+
+        let librarySidebarItem = app.buttons["Library"].firstMatch
+        XCTAssertTrue(librarySidebarItem.waitForExistence(timeout: 5),
+                      "Library navigation item should be present.")
+        librarySidebarItem.tap()
+    }
+
     private func createPractice(named title: String, timeout: TimeInterval = 5) {
         let addButton = addPracticeButton()
         XCTAssertTrue(addButton.waitForExistence(timeout: timeout),
@@ -101,21 +114,14 @@ final class GlowUITests: XCTestCase {
     @MainActor
     func testOpenSidebarAndShowReminders() throws {
         waitForHome()
-        // Prefer identifier if set
-        let menuButton = app.buttons["menuButton"].exists
-            ? app.buttons["menuButton"]
-            : app.buttons["Menu"]
+        openLibrary()
 
-        XCTAssertTrue(menuButton.waitForExistence(timeout: 5),
-                      "Menu button should be present on the home screen.")
-        menuButton.tap()
+        let remindersButton = app.buttons["Manage reminders"].exists
+            ? app.buttons["Manage reminders"]
+            : app.staticTexts["Manage reminders"]
 
-        let remindersButton = app.buttons["remindersButton"].exists
-            ? app.buttons["remindersButton"]
-            : app.buttons["Reminders"]
-
-        XCTAssertTrue(remindersButton.waitForExistence(timeout: 3),
-                      "Reminders item should be visible in the sidebar or menu.")
+        XCTAssertTrue(remindersButton.waitForExistence(timeout: 5),
+                      "Reminders item should be visible in Library.")
         remindersButton.tap()
 
         // Check for a known reminders title
@@ -136,7 +142,9 @@ final class GlowUITests: XCTestCase {
         if app.buttons["practiceToggleButton"].exists {
             toggleButton = app.buttons["practiceToggleButton"]
         } else {
-            toggleButton = app.buttons.matching(NSPredicate(format: "label CONTAINS[c] 'Mark practice'")).firstMatch
+            toggleButton = app.buttons.matching(
+                NSPredicate(format: "label CONTAINS[c] 'Mark' AND label CONTAINS[c] 'done today'")
+            ).firstMatch
         }
 
         XCTAssertTrue(toggleButton.waitForExistence(timeout: 5),
