@@ -10,31 +10,35 @@ private enum WidgetTokens {
     static let pillPaddingH: CGFloat = 10
     static let pillPaddingV: CGFloat = 4
     static let progressHeight: CGFloat = 6
+    static let markSpacing: CGFloat = 5
 }
 
-private func loadTodayProgress() -> (done: Int, total: Int, bonus: Int) {
+private struct TodayProgressSnapshot {
+    let done: Int
+    let total: Int
+    let bonus: Int
+    let isCurrentDay: Bool
+}
+
+private func loadTodayProgress() -> TodayProgressSnapshot {
     let defaults = UserDefaults(suiteName: appGroupID)
     let done = defaults?.integer(forKey: "today_done") ?? 0
     let total = defaults?.integer(forKey: "today_total") ?? 0
     let bonus = defaults?.integer(forKey: "today_bonus") ?? 0
-    let savedDate = defaults?.string(forKey: "today_date")
-    
-    // compare to today; if mismatched, return last known values if present (avoid showing stale zeros)
-    let today = Calendar.current.startOfDay(for: Date())
-    let formatter = DateFormatter()
-    formatter.calendar = Calendar.current
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.dateFormat = "yyyy-MM-dd"
-    let todayString = formatter.string(from: today)
-    
-    if let savedDate, savedDate == todayString {
-        return (done, total, bonus)
-    } else if (done > 0 || total > 0 || bonus > 0) {
-        // show last known values even if the saved date mismatched (fallback)
-        return (done, total, bonus)
-    } else {
-        return (0, 0, 0)
-    }
+    let savedStamp = defaults?.integer(forKey: "today_stamp") ?? 0
+
+    return TodayProgressSnapshot(
+        done: done,
+        total: total,
+        bonus: bonus,
+        isCurrentDay: savedStamp == yyyyMMddStamp(for: Date())
+    )
+}
+
+private func yyyyMMddStamp(for date: Date) -> Int {
+    let cal = Calendar.current
+    let c = cal.dateComponents([.year, .month, .day], from: date)
+    return (c.year ?? 0) * 10_000 + (c.month ?? 0) * 100 + (c.day ?? 0)
 }
 
 // 1) The data the widget shows
@@ -43,51 +47,54 @@ struct TodayProgressEntry: TimelineEntry {
     let done: Int
     let total: Int
     let bonus: Int
+    let isCurrentDay: Bool
 }
 
 // 2) Where the widget gets its data
 struct TodayProgressProvider: TimelineProvider {
     func placeholder(in context: Context) -> TodayProgressEntry {
-        TodayProgressEntry(date: Date(), done: 2, total: 3, bonus: 0)
+        TodayProgressEntry(date: Date(), done: 2, total: 3, bonus: 0, isCurrentDay: true)
     }
     
     func getSnapshot(in context: Context, completion: @escaping (TodayProgressEntry) -> ()) {
         let progress = loadTodayProgress()
-        completion(TodayProgressEntry(date: Date(), done: progress.done, total: progress.total, bonus: progress.bonus))
+        completion(
+            TodayProgressEntry(
+                date: Date(),
+                done: progress.done,
+                total: progress.total,
+                bonus: progress.bonus,
+                isCurrentDay: progress.isCurrentDay
+            )
+        )
     }
     
     func getTimeline(in context: Context, completion: @escaping (Timeline<TodayProgressEntry>) -> ()) {
-        let defaults = UserDefaults(suiteName: appGroupID)
-        let done = defaults?.integer(forKey: "today_done") ?? 0
-        let total = defaults?.integer(forKey: "today_total") ?? 0
-        let bonus = defaults?.integer(forKey: "today_bonus") ?? 0
-        let savedStamp = defaults?.integer(forKey: "today_stamp") ?? 0
-
         let now = Date()
-        let todayStamp = yyyyMMddStamp(for: now)
+        let progress = loadTodayProgress()
 
-        // If the saved stamp matches today, use saved counts; otherwise reset to 0s.
-        let currentEntry: TodayProgressEntry
-        if savedStamp == todayStamp {
-            currentEntry = TodayProgressEntry(date: now, done: done, total: total, bonus: bonus)
-        } else {
-            currentEntry = TodayProgressEntry(date: now, done: 0, total: 0, bonus: 0)
-        }
+        let currentEntry = TodayProgressEntry(
+            date: now,
+            done: progress.done,
+            total: progress.total,
+            bonus: progress.bonus,
+            isCurrentDay: progress.isCurrentDay
+        )
 
         // Always schedule an automatic rollover entry at the next midnight so the widget resets
         // even if the app hasn't been launched yet.
         let midnight = nextMidnight(after: now)
-        let rolloverEntry = TodayProgressEntry(date: midnight.addingTimeInterval(5), done: 0, total: 0, bonus: 0)
+        let rolloverEntry = TodayProgressEntry(
+            date: midnight.addingTimeInterval(5),
+            done: progress.done,
+            total: progress.total,
+            bonus: progress.bonus,
+            isCurrentDay: false
+        )
 
         // Build the timeline: now -> midnight reset. After that, WidgetKit will ask again.
         let timeline = Timeline(entries: [currentEntry, rolloverEntry], policy: .atEnd)
         completion(timeline)
-    }
-
-    private func yyyyMMddStamp(for date: Date) -> Int {
-        let cal = Calendar.current
-        let c = cal.dateComponents([.year, .month, .day], from: date)
-        return (c.year ?? 0) * 10_000 + (c.month ?? 0) * 100 + (c.day ?? 0)
     }
 
     private func nextMidnight(after date: Date) -> Date {
@@ -103,12 +110,17 @@ struct TodayProgressWidgetView: View {
     @Environment(\.colorScheme) private var colorScheme
     var entry: TodayProgressEntry
     
-    // Glow-ish palette — gentle but colorful
     private let glowAccent = Color(red: 0.63, green: 0.24, blue: 0.93)
-    private let glowSoft = Color(red: 0.96, green: 0.92, blue: 1.0)
+    private let completedAccent = Color(red: 0.10, green: 0.62, blue: 0.52)
+    private let warmAccent = Color(red: 1.0, green: 0.66, blue: 0.20)
+    private let tilePrimary = Color.white
+    private let tileSecondary = Color.white.opacity(0.68)
     
     // Clamp percent so the ring never overfills
     private var percent: Double {
+        if entry.total == 0 && entry.bonus > 0 {
+            return 1
+        }
         guard entry.total > 0 else { return 0 }
         let raw = Double(entry.done) / Double(entry.total)
         return min(max(raw, 0), 1)
@@ -118,53 +130,285 @@ struct TodayProgressWidgetView: View {
     private var isComplete: Bool {
         entry.total > 0 && entry.done >= entry.total
     }
-    
-    private func message(compact: Bool) -> String {
-        // Nothing scheduled
-        if entry.total == 0 {
-            return compact ? "Rest day" : "Nothing scheduled"
+
+    private var countText: String {
+        entry.isCurrentDay ? "\(entry.done)/\(entry.total)" : "Sync"
+    }
+
+    private var statusTitle: String {
+        if !entry.isCurrentDay {
+            return "Open Glow"
         }
-        
-        // All scheduled done
+        if entry.total == 0 {
+            return entry.bonus > 0 ? "Bonus day" : "Clear day"
+        }
         if entry.done >= entry.total {
-            if entry.bonus > 0 {
-                // Bonus wins beyond the plan
-                return compact ? "Bonus +\(entry.bonus) 🔥" : "Bonus wins +\(entry.bonus)"
-            } else {
-                return compact ? "Glow day ✨" : "Done!  Very Nice"
+            return "DONE"
+        }
+        if entry.done == 0 {
+            return "READY"
+        }
+        return "Today"
+    }
+
+    private var statusDetail: String {
+        if !entry.isCurrentDay {
+            return "Refresh today's habits"
+        }
+        if entry.total == 0 {
+            return entry.bonus > 0 ? "\(entry.bonus) bonus practice" : "No practices scheduled"
+        }
+        if entry.done >= entry.total {
+            return entry.bonus > 0 ? "Goal met +\(entry.bonus) bonus" : "All practices done"
+        }
+        if entry.done == 0 {
+            return "\(entry.total) practices due"
+        }
+        return "\(entry.done) checked in"
+    }
+
+    private var accessibilitySummary: String {
+        if !entry.isCurrentDay {
+            return "Glow needs to refresh today's habits."
+        }
+        if entry.total == 0 {
+            return entry.bonus > 0
+            ? "Glow today: \(entry.bonus) bonus practice completed."
+            : "Glow today: no practices scheduled."
+        }
+        return "Glow today: \(entry.done) of \(entry.total) practices complete. \(Int(percent * 100)) percent."
+    }
+
+    @ViewBuilder
+    private var widgetBackground: some View {
+        ZStack(alignment: .topLeading) {
+            LinearGradient(
+                colors: [
+                    Color(red: 0.08, green: 0.07, blue: 0.13),
+                    Color(red: 0.08, green: 0.16, blue: 0.15),
+                    Color(red: 0.18, green: 0.10, blue: 0.23)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            RadialGradient(
+                colors: [
+                    glowAccent.opacity(0.52),
+                    .clear
+                ],
+                center: .topLeading,
+                startRadius: 4,
+                endRadius: family == .systemSmall ? 130 : 190
+            )
+            .blendMode(.screen)
+
+            RadialGradient(
+                colors: [
+                    completedAccent.opacity(0.34),
+                    .clear
+                ],
+                center: .bottomTrailing,
+                startRadius: 8,
+                endRadius: family == .systemSmall ? 120 : 180
+            )
+            .blendMode(.screen)
+        }
+    }
+
+    @ViewBuilder
+    private func practiceMarks(height: CGFloat = 9) -> some View {
+        if entry.isCurrentDay && entry.total > 0 && entry.total <= 7 {
+            HStack(spacing: WidgetTokens.markSpacing) {
+                ForEach(0..<entry.total, id: \.self) { index in
+                    Capsule()
+                        .fill(index < entry.done ? completedAccent : markBackground)
+                        .overlay(
+                            Capsule()
+                                .stroke(index < entry.done ? Color.clear : markStroke, lineWidth: 1)
+                        )
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: height)
+            .accessibilityHidden(true)
+        } else {
+            progressBar(height: height)
+        }
+    }
+
+    private func progressBar(height: CGFloat = WidgetTokens.progressHeight) -> some View {
+        GeometryReader { geo in
+            let rawWidth = geo.size.width * percent
+            let progressWidth = percent > 0 ? max(height, rawWidth) : 0
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(markBackground)
+
+                if progressWidth > 0 {
+                    Capsule()
+                        .fill(completedAccent)
+                        .frame(width: progressWidth)
+                }
+            }
+            .frame(height: height)
+            .mask(Capsule())
+        }
+        .frame(height: height)
+        .accessibilityHidden(true)
+    }
+
+    private var markBackground: Color {
+        Color.white.opacity(0.16)
+    }
+
+    private var markStroke: Color {
+        Color.white.opacity(0.18)
+    }
+
+    private var gaugeView: some View {
+        ZStack {
+            Circle()
+                .stroke(markBackground, lineWidth: 9)
+
+            Circle()
+                .trim(from: 0, to: CGFloat(percent))
+                .stroke(
+                    completedAccent,
+                    style: StrokeStyle(lineWidth: 9, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+
+            VStack(spacing: -1) {
+                Text(entry.isCurrentDay ? "\(entry.done)" : "!")
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
+                    .foregroundStyle(tilePrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(entry.isCurrentDay ? "/\(entry.total)" : "sync")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(tileSecondary)
+                    .lineLimit(1)
             }
         }
-        
-        // Not started
-        if entry.done == 0 {
-            return compact ? "Ready to start…" : "Ready to start…"
-        }
-        
-        // In progress — rotate through short, non-corny nudges
-        let long = [
-            "Nice first step",
-            "Keep the rhythm",
-            "Momentum building",
-            "Looking good",
-            "Halfway there",
-            "Past halfway",
-            "Almost there",
-            "One more to go"
-        ]
-        let short = [
-            "Nice start",
-            "Keep going",
-            "Momentum up",
-            "Looking good",
-            "Halfway",
-            "Past halfway",
-            "Almost there",
-            "One to go"
-        ]
-        let idx = max(0, min(entry.done - 1, long.count - 1))
-        return compact ? short[idx] : long[idx]
+        .accessibilityHidden(true)
     }
-    
+
+    private var syncBadge: some View {
+        Image(systemName: "arrow.clockwise")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(glowAccent)
+            .padding(7)
+            .background(
+                Circle()
+                    .fill(Color.white.opacity(0.12))
+            )
+            .accessibilityHidden(true)
+    }
+
+    private var completionSeal: some View {
+        ZStack {
+            Circle()
+                .fill(Color.white.opacity(0.13))
+            Image(systemName: "checkmark")
+                .font(.caption.weight(.bold))
+                .foregroundStyle(completedAccent)
+        }
+        .frame(width: 28, height: 28)
+        .accessibilityHidden(true)
+    }
+
+    private var topLabel: some View {
+        HStack(spacing: 6) {
+            Text("Today")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(tileSecondary)
+
+            Spacer(minLength: 4)
+
+            if !entry.isCurrentDay {
+                syncBadge
+            }
+        }
+    }
+
+    private var doneCountStack: some View {
+        HStack(alignment: .lastTextBaseline, spacing: 4) {
+            Text(entry.isCurrentDay ? "\(entry.done)" : "-")
+                .font(.system(size: 72, weight: .black, design: .rounded))
+                .foregroundStyle(tilePrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(entry.isCurrentDay ? "/\(entry.total)" : "")
+                .font(.title2.weight(.bold))
+                .foregroundStyle(tileSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
+        }
+    }
+
+    private var detailLine: some View {
+        HStack(spacing: 6) {
+            if entry.isCurrentDay && entry.total > 0 && entry.done >= entry.total {
+                completionSeal
+                    .frame(width: 18, height: 18)
+            } else if !entry.isCurrentDay {
+                Image(systemName: "arrow.clockwise")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(glowAccent)
+            }
+
+            Text(statusDetail)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(tileSecondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+        }
+    }
+
+    private var bonusChip: some View {
+        Group {
+            if entry.isCurrentDay && entry.bonus > 0 {
+                Text("+\(entry.bonus)")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(warmAccent)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule()
+                            .fill(warmAccent.opacity(colorScheme == .dark ? 0.18 : 0.14))
+                    )
+            }
+        }
+    }
+
+    private var accessoryProgressMark: some View {
+        ZStack {
+            Circle()
+                .stroke(.secondary.opacity(0.35), lineWidth: 3)
+
+            Circle()
+                .trim(from: 0, to: entry.isCurrentDay ? CGFloat(percent) : 0)
+                .stroke(completedAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+
+            if entry.isCurrentDay && isComplete {
+                Image(systemName: "checkmark")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(completedAccent)
+            } else if entry.isCurrentDay {
+                Text("\(entry.done)")
+                    .font(.caption2)
+            } else {
+                Image(systemName: "arrow.clockwise")
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(glowAccent)
+            }
+        }
+        .accessibilityHidden(true)
+    }
+
     var body: some View {
         switch family {
         case .systemSmall:
@@ -180,275 +424,77 @@ struct TodayProgressWidgetView: View {
     
     // MARK: - Medium / regular home widget
     private var mainView: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous)
-                .fill(
-                    colorScheme == .dark
-                    ? LinearGradient(
-                        colors: [Color.black, Color.black.opacity(0.35)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    : LinearGradient(
-                        colors: [glowSoft, Color.white],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-            
-            if colorScheme == .dark {
-                RadialGradient(
-                    colors: [glowAccent.opacity(0.55), .clear],
-                    center: .topLeading,
-                    startRadius: 6,
-                    endRadius: 160
-                )
-                .blendMode(.screen)
-                .clipShape(RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous))
-            }
-            
-            VStack(alignment: .leading, spacing: 12) {
-                // top bar
-                HStack(spacing: 10) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 10, style: .continuous)
-                            .fill(glowAccent.opacity(0.16))
-                        Image(systemName: "leaf.fill")
-                            .foregroundStyle(glowAccent)
-                            .font(.system(size: 13, weight: .semibold))
-                    }
-                    .frame(width: 28, height: 28)
-                    
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text("Glow • Today")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text(message(compact: false))
-                            .font(.headline.weight(.semibold))
-                            .foregroundStyle(.primary)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.8)
-                    }
-                    
-                    Spacer()
-                    
-                    // pill for the count — softened to 0.32 to match app glass
-                    Text("\(entry.done)/\(entry.total)")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, WidgetTokens.pillPaddingH)
-                        .padding(.vertical, WidgetTokens.pillPaddingV)
-                        .background(
-                            Capsule()
-                                .fill(
-                                    colorScheme == .dark
-                                    ? Color.white.opacity(0.12)
-                                    : Color.white.opacity(0.32)
-                                )
-                        )
-                        .foregroundStyle(
-                            colorScheme == .dark ? Color.white.opacity(0.85) : .secondary
-                        )
-                }
-                
-                // progress bar
-                GeometryReader { geo in
-                    let progressWidth = max(7, geo.size.width * percent)
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(
-                                colorScheme == .dark
-                                ? Color.white.opacity(0.08)
-                                : Color.black.opacity(0.04)
-                            )
-                        Capsule()
-                            .fill(glowAccent)
-                            .frame(width: progressWidth)
-                    }
-                    .frame(height: WidgetTokens.progressHeight)
-                    .mask(Capsule())
-                }
-                .frame(height: WidgetTokens.progressHeight)
-                
-                if entry.total == 0 {
-                    Text("No practices scheduled")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 14) {
+            gaugeView
+                .frame(width: 82, height: 82)
+
+            VStack(alignment: .leading, spacing: 9) {
+                topLabel
+
+                Text(entry.isCurrentDay ? statusDetail : "Open Glow to refresh")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(tilePrimary)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.78)
+
+                HStack(spacing: 8) {
+                    practiceMarks(height: 10)
+                    bonusChip
                 }
             }
-            // slightly more breathing room — 12 feels closer to your Home
-            .padding(.horizontal, 12)
-            .padding(.vertical, 12)
         }
-        .applyWidgetBackground()
+        .padding(15)
+        .applyWidgetBackground { widgetBackground }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
     
     // MARK: - Small home widget
     private var compactMainView: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous)
-                .fill(
-                    colorScheme == .dark
-                    ? LinearGradient(
-                        colors: [Color.black, Color.black.opacity(0.25)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                    : LinearGradient(
-                        colors: [glowSoft, Color.white],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-            if colorScheme == .dark {
-                RadialGradient(
-                    colors: [glowAccent.opacity(0.5), .clear],
-                    center: .topLeading,
-                    startRadius: 4,
-                    endRadius: 120
-                )
-                .blendMode(.screen)
-                .clipShape(RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous))
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Today")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text("\(entry.done)/\(entry.total)")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.secondary)
-                }
-                
-                Text(message(compact: true))
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                
-                GeometryReader { geo in
-                    let progressWidth = max(5, geo.size.width * percent)
-                    ZStack(alignment: .leading) {
-                        Capsule()
-                            .fill(
-                                colorScheme == .dark
-                                ? Color.white.opacity(0.08)
-                                : Color.black.opacity(0.04)
-                            )
-                        Capsule()
-                            .fill(glowAccent)
-                            .frame(width: progressWidth)
-                    }
-                    .frame(height: WidgetTokens.progressHeight - 1)
-                    .mask(Capsule())
-                }
-                .frame(height: WidgetTokens.progressHeight - 1)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 10)
+        VStack(alignment: .leading, spacing: 7) {
+            topLabel
+
+            Spacer(minLength: 0)
+
+            doneCountStack
+
+            detailLine
+
+            practiceMarks(height: 9)
         }
-        .applyWidgetBackground()
+        .padding(13)
+        .applyWidgetBackground { widgetBackground }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
     
     // MARK: - Lock screen rectangular
     private var rectangularView: some View {
-        ZStack {
-            if isComplete {
-                // Simple, centered smile when you've hit today's goal
-                HStack {
-                    Spacer()
-                    Text("😊")
-                        .font(.title3)
-                    Spacer()
-                }
-            } else {
-                HStack {
-                    Text("Glow")
-                        .font(.caption)
-                    Spacer()
-                    Text("\(entry.done)/\(entry.total)")
-                        .font(.caption2)
-                }
+        HStack(spacing: 8) {
+            accessoryProgressMark
+                .frame(width: 26, height: 26)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(entry.isCurrentDay ? statusTitle : "Open Glow")
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+                Text(entry.isCurrentDay ? countText : "Refresh today")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
         }
         .applyWidgetBackground()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
     
     // MARK: - Lock screen circular
     private var circularView: some View {
-        ZStack {
-            if isComplete {
-                GeometryReader { geo in
-                    let size = min(geo.size.width, geo.size.height)
-                    let lineWidth: CGFloat = 3
-                    let eyeSize = size * 0.12
-                    let eyeOffsetX = size * 0.20
-                    let eyeOffsetY = size * -0.10
-                    let smileRadius = size * 0.25
-
-                    ZStack {
-                        // Head circle
-                        Circle()
-                            .stroke(glowAccent, lineWidth: lineWidth)
-
-                        // Left eye
-                        Circle()
-                            .fill(glowAccent)
-                            .frame(width: eyeSize, height: eyeSize)
-                            .position(
-                                x: geo.size.width / 2 - eyeOffsetX,
-                                y: geo.size.height / 2 + eyeOffsetY
-                            )
-
-                        // Right eye
-                        Circle()
-                            .fill(glowAccent)
-                            .frame(width: eyeSize, height: eyeSize)
-                            .position(
-                                x: geo.size.width / 2 + eyeOffsetX,
-                                y: geo.size.height / 2 + eyeOffsetY
-                            )
-
-                        // Smile
-                        Path { path in
-                            let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
-                            let start = CGPoint(
-                                x: center.x - smileRadius,
-                                y: center.y + smileRadius * 0.3
-                            )
-                            let end = CGPoint(
-                                x: center.x + smileRadius,
-                                y: center.y + smileRadius * 0.3
-                            )
-                            let control1 = CGPoint(
-                                x: center.x - smileRadius * 0.5,
-                                y: center.y + smileRadius * 0.9
-                            )
-                            let control2 = CGPoint(
-                                x: center.x + smileRadius * 0.5,
-                                y: center.y + smileRadius * 0.9
-                            )
-                            path.move(to: start)
-                            path.addCurve(to: end, control1: control1, control2: control2)
-                        }
-                        .stroke(glowAccent, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                    }
-                }
-            } else {
-                ZStack {
-                    Circle()
-                        .stroke(.secondary.opacity(0.35), lineWidth: 3)
-                    
-                    Circle()
-                        .trim(from: 0, to: entry.total > 0 ? CGFloat(percent) : 0)
-                        .stroke(glowAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                    
-                    Text("\(entry.done)")
-                        .font(.caption2)
-                }
-            }
-        }
+        accessoryProgressMark
         .applyWidgetBackground()
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilitySummary)
     }
 }
 
@@ -462,6 +508,21 @@ private extension View {
             }
         } else {
             self
+        }
+    }
+
+    @ViewBuilder
+    func applyWidgetBackground<Background: View>(
+        @ViewBuilder _ background: () -> Background
+    ) -> some View {
+        if #available(iOS 17.0, *) {
+            self.containerBackground(for: .widget) {
+                background()
+            }
+        } else {
+            self
+                .background(background())
+                .clipShape(RoundedRectangle(cornerRadius: WidgetTokens.cornerRadius, style: .continuous))
         }
     }
 }
