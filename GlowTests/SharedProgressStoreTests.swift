@@ -66,4 +66,24 @@ struct SharedProgressStoreTests {
         #expect(defaults.integer(forKey: "today_stamp") >= 19000101)
         #expect(defaults.double(forKey: "last_updated") > 0)
     }
+
+    @Test
+    func saveToday_skips_timestamp_update_when_progress_is_unchanged() throws {
+        let suiteName = "group.movie.Glow"
+        let defaultsOptional = UserDefaults(suiteName: suiteName)
+        #expect(defaultsOptional != nil)
+
+        guard let defaults = defaultsOptional else {
+            return
+        }
+
+        defaults.removePersistentDomain(forName: suiteName)
+
+        SharedProgressStore.saveToday(done: 2, total: 4, bonus: 1)
+        defaults.set(123, forKey: "last_updated")
+
+        SharedProgressStore.saveToday(done: 2, total: 4, bonus: 1)
+
+        #expect(defaults.double(forKey: "last_updated") == 123)
+    }
 }

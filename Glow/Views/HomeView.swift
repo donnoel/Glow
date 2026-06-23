@@ -33,15 +33,12 @@ struct HomeView: View {
     // Edit / Delete state
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
-    @State private var monthCache: [String: MonthHeatmapModel] = [:]
 
     // Share
     @State private var showShare = false
 
-    // Fires every 30s so we can notice when the day boundary changes.
-    private let dayTimer = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
-
     @State private var pendingRefreshTask: Task<Void, Never>?
+    @State private var midnightRefreshTask: Task<Void, Never>?
     @State private var undoAutoDismissTask: Task<Void, Never>?
     @State private var completionUndoChange: CompletionUndoChange?
     @State private var completionUndoMessage = ""
@@ -139,11 +136,9 @@ struct HomeView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .onReceive(dayTimer) { _ in
-            checkForNewDay()
-        }
         .onAppear {
             refreshFromHabits()
+            scheduleMidnightRefresh()
         }
         .onChange(of: habits) { _, _ in
             scheduleRefresh()
@@ -155,11 +150,13 @@ struct HomeView: View {
             viewModel.advanceToToday(startOfNow)
             viewModel.syncProgressToWidget()
             scheduleRefresh()
+            scheduleMidnightRefresh()
         }
         // React to DST/manual time change or midnight rollover while app is running
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
             checkForNewDay()
             scheduleRefresh()
+            scheduleMidnightRefresh()
         }
         // React to our custom "data changed" signal
         .onReceive(NotificationCenter.default.publisher(for: .glowDataDidChange)) { _ in
@@ -175,6 +172,7 @@ struct HomeView: View {
         .onDisappear {
             undoAutoDismissTask?.cancel()
             pendingRefreshTask?.cancel()
+            midnightRefreshTask?.cancel()
         }
     }
 
@@ -187,6 +185,29 @@ struct HomeView: View {
             viewModel.syncProgressToWidget()
             clearCompletionUndo(animated: false)
         }
+    }
+
+    private func scheduleMidnightRefresh() {
+        midnightRefreshTask?.cancel()
+        let nextMidnight = Self.nextMidnight(after: Date())
+        midnightRefreshTask = Task { @MainActor in
+            let interval = max(1, nextMidnight.timeIntervalSinceNow)
+            let nanoseconds = UInt64(interval * 1_000_000_000)
+
+            do {
+                try await Task.sleep(nanoseconds: nanoseconds)
+            } catch {
+                return
+            }
+
+            checkForNewDay()
+            scheduleMidnightRefresh()
+        }
+    }
+
+    private static func nextMidnight(after date: Date, calendar: Calendar = .current) -> Date {
+        let startOfDay = calendar.startOfDay(for: date)
+        return calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? date.addingTimeInterval(24 * 60 * 60)
     }
 
     // MARK: - List Content
@@ -296,10 +317,7 @@ struct HomeView: View {
         ZStack {
             // Invisible full-row tap target for navigation (no chevron)
             NavigationLink {
-                HabitDetailView(
-                    habit: habit,
-                    prewarmedMonth: monthCache[habit.id]
-                )
+                HabitDetailView(habit: habit)
             } label: {
                 EmptyView()
             }
@@ -577,16 +595,6 @@ struct HomeView: View {
         }
     }
 
-    @MainActor
-    private func prewarmMonthCache() {
-        let habitsToWarm = viewModel.activeHabits
-        let anchor = Date()
-
-        for habit in habitsToWarm where monthCache[habit.id] == nil {
-            monthCache[habit.id] = MonthHeatmapModel(habit: habit, month: anchor)
-        }
-    }
-    
     private func scheduleRefresh(reloadListID: Bool = false) {
         // Coalesce rapid-fire triggers to avoid redundant recomputes during transitions.
         pendingRefreshTask?.cancel()
@@ -602,7 +610,6 @@ struct HomeView: View {
 
     private func refreshFromHabits(reloadListID: Bool = false) {
         viewModel.updateHabits(habits)
-        prewarmMonthCache()
         if reloadListID {
             listRefreshID = UUID()
         }

@@ -299,4 +299,19 @@ struct HomeViewModelTests {
 
         #expect(vm.todayStartOfDay == cal.startOfDay(for: tomorrow))
     }
+
+    @Test
+    func updateHabits_recalculates_when_existing_habit_logs_change() async throws {
+        let vm = HomeViewModel(today: today)
+        let habit = makeHabit(title: "Mutable", schedule: dailySchedule())
+
+        vm.updateHabits([habit])
+        #expect(vm.completedToday.isEmpty)
+
+        habit.logs = [makeLog(on: today, completed: true, habit: habit)]
+        vm.updateHabits([habit])
+
+        #expect(vm.completedToday.count == 1)
+        #expect(vm.completedToday.first?.title == "Mutable")
+    }
 }

@@ -4,6 +4,62 @@ import Combine
 
 @MainActor
 final class HomeViewModel: ObservableObject {
+    private struct InputSnapshot: Equatable {
+        let todayStartOfDay: Date
+        let habits: [HabitSnapshot]
+
+        init(todayStartOfDay: Date, habits: [Habit], calendar: Calendar = .current) {
+            self.todayStartOfDay = todayStartOfDay
+            self.habits = habits.map { HabitSnapshot(habit: $0, calendar: calendar) }
+        }
+    }
+
+    private struct HabitSnapshot: Equatable {
+        let id: String
+        let title: String
+        let createdAt: Date
+        let isArchived: Bool
+        let scheduleData: Data
+        let reminderEnabled: Bool
+        let reminderHour: Int?
+        let reminderMinute: Int?
+        let iconName: String
+        let sortOrder: Int
+        let logs: [LogSnapshot]
+
+        init(habit: Habit, calendar: Calendar) {
+            self.id = habit.id
+            self.title = habit.title
+            self.createdAt = habit.createdAt
+            self.isArchived = habit.isArchived
+            self.scheduleData = habit.scheduleData
+            self.reminderEnabled = habit.reminderEnabled
+            self.reminderHour = habit.reminderHour
+            self.reminderMinute = habit.reminderMinute
+            self.iconName = habit.iconName
+            self.sortOrder = habit.sortOrder
+            self.logs = (habit.logs ?? [])
+                .map { LogSnapshot(log: $0, calendar: calendar) }
+                .sorted()
+        }
+    }
+
+    private struct LogSnapshot: Equatable, Comparable {
+        let date: Date
+        let completed: Bool
+
+        init(log: HabitLog, calendar: Calendar) {
+            self.date = calendar.startOfDay(for: log.date)
+            self.completed = log.completed
+        }
+
+        static func < (lhs: LogSnapshot, rhs: LogSnapshot) -> Bool {
+            if lhs.date == rhs.date {
+                return !lhs.completed && rhs.completed
+            }
+            return lhs.date < rhs.date
+        }
+    }
     
     // MARK: - Source of truth
     @Published private(set) var todayStartOfDay: Date
@@ -26,6 +82,7 @@ final class HomeViewModel: ObservableObject {
     @Published private(set) var recentActiveDays: Int = 0          // days with ≥1 completion in the last 7 days
     @Published private(set) var lifetimeActiveDays: Int = 0        // distinct days with any completion
     @Published private(set) var lifetimeCompletions: Int = 0       // total completed logs across all time
+    private var lastInputSnapshot: InputSnapshot?
     
     // MARK: - Init
     init(today: Date = Calendar.current.startOfDay(for: Date())) {
@@ -34,14 +91,29 @@ final class HomeViewModel: ObservableObject {
     }
     
     // MARK: - Inputs
-    func updateHabits(_ habits: [Habit]) {
+    @discardableResult
+    func updateHabits(_ habits: [Habit]) -> Bool {
+        let snapshot = InputSnapshot(todayStartOfDay: todayStartOfDay, habits: habits)
+        guard snapshot != lastInputSnapshot else {
+            return false
+        }
+
         self.habits = habits
-        recalcDerived()
+        recalcDerived(inputSnapshot: snapshot)
+        return true
     }
     
-    func advanceToToday(_ date: Date) {
-        self.todayStartOfDay = Calendar.current.startOfDay(for: date)
-        recalcDerived()
+    @discardableResult
+    func advanceToToday(_ date: Date) -> Bool {
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        let snapshot = InputSnapshot(todayStartOfDay: startOfDay, habits: habits)
+        guard snapshot != lastInputSnapshot else {
+            return false
+        }
+
+        self.todayStartOfDay = startOfDay
+        recalcDerived(inputSnapshot: snapshot)
+        return true
     }
 
     func syncProgressToWidget() {
@@ -57,7 +129,7 @@ final class HomeViewModel: ObservableObject {
         habits.compactMap { $0.logs }.flatMap { $0 }
     }
     
-    private func recalcDerived() {
+    private func recalcDerived(inputSnapshot: InputSnapshot? = nil) {
         let cal = Calendar.current
         let today = todayStartOfDay
 
@@ -216,6 +288,7 @@ final class HomeViewModel: ObservableObject {
         self.recentActiveDays = recentDaysWithActivity
         self.lifetimeActiveDays = lifetimeDaysWithActivity
         self.lifetimeCompletions = lifetimeCompletionsCount
+        self.lastInputSnapshot = inputSnapshot ?? InputSnapshot(todayStartOfDay: todayStartOfDay, habits: habits, calendar: cal)
     }
     
 }

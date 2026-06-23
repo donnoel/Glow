@@ -3,8 +3,8 @@ import WidgetKit
 
 struct SharedProgressStore {
 
-    // 👇 this is your group from earlier
     static let appGroupID = "group.movie.Glow"
+    private static let todayProgressWidgetKind = "TodayProgressWidget"
 
     private static var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: appGroupID)
@@ -18,6 +18,16 @@ struct SharedProgressStore {
             return
         }
 
+        let now = Date()
+        let dayStamp = yyyyMMddStamp(for: now)
+        if defaults.integer(forKey: "today_done") == done,
+           defaults.integer(forKey: "today_total") == total,
+           defaults.integer(forKey: "today_bonus") == bonus,
+           defaults.integer(forKey: "today_stamp") == dayStamp,
+           defaults.object(forKey: "today_date") != nil {
+            return
+        }
+
         // numbers
         defaults.set(done, forKey: "today_done")
         defaults.set(total, forKey: "today_total")
@@ -28,20 +38,19 @@ struct SharedProgressStore {
         formatter.calendar = Calendar.current
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "yyyy-MM-dd"
-        let todayString = formatter.string(from: Date())
+        let todayString = formatter.string(from: now)
         defaults.set(todayString, forKey: "today_date")
 
         // numeric day-stamp for fast comparisons in the widget
-        let dayStamp = yyyyMMddStamp(for: Date())
         defaults.set(dayStamp, forKey: "today_stamp")
 
         // raw timestamp to help the widget detect day rollover
-        defaults.set(Date().timeIntervalSince1970, forKey: "last_updated")
+        defaults.set(now.timeIntervalSince1970, forKey: "last_updated")
 
         print("SharedProgressStore ✅ saved done=\(done) total=\(total) bonus=\(bonus) date=\(todayString) stamp=\(dayStamp) to app group")
 
-        // tell widgets to refresh
-        WidgetCenter.shared.reloadAllTimelines()
+        // tell Glow's progress widget to refresh
+        WidgetCenter.shared.reloadTimelines(ofKind: todayProgressWidgetKind)
     }
 
     static func resetToday() {
