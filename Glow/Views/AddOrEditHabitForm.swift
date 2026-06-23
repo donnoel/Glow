@@ -163,7 +163,8 @@ struct AddOrEditHabitForm: View {
             context.insert(newHabit)
             let didSave = context.saveSafelyReturningSuccess()
             if didSave {
-                await NotificationManager.syncAfterCreate(for: newHabit)
+                let notificationSnapshot = NotificationScheduleSnapshot(habit: newHabit)
+                await NotificationManager.syncAfterCreate(for: notificationSnapshot)
             }
 
         case .edit:
@@ -172,7 +173,8 @@ struct AddOrEditHabitForm: View {
             update(habit: habit, with: trimmed)
             let didSave = context.saveSafelyReturningSuccess()
             if didSave {
-                await NotificationManager.syncAfterEdit(for: habit, wasReminderEnabled: wasEnabled)
+                let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
+                await NotificationManager.syncAfterEdit(for: notificationSnapshot, wasReminderEnabled: wasEnabled)
             }
         }
 

@@ -111,9 +111,10 @@ struct HomeView: View {
                 ) { h in
                     Button("Delete “\(h.title)”", role: .destructive) {
                         GlowTheme.tapHaptic()
+                        let notificationSnapshot = NotificationScheduleSnapshot(habit: h)
                         context.delete(h)
                         if context.saveSafelyReturningSuccess() {
-                            Task { await NotificationManager.cancelNotifications(for: h) }
+                            Task { await NotificationManager.cancelNotifications(for: notificationSnapshot) }
                             habitToDelete = nil
                         } else {
                             context.rollback()
@@ -172,6 +173,7 @@ struct HomeView: View {
         }
         .onDisappear {
             undoAutoDismissTask?.cancel()
+            pendingRefreshTask?.cancel()
         }
     }
 
@@ -502,7 +504,11 @@ struct HomeView: View {
 
         undoAutoDismissTask?.cancel()
         undoAutoDismissTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 4_000_000_000)
+            do {
+                try await Task.sleep(nanoseconds: 4_000_000_000)
+            } catch {
+                return
+            }
             clearCompletionUndo(animated: true)
         }
     }
@@ -563,29 +569,19 @@ struct HomeView: View {
             return
         }
         viewModel.updateHabits(Array(habits))
+        let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
         Task {
-            await NotificationManager.syncAfterArchiveStateChange(for: habit)
+            await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
         }
     }
 
+    @MainActor
     private func prewarmMonthCache() {
         let habitsToWarm = viewModel.activeHabits
         let anchor = Date()
 
-        Task(priority: .utility) {
-            var built: [String: MonthHeatmapModel] = [:]
-            for habit in habitsToWarm {
-                // build off-main
-                let model = MonthHeatmapModel(habit: habit, month: anchor)
-                built[habit.id] = model
-            }
-            await MainActor.run {
-                for (id, model) in built {
-                    if monthCache[id] == nil {
-                        monthCache[id] = model
-                    }
-                }
-            }
+        for habit in habitsToWarm where monthCache[habit.id] == nil {
+            monthCache[habit.id] = MonthHeatmapModel(habit: habit, month: anchor)
         }
     }
     
@@ -593,7 +589,11 @@ struct HomeView: View {
         // Coalesce rapid-fire triggers to avoid redundant recomputes during transitions.
         pendingRefreshTask?.cancel()
         pendingRefreshTask = Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 150_000_000) // 150ms debounce
+            do {
+                try await Task.sleep(nanoseconds: 150_000_000) // 150ms debounce
+            } catch {
+                return
+            }
             refreshFromHabits(reloadListID: reloadListID)
         }
     }

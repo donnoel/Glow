@@ -189,8 +189,9 @@ struct LibraryRootView: View {
             return
         }
 
+        let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
         Task {
-            await NotificationManager.syncAfterArchiveStateChange(for: habit)
+            await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
         }
     }
     

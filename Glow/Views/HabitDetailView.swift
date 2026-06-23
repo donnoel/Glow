@@ -349,9 +349,10 @@ struct HabitDetailView: View {
             return
         }
         viewModel.refreshFromStore()
+        let notificationSnapshot = NotificationScheduleSnapshot(habit: viewModel.habit)
 
         Task {
-            await NotificationManager.syncAfterArchiveStateChange(for: viewModel.habit)
+            await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
         }
     }
 }

@@ -91,6 +91,10 @@ struct ArchiveView: View {
         habit.isArchived = false
         do {
             try context.save()
+            let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
+            Task {
+                await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
+            }
             // Notify any listeners (e.g., HomeView) that data changed and that the SwiftData context emitted changes
             NotificationCenter.default.post(name: .glowDataDidChange, object: nil)
             NotificationCenter.default.post(name: .NSManagedObjectContextObjectsDidChange, object: context)
