@@ -7,19 +7,6 @@ final class GlowUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        // Ensure tests land on Home (skip onboarding)
-        app.launchArguments += ["--uitesting"]
-        app.launchEnvironment["IS_UI_TEST"] = "1"
-        app.launch()
-
-        // Fallback: if onboarding still appears for any reason, dismiss it
-        let getStarted = app.buttons["Get started"]
-        if getStarted.waitForExistence(timeout: 3.0) {
-            getStarted.tap()
-        }
-
-        // Ensure we actually landed on Home
-        waitForHome()
     }
 
     override func tearDownWithError() throws {
@@ -27,6 +14,30 @@ final class GlowUITests: XCTestCase {
     }
 
     // MARK: - Helpers
+
+    private func launchForHome(resetData: Bool = true) {
+        app = XCUIApplication()
+        app.launchArguments += ["--uitesting"]
+        if resetData {
+            app.launchArguments += ["-resetDataForUITests"]
+        }
+        app.launchEnvironment["IS_UI_TEST"] = "1"
+        app.launch()
+
+        let getStarted = app.buttons["Get started"]
+        if getStarted.waitForExistence(timeout: 3.0) {
+            getStarted.tap()
+        }
+
+        waitForHome()
+    }
+
+    private func launchForFirstInstallOnboarding() {
+        app = XCUIApplication()
+        app.launchArguments += ["-resetDataForUITests", "-showOnboardingForUITests"]
+        app.launchEnvironment["IS_UI_TEST"] = "1"
+        app.launch()
+    }
 
     private func addPracticeButton() -> XCUIElement {
         if app.buttons["addPracticeButton"].exists {
@@ -92,6 +103,7 @@ final class GlowUITests: XCTestCase {
     // 1) Smoke: app launches and we can see the add button (or its identifier)
     @MainActor
     func testHomeShowsAddPracticeButton() throws {
+        launchForHome()
         waitForHome()
         let addButton = addPracticeButton()
         XCTAssertTrue(addButton.isHittable,
@@ -101,6 +113,7 @@ final class GlowUITests: XCTestCase {
     // 2) Add practice flow works (sheet or push)
     @MainActor
     func testAddPracticeFlow() throws {
+        launchForHome()
         waitForHome()
         createPractice(named: "UITest Practice")
 
@@ -113,6 +126,7 @@ final class GlowUITests: XCTestCase {
     // 3) Sidebar / menu opens and Reminders is shown
     @MainActor
     func testOpenSidebarAndShowReminders() throws {
+        launchForHome()
         waitForHome()
         openLibrary()
 
@@ -133,6 +147,7 @@ final class GlowUITests: XCTestCase {
     // 4) Mark first practice complete
     @MainActor
     func testToggleFirstPracticeComplete() throws {
+        launchForHome()
         waitForHome()
         // Always ensure we have a known practice to toggle
         createPractice(named: "UITest Auto")
@@ -150,17 +165,55 @@ final class GlowUITests: XCTestCase {
         XCTAssertTrue(toggleButton.waitForExistence(timeout: 5),
                       "Should find a practice toggle button.")
         toggleButton.tap()
-        // We don't assert the resulting state here to keep the test stable.
+
+        let completedToggle = app.buttons["Mark UITest Auto not done today"]
+        XCTAssertTrue(completedToggle.waitForExistence(timeout: 5),
+                      "Toggled practice should expose the completed-state accessibility label.")
+
+        let undoButton = app.buttons["Undo"]
+        XCTAssertTrue(undoButton.waitForExistence(timeout: 5),
+                      "Completing a practice should show the undo affordance.")
     }
 
-    // 5) Existing performance test
+    // 5) First-install onboarding can complete into Home
+    @MainActor
+    func testFirstInstallOnboardingCanCompleteToHome() throws {
+        launchForFirstInstallOnboarding()
+
+        let welcomeTitle = app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Welcome to Glow")
+        ).firstMatch
+        XCTAssertTrue(welcomeTitle.waitForExistence(timeout: 5),
+                      "Fresh install should start on the Glow onboarding.")
+
+        let nextButton = app.buttons["Next"]
+        XCTAssertTrue(nextButton.waitForExistence(timeout: 5),
+                      "Onboarding should show a Next button.")
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Add what matters"].waitForExistence(timeout: 5))
+
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Stay in control"].waitForExistence(timeout: 5))
+
+        nextButton.tap()
+        XCTAssertTrue(app.staticTexts["Always within reach"].waitForExistence(timeout: 5))
+
+        let getStarted = app.buttons["Get started"]
+        XCTAssertTrue(getStarted.waitForExistence(timeout: 5),
+                      "Last onboarding page should show Get started.")
+        getStarted.tap()
+
+        waitForHome()
+    }
+
+    // 6) Existing performance test
     @MainActor
     func testLaunchPerformance() throws {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
-            let app = XCUIApplication()
-            app.launchArguments += ["--uitesting"]
-            app.launchEnvironment["IS_UI_TEST"] = "1"
-            app.launch()
+            let measuredApp = XCUIApplication()
+            measuredApp.launchArguments += ["--uitesting", "-resetDataForUITests"]
+            measuredApp.launchEnvironment["IS_UI_TEST"] = "1"
+            measuredApp.launch()
         }
     }
 }

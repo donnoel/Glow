@@ -16,6 +16,8 @@ struct AddOrEditHabitForm: View {
     @State private var iconName: String
     @State private var remindMe: Bool
     @State private var reminderTime: Date
+    @State private var showSaveError = false
+    @State private var saveErrorMessage = "Your changes were not saved. Please try again."
 
     // MARK: - Init
     init(mode: Mode, habit: Habit? = nil) {
@@ -149,6 +151,11 @@ struct AddOrEditHabitForm: View {
         }
         .glowTint()
         .glowScreenBackground()
+        .alert("Couldn't Save Practice", isPresented: $showSaveError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(saveErrorMessage)
+        }
     }
 
     // MARK: - Save
@@ -157,28 +164,36 @@ struct AddOrEditHabitForm: View {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
 
+        let didSave: Bool
+
         switch mode {
         case .add:
             let newHabit = createHabit(from: trimmed)
             context.insert(newHabit)
-            let didSave = context.saveSafelyReturningSuccess()
+            didSave = context.saveSafelyReturningSuccess()
             if didSave {
                 let notificationSnapshot = NotificationScheduleSnapshot(habit: newHabit)
                 await NotificationManager.syncAfterCreate(for: notificationSnapshot)
             }
 
         case .edit:
-            guard let habit else { break }
+            guard let habit else { return }
             let wasEnabled = habit.reminderEnabled
             update(habit: habit, with: trimmed)
-            let didSave = context.saveSafelyReturningSuccess()
+            didSave = context.saveSafelyReturningSuccess()
             if didSave {
                 let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
                 await NotificationManager.syncAfterEdit(for: notificationSnapshot, wasReminderEnabled: wasEnabled)
             }
         }
 
-        dismiss()
+        if didSave {
+            dismiss()
+        } else {
+            context.rollback()
+            saveErrorMessage = "Your changes were not saved. Please try again."
+            showSaveError = true
+        }
     }
 
     // MARK: - Build / Update

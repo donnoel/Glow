@@ -61,7 +61,7 @@ struct HomeViewModelConsistencyTests {
             log(on: day1, for: habitB)
         ]
 
-        await vm.updateHabits([habitA, habitB])
+        vm.updateHabits([habitA, habitB])
 
         let result = vm.mostConsistentHabit
         #expect(result.title == "A")
@@ -80,7 +80,7 @@ struct HomeViewModelConsistencyTests {
         let log2 = HabitLog(date: today.addingTimeInterval(60 * 60), completed: true, habit: habit)
         habit.logs = [log1, log2]
 
-        await vm.updateHabits([habit])
+        vm.updateHabits([habit])
 
         let result = vm.mostConsistentHabit
         #expect(result.title == "Spammy")
@@ -94,7 +94,7 @@ struct HomeViewModelConsistencyTests {
         let h1 = makeHabit(title: "Empty 1")
         let h2 = makeHabit(title: "Empty 2")
 
-        await vm.updateHabits([h1, h2])
+        vm.updateHabits([h1, h2])
 
         let result = vm.mostConsistentHabit
         #expect(result.title == "—")  // matches the default you used

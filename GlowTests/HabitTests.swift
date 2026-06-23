@@ -31,7 +31,7 @@ struct HabitTests {
 
     @Test
     func reminder_fields_can_be_set() throws {
-        var h = Habit(
+        let h = Habit(
             title: "Evening walk",
             createdAt: .now,
             isArchived: false,

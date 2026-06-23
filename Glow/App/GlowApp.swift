@@ -9,10 +9,24 @@ struct GlowApp: App {
     init() {
         Self.updateSettingsVersionDisplay()
 
-        // Skip onboarding during UI tests so Home is visible immediately
-        if CommandLine.arguments.contains("--uitesting") {
+        let arguments = CommandLine.arguments
+
+        #if DEBUG
+        if arguments.contains("-resetDataForUITests") {
+            Self.resetPersistentDataForUITests()
+        }
+
+        if arguments.contains("-showOnboardingForUITests") {
+            UserDefaults.standard.set(false, forKey: "hasSeenGlowOnboarding")
+        } else if arguments.contains("--uitesting") {
             UserDefaults.standard.set(true, forKey: "hasSeenGlowOnboarding")
         }
+        #else
+        // Skip onboarding during UI tests so Home is visible immediately.
+        if arguments.contains("--uitesting") {
+            UserDefaults.standard.set(true, forKey: "hasSeenGlowOnboarding")
+        }
+        #endif
     }
 
     private static func updateSettingsVersionDisplay() {
@@ -31,6 +45,30 @@ struct GlowApp: App {
 
         UserDefaults.standard.set(displayValue, forKey: settingsVersionKey)
     }
+
+    #if DEBUG
+    private static func resetPersistentDataForUITests() {
+        let context = modelContainer.mainContext
+
+        do {
+            let logs = try context.fetch(FetchDescriptor<HabitLog>())
+            for log in logs {
+                context.delete(log)
+            }
+
+            let habits = try context.fetch(FetchDescriptor<Habit>())
+            for habit in habits {
+                context.delete(habit)
+            }
+
+            try context.save()
+            SharedProgressStore.resetToday()
+        } catch {
+            assertionFailure("Failed to reset UI test data: \(error)")
+            context.rollback()
+        }
+    }
+    #endif
 
     // MARK: - Shared SwiftData + CloudKit container
     
