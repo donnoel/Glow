@@ -37,15 +37,17 @@ final class HomeViewModel: ObservableObject {
     func updateHabits(_ habits: [Habit]) {
         self.habits = habits
         recalcDerived()
-        // when habits change, push real numbers to the widget
-        pushProgressToWidget()
     }
     
     func advanceToToday(_ date: Date) {
         self.todayStartOfDay = Calendar.current.startOfDay(for: date)
         recalcDerived()
-        // when the day rolls over, push fresh numbers
-        pushProgressToWidget()
+    }
+
+    func syncProgressToWidget() {
+        let tc = todayCompletion
+        let bonus = bonusCompletedToday.count
+        SharedProgressStore.saveToday(done: tc.done, total: tc.total, bonus: bonus)
     }
     
     // MARK: - "You" summaries (moved from HomeView)
@@ -216,10 +218,4 @@ final class HomeViewModel: ObservableObject {
         self.lifetimeCompletions = lifetimeCompletionsCount
     }
     
-    // MARK: - Widget sync
-    private func pushProgressToWidget() {
-        let tc = todayCompletion
-        let bonus = bonusCompletedToday.count
-        SharedProgressStore.saveToday(done: tc.done, total: tc.total, bonus: bonus)
-    }
 }

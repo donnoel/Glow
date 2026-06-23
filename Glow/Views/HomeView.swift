@@ -153,6 +153,7 @@ struct HomeView: View {
             guard phase == .active else { return }
             let startOfNow = Calendar.current.startOfDay(for: Date())
             viewModel.advanceToToday(startOfNow)
+            viewModel.syncProgressToWidget()
             scheduleRefresh()
         }
         // React to DST/manual time change or midnight rollover while app is running
@@ -183,6 +184,7 @@ struct HomeView: View {
         let startOfNow = cal.startOfDay(for: Date())
         if startOfNow != viewModel.todayStartOfDay {
             viewModel.advanceToToday(startOfNow)
+            viewModel.syncProgressToWidget()
             clearCompletionUndo(animated: false)
         }
     }
@@ -434,9 +436,12 @@ struct HomeView: View {
     private func toggleToday(_ habit: Habit) {
         let cal = Calendar.current
         let today = viewModel.todayStartOfDay
+        let existingLog = (habit.logs ?? []).first { cal.startOfDay(for: $0.date) == today }
+        let previousCompleted = existingLog?.completed ?? false
+        let createdNewLog = existingLog == nil
 
         withAnimation(.spring(response: 0.25, dampingFraction: 0.8)) {
-            if let log = (habit.logs ?? []).first(where: { cal.startOfDay(for: $0.date) == today }) {
+            if let log = existingLog {
                 log.completed.toggle()
             } else {
                 let log = HabitLog(date: today, completed: true, habit: habit)
@@ -450,8 +455,12 @@ struct HomeView: View {
             return
         }
 
-        // tell the view model to recompute and push to the widget
-        viewModel.updateHabits(Array(habits))
+        refreshFromHabits()
+        presentCompletionUndo(
+            for: habit,
+            previousCompleted: previousCompleted,
+            createdNewLog: createdNewLog
+        )
     }
 
     private var completionUndoBar: some View {
@@ -542,7 +551,7 @@ struct HomeView: View {
             context.rollback()
             return
         }
-        viewModel.updateHabits(Array(habits))
+        refreshFromHabits()
         clearCompletionUndo(animated: true)
     }
 
@@ -562,16 +571,9 @@ struct HomeView: View {
     }
 
     private func toggleArchive(_ habit: Habit, archived: Bool) {
-        habit.isArchived = archived
         GlowTheme.tapHaptic()
-        guard context.saveSafelyReturningSuccess() else {
-            context.rollback()
-            return
-        }
-        viewModel.updateHabits(Array(habits))
-        let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
-        Task {
-            await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
+        if HabitArchiveAction.setArchived(archived, for: habit, in: context) {
+            refreshFromHabits()
         }
     }
 
@@ -604,6 +606,7 @@ struct HomeView: View {
         if reloadListID {
             listRefreshID = UUID()
         }
+        viewModel.syncProgressToWidget()
     }
 }
 
@@ -671,8 +674,4 @@ private final class GlowShareItemSource: NSObject, UIActivityItemSource {
         // but the preview uses our custom icon instead of the remote page preview.
         return metadata
     }
-}
-
-extension Notification.Name {
-    static let glowDataDidChange = Notification.Name("glowDataDidChange")
 }

@@ -1,6 +1,5 @@
 import SwiftUI
 import SwiftData
-import CoreData
 
 struct ArchiveView: View {
     @Environment(\.dismiss) private var dismiss
@@ -88,18 +87,6 @@ struct ArchiveView: View {
     }
 
     private func unarchive(_ habit: Habit) {
-        habit.isArchived = false
-        do {
-            try context.save()
-            let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
-            Task {
-                await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
-            }
-            // Notify any listeners (e.g., HomeView) that data changed and that the SwiftData context emitted changes
-            NotificationCenter.default.post(name: .glowDataDidChange, object: nil)
-            NotificationCenter.default.post(name: .NSManagedObjectContextObjectsDidChange, object: context)
-        } catch {
-            print("Unarchive save error:", error)
-        }
+        HabitArchiveAction.setArchived(false, for: habit, in: context)
     }
 }

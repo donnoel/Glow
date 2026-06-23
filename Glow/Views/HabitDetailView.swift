@@ -343,16 +343,8 @@ struct HabitDetailView: View {
 
     private func toggleArchive() {
         let willArchive = !viewModel.habit.isArchived
-        viewModel.habit.isArchived = willArchive
-        guard context.saveSafelyReturningSuccess() else {
-            context.rollback()
-            return
-        }
-        viewModel.refreshFromStore()
-        let notificationSnapshot = NotificationScheduleSnapshot(habit: viewModel.habit)
-
-        Task {
-            await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
+        if HabitArchiveAction.setArchived(willArchive, for: viewModel.habit, in: context) {
+            viewModel.refreshFromStore()
         }
     }
 }

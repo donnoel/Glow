@@ -1,3 +1,4 @@
+import Foundation
 import SwiftData
 
 extension ModelContext {
@@ -23,5 +24,25 @@ extension ModelContext {
             #endif
             return false
         }
+    }
+}
+
+@MainActor
+enum HabitArchiveAction {
+    @discardableResult
+    static func setArchived(_ isArchived: Bool, for habit: Habit, in context: ModelContext) -> Bool {
+        habit.isArchived = isArchived
+
+        guard context.saveSafelyReturningSuccess() else {
+            context.rollback()
+            return false
+        }
+
+        let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
+        Task {
+            await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
+        }
+        NotificationCenter.default.post(name: .glowDataDidChange, object: nil)
+        return true
     }
 }

@@ -183,16 +183,7 @@ struct LibraryRootView: View {
     }
 
     private func toggleArchive(habit: Habit, isArchived: Bool) {
-        habit.isArchived = isArchived
-        guard context.saveSafelyReturningSuccess() else {
-            context.rollback()
-            return
-        }
-
-        let notificationSnapshot = NotificationScheduleSnapshot(habit: habit)
-        Task {
-            await NotificationManager.syncAfterArchiveStateChange(for: notificationSnapshot)
-        }
+        HabitArchiveAction.setArchived(isArchived, for: habit, in: context)
     }
     
     private func scheduleSubtitle(for habit: Habit, isArchived: Bool) -> String {
