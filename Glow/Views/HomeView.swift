@@ -33,6 +33,7 @@ struct HomeView: View {
     // Edit / Delete state
     @State private var habitToEdit: Habit?
     @State private var habitToDelete: Habit?
+    @State private var habitToShowDetails: Habit?
 
     // Share
     @State private var showShare = false
@@ -97,6 +98,16 @@ struct HomeView: View {
                     AddOrEditHabitForm(mode: .add)
                         .presentationDetents([.large])
                         .presentationDragIndicator(.visible)
+                }
+                .navigationDestination(
+                    isPresented: Binding(
+                        get: { habitToShowDetails != nil },
+                        set: { if !$0 { habitToShowDetails = nil } }
+                    )
+                ) {
+                    if let habitToShowDetails {
+                        HabitDetailView(habit: habitToShowDetails)
+                    }
                 }
                 .confirmationDialog(
                     "Delete practice?",
@@ -315,9 +326,9 @@ struct HomeView: View {
         let completed = viewModel.completedTodayHabitIDs.contains(habit.id)
 
         ZStack {
-            // Invisible full-row tap target for navigation (no chevron).
-            NavigationLink {
-                HabitDetailView(habit: habit)
+            // Invisible full-row detail target without List disclosure artwork.
+            Button {
+                habitToShowDetails = habit
             } label: {
                 Color.clear
                     .contentShape(Rectangle())
