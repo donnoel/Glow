@@ -315,14 +315,17 @@ struct HomeView: View {
         let completed = viewModel.completedTodayHabitIDs.contains(habit.id)
 
         ZStack {
-            // Invisible full-row tap target for navigation (no chevron)
+            // Invisible full-row tap target for navigation (no chevron).
             NavigationLink {
                 HabitDetailView(habit: habit)
             } label: {
-                EmptyView()
+                Color.clear
+                    .contentShape(Rectangle())
             }
-            .opacity(0)                 // keep hit area, hide visuals
-            .accessibilityHidden(true)
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open details for \(habit.title)")
+            .accessibilityValue(completed ? "Completed today" : "Not completed today")
+            .accessibilityHint("Shows streaks, heatmap, and history")
 
             HStack(spacing: 12) {
                 Image(systemName: habit.iconName)

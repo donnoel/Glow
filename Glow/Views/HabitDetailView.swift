@@ -727,7 +727,22 @@ struct MonthHeatmapModel {
             HabitLog(date: day, completed: true, habit: Habit.placeholder)
         }
 
-        let monthStreakLocal = StreakEngine.computeStreaks(logs: syntheticMonthLogs).current
+        let monthStreakAnchor: Date
+        if let start = startOfMonth, let end = endOfMonth {
+            if todayLocal < start {
+                monthStreakAnchor = todayLocal
+            } else if todayLocal >= end {
+                monthStreakAnchor = cal.date(byAdding: .day, value: -1, to: end) ?? todayLocal
+            } else {
+                monthStreakAnchor = todayLocal
+            }
+        } else {
+            monthStreakAnchor = todayLocal
+        }
+
+        let monthStreakLocal = StreakEngine
+            .computeStreaks(logs: syntheticMonthLogs, today: monthStreakAnchor)
+            .current
 
         // --------- Assign stored properties last ---------
         self.cal = cal

@@ -32,8 +32,8 @@ Glow is about *celebrating* the tiny wins that build toward growth.
 | 📈 **Trends & Analytics** | Understand your long-term rhythm with beautiful insights. |
 | 🔔 **Reminders** | Gentle notifications aligned with your schedule. |
 | 🗂️ **Archive** | Hide old practices without losing data. |
-| 🧩 **Home Screen Widgets** | One-tap check-ins and instant progress. |
-| 🪄 **Six-Page Onboarding** | A smooth intro featuring gestures & widget setup. |
+| 🧩 **Home Screen Widgets** | Glanceable daily progress synced from the app. |
+| 🪄 **Four-Page Onboarding** | A smooth intro featuring gestures, reminders, iCloud, and widget setup. |
 | 🌙 **Adaptive Themes** | Light, Dark, High-Contrast, and Reduce Motion. |
 | 🥂 **Completion Pulse** | A gentle celebration when you finish your day. |
 
@@ -62,14 +62,12 @@ Glow is about *celebrating* the tiny wins that build toward growth.
 
 ## 🧭 Onboarding Experience
 
-Glow includes a fully custom **6-screen onboarding flow**:
+Glow includes a fully custom **4-screen onboarding flow**:
 
-1. Welcome ✨  
-2. Add a practice ➕  
-3. Practice details 📊  
-4. Swipe actions 👆  
-5. Menu overview 📁  
-6. Add the Glow Widget 📦  
+1. Welcome ✨
+2. Add a practice ➕
+3. Swipe actions and app sections 👆
+4. Add the Glow Widget 📦
 
 Users may tap **Skip** or flow through with smooth spring animations.
 
@@ -149,8 +147,8 @@ Handles:
 
 ### **Widgets**
 - Uses `SharedProgressStore`
-- Check in directly from the widget  
-- Updates instantly with new logs  
+- Shows today's progress from the shared app group
+- Updates when app progress values change
 
 ---
 

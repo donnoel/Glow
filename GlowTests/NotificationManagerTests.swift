@@ -4,6 +4,7 @@ import Foundation
 import UserNotifications
 
 @MainActor
+@Suite(.serialized)
 struct NotificationManagerTests {
     
     // MARK: - Helpers
@@ -30,6 +31,10 @@ struct NotificationManagerTests {
             iconName: "checkmark.circle",
             sortOrder: 0
         )
+    }
+
+    private func allNotificationIdentifiers(for habit: Habit) -> [String] {
+        Weekday.allCases.map { "habit.\(habit.id).weekday.\($0.rawValue)" }
     }
     
     /// Fake notification center used for tests to avoid hitting the real UNUserNotificationCenter.
@@ -151,6 +156,53 @@ struct NotificationManagerTests {
         #expect(
             fakeCenter.removedIdentifiers.contains(where: { $0 == expectedIds }),
             "Cancel should attempt to remove pending notifications for the habit"
+        )
+    }
+
+    @Test
+    func syncAfterEdit_removes_pending_notifications_when_reminder_is_turned_off() async {
+        let fakeCenter = FakeNotificationCenter()
+        NotificationManager.center = fakeCenter
+        defer { NotificationManager.center = UNUserNotificationCenter.current() }
+
+        let habit = makeHabit(
+            title: "TurnedOff",
+            reminderEnabled: false,
+            hour: 8,
+            minute: 15
+        )
+        let expectedIds = allNotificationIdentifiers(for: habit)
+
+        await NotificationManager.syncAfterEdit(for: habit, wasReminderEnabled: true)
+
+        #expect(fakeCenter.addedRequests.isEmpty)
+        #expect(
+            fakeCenter.removedIdentifiers.contains(where: { $0 == expectedIds }),
+            "Turning a reminder off should clear all pending weekday requests"
+        )
+    }
+
+    @Test
+    func syncAfterArchiveStateChange_removes_pending_notifications_when_archived() async {
+        let fakeCenter = FakeNotificationCenter()
+        NotificationManager.center = fakeCenter
+        defer { NotificationManager.center = UNUserNotificationCenter.current() }
+
+        let habit = makeHabit(
+            title: "ArchivedReminder",
+            isArchived: true,
+            reminderEnabled: true,
+            hour: 9,
+            minute: 30
+        )
+        let expectedIds = allNotificationIdentifiers(for: habit)
+
+        await NotificationManager.syncAfterArchiveStateChange(for: habit)
+
+        #expect(fakeCenter.addedRequests.isEmpty)
+        #expect(
+            fakeCenter.removedIdentifiers.contains(where: { $0 == expectedIds }),
+            "Archiving a habit should clear all pending weekday requests"
         )
     }
     

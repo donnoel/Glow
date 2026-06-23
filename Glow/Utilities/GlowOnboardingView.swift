@@ -57,7 +57,7 @@ struct GlowOnboardingView: View {
                 // 3 – Widget + iCloud
                 OnboardingPage(
                     title: "Always within reach",
-                    subtitle: "Add the Glow widget for instant progress and one-tap check-ins. Glow uses iCloud to keep your practices in sync across devices.",
+                    subtitle: "Add the Glow widget for at-a-glance progress. Glow uses iCloud to keep your practices in sync across devices.",
                     mainSymbol: "rectangle.3.offgrid.fill",
                     supportingSymbols: ["icloud", "iphone.homebutton"]
                 )

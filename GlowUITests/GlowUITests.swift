@@ -123,6 +123,17 @@ final class GlowUITests: XCTestCase {
                       "Newly added practice should appear in the list.")
     }
 
+    @MainActor
+    func testTodayRowExposesDetailsAccessibilityAction() throws {
+        launchForHome()
+        waitForHome()
+        createPractice(named: "UITest Details")
+
+        let detailsButton = app.buttons["Open details for UITest Details"]
+        XCTAssertTrue(detailsButton.waitForExistence(timeout: 5),
+                      "Today row should expose an accessibility action for opening habit details.")
+    }
+
     // 3) Sidebar / menu opens and Reminders is shown
     @MainActor
     func testOpenSidebarAndShowReminders() throws {

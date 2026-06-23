@@ -32,23 +32,10 @@ struct ReminderFilteringTests {
         return h
     }
 
-    /// This matches what RemindersView conceptually does:
-    /// filter to reminder-enabled, non-archived, valid time, then sort by time
     private func reminderHabits(from habits: [Habit]) -> [Habit] {
-        habits
-            .filter { !$0.isArchived }
-            .filter { $0.reminderEnabled }
-            .filter { $0.reminderHour != nil && $0.reminderMinute != nil }
-            .sorted { lhs, rhs in
-                let lHour = lhs.reminderHour ?? 23
-                let lMin = lhs.reminderMinute ?? 59
-                let rHour = rhs.reminderHour ?? 23
-                let rMin = rhs.reminderMinute ?? 59
-                if lHour == rHour {
-                    return lMin < rMin
-                }
-                return lHour < rHour
-            }
+        let model = RemindersViewModel()
+        model.update(from: habits)
+        return model.reminderHabits
     }
 
     // MARK: - Tests

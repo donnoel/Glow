@@ -62,7 +62,7 @@ Success means users can define habits, follow schedules, complete check-ins, see
   - `/Users/donnoel/Development/Glow/Glow/Utilities/ModelContext+Save.swift`
   - `/Users/donnoel/Development/Glow/Glow/Utilities/GlowOnboardingView.swift`
 - Widget extension:
-  - `/Users/donnoel/Development/Glow/GlowWidgetExtension/GlowWidgetExtension.swift`
+  - `/Users/donnoel/Development/Glow/GlowWidgetExtension/GlowWidgetExtensionBundle.swift`
 
 ## Concurrency rules (important)
 - Keep SwiftUI and observable view-model state on `@MainActor`.
