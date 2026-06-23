@@ -210,6 +210,8 @@ struct AboutGlowView: View {
                 modelContext.delete(l)
             }
             try modelContext.save()
+            SharedProgressStore.resetToday()
+            NotificationCenter.default.post(name: .glowDataDidChange, object: nil)
             withAnimation {
                 showResetDone = true
             }

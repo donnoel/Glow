@@ -99,4 +99,45 @@ struct HabitTests {
         let placeholder = Habit.placeholder
         #expect(!placeholder.title.isEmpty)
     }
+
+    @Test
+    func empty_schedule_data_recovers_as_legacy_daily() throws {
+        let habit = Habit(
+            title: "Legacy",
+            createdAt: .now,
+            isArchived: false,
+            schedule: dailySchedule(),
+            reminderEnabled: false,
+            reminderHour: nil,
+            reminderMinute: nil,
+            iconName: "checkmark.circle",
+            sortOrder: 0
+        )
+        habit.scheduleData = Data()
+
+        #expect(habit.scheduleRecoveryStatus == .legacyEmptyData)
+        #expect(habit.schedule.kind == .daily)
+        #expect(habit.schedule.isScheduled(on: .now))
+    }
+
+    @Test
+    func corrupt_schedule_data_recovers_as_unscheduled_custom_schedule() throws {
+        let habit = Habit(
+            title: "Corrupt",
+            createdAt: .now,
+            isArchived: false,
+            schedule: dailySchedule(),
+            reminderEnabled: false,
+            reminderHour: nil,
+            reminderMinute: nil,
+            iconName: "checkmark.circle",
+            sortOrder: 0
+        )
+        habit.scheduleData = Data("not-json".utf8)
+
+        #expect(habit.scheduleRecoveryStatus == .corruptData)
+        #expect(habit.schedule.kind == .custom)
+        #expect(habit.schedule.days.isEmpty)
+        #expect(!habit.schedule.isScheduled(on: .now))
+    }
 }

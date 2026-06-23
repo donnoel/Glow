@@ -184,7 +184,10 @@ struct LibraryRootView: View {
 
     private func toggleArchive(habit: Habit, isArchived: Bool) {
         habit.isArchived = isArchived
-        context.saveSafely()
+        guard context.saveSafelyReturningSuccess() else {
+            context.rollback()
+            return
+        }
 
         Task {
             await NotificationManager.syncAfterArchiveStateChange(for: habit)

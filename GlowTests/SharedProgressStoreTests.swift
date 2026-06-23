@@ -44,4 +44,26 @@ struct SharedProgressStoreTests {
         let lastUpdated = defaults.double(forKey: "last_updated")
         #expect(lastUpdated > 0)
     }
+
+    @Test
+    func resetToday_clears_widget_progress_values() throws {
+        let suiteName = "group.movie.Glow"
+        let defaultsOptional = UserDefaults(suiteName: suiteName)
+        #expect(defaultsOptional != nil)
+
+        guard let defaults = defaultsOptional else {
+            return
+        }
+
+        defaults.removePersistentDomain(forName: suiteName)
+
+        SharedProgressStore.saveToday(done: 4, total: 6, bonus: 2)
+        SharedProgressStore.resetToday()
+
+        #expect(defaults.integer(forKey: "today_done") == 0)
+        #expect(defaults.integer(forKey: "today_total") == 0)
+        #expect(defaults.integer(forKey: "today_bonus") == 0)
+        #expect(defaults.integer(forKey: "today_stamp") >= 19000101)
+        #expect(defaults.double(forKey: "last_updated") > 0)
+    }
 }

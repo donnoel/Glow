@@ -111,12 +111,13 @@ struct HomeView: View {
                 ) { h in
                     Button("Delete “\(h.title)”", role: .destructive) {
                         GlowTheme.tapHaptic()
-                        Task { await NotificationManager.cancelNotifications(for: h) }
                         context.delete(h)
-                        do { try context.save() } catch {
-                            print("SwiftData save error:", error)
+                        if context.saveSafelyReturningSuccess() {
+                            Task { await NotificationManager.cancelNotifications(for: h) }
+                            habitToDelete = nil
+                        } else {
+                            context.rollback()
                         }
-                        habitToDelete = nil
                     }
                     Button("Cancel", role: .cancel) { habitToDelete = nil }
                 }
@@ -442,7 +443,10 @@ struct HomeView: View {
         }
 
         GlowTheme.tapHaptic()
-        context.saveSafely()
+        guard context.saveSafelyReturningSuccess() else {
+            context.rollback()
+            return
+        }
 
         // tell the view model to recompute and push to the widget
         viewModel.updateHabits(Array(habits))
@@ -528,7 +532,10 @@ struct HomeView: View {
         }
 
         GlowTheme.tapHaptic()
-        context.saveSafely()
+        guard context.saveSafelyReturningSuccess() else {
+            context.rollback()
+            return
+        }
         viewModel.updateHabits(Array(habits))
         clearCompletionUndo(animated: true)
     }
@@ -551,8 +558,9 @@ struct HomeView: View {
     private func toggleArchive(_ habit: Habit, archived: Bool) {
         habit.isArchived = archived
         GlowTheme.tapHaptic()
-        do { try context.save() } catch {
-            print("SwiftData save error:", error)
+        guard context.saveSafelyReturningSuccess() else {
+            context.rollback()
+            return
         }
         viewModel.updateHabits(Array(habits))
         Task {

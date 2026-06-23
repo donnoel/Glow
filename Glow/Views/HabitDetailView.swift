@@ -344,7 +344,10 @@ struct HabitDetailView: View {
     private func toggleArchive() {
         let willArchive = !viewModel.habit.isArchived
         viewModel.habit.isArchived = willArchive
-        context.saveSafely()
+        guard context.saveSafelyReturningSuccess() else {
+            context.rollback()
+            return
+        }
         viewModel.refreshFromStore()
 
         Task {

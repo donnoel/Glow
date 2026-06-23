@@ -62,12 +62,22 @@ final class Habit {
 // MARK: - Computed helpers
 
 extension Habit {
+    enum ScheduleRecoveryStatus: Equatable {
+        case valid
+        case legacyEmptyData
+        case corruptData
+    }
+
     private static let scheduleEncoder = JSONEncoder()
     private static let scheduleDecoder = JSONDecoder()
 
+    var scheduleRecoveryStatus: ScheduleRecoveryStatus {
+        Self.decodeSchedule(from: scheduleData).status
+    }
+
     var schedule: HabitSchedule {
         get {
-            (try? Habit.scheduleDecoder.decode(HabitSchedule.self, from: scheduleData)) ?? .daily
+            Self.decodeSchedule(from: scheduleData).schedule
         }
         set {
             if let data = try? Habit.scheduleEncoder.encode(newValue) {
@@ -99,5 +109,16 @@ extension Habit {
         reminderHour = comps.hour
         reminderMinute = comps.minute
     }
-}
 
+    private static func decodeSchedule(from data: Data) -> (schedule: HabitSchedule, status: ScheduleRecoveryStatus) {
+        guard !data.isEmpty else {
+            return (.daily, .legacyEmptyData)
+        }
+
+        if let schedule = try? scheduleDecoder.decode(HabitSchedule.self, from: data) {
+            return (schedule, .valid)
+        }
+
+        return (HabitSchedule(kind: .custom, days: []), .corruptData)
+    }
+}

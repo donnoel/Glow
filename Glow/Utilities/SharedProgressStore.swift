@@ -44,6 +44,10 @@ struct SharedProgressStore {
         WidgetCenter.shared.reloadAllTimelines()
     }
 
+    static func resetToday() {
+        saveToday(done: 0, total: 0, bonus: 0)
+    }
+
     private static func yyyyMMddStamp(for date: Date) -> Int {
         let cal = Calendar.current
         let c = cal.dateComponents([.year, .month, .day], from: date)
