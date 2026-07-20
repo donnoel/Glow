@@ -4,7 +4,6 @@
 <p align="center">
   <img src="https://img.shields.io/badge/SwiftUI-6.2-orange?logo=swift">
   <img src="https://img.shields.io/badge/Platform-iOS_18_|_macOS_15-blue">
-  <img src="https://img.shields.io/badge/License-MIT-green">
 </p>
 
 ---
@@ -191,14 +190,9 @@ Plus a UI test that covers onboarding → add practice.
 
 ---
 
-## ❤️ Credits
+## Credits
 
-Built with care by **Don Noel** and my AI collaborator.
-
----
-
-## 📄 License  
-MIT License
+Built with care by **Don Noel** and Codex collaboration.
 
 ---
 
