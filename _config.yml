@@ -1,0 +1,22 @@
+title: Glow
+description: A calm, local-first habit tracker for iPhone and iPad.
+tagline: Clear daily progress. Gentle momentum. Your data first.
+project_label: Don Noel / Projects
+status_label: App + widget
+github_url: https://github.com/donnoel/Glow
+url: https://donnoel.github.io
+baseurl: /Glow
+lang: en-US
+
+remote_theme: donnoel/projects-theme@v1.0.0
+plugins:
+  - jekyll-remote-theme
+
+exclude:
+  - AGENTS.md
+  - AGENTS.project.md
+  - Glow.xcodeproj
+  - GlowTests
+  - GlowUITests
+  - GlowWidgetExtension
+
