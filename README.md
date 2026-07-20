@@ -193,7 +193,7 @@ Plus a UI test that covers onboarding → add practice.
 
 ## ❤️ Credits
 
-Built with care by Don Noel and Codex collaboration.
+Built with care by **Don Noel** and my AI collaborator.
 
 ---
 
