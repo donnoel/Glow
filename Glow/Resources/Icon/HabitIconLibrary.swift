@@ -5,13 +5,58 @@ enum HabitIconLibrary {
 
     struct HabitIcon: Identifiable, Hashable {
         var id: String { name }
-        let name: String        // SF Symbol name
+        let name: String        // SF Symbol name or a Glow custom symbol name
         let label: String       // Human-readable label
         let keywords: [String]  // Words/phrases that should trigger this icon (lowercased)
     }
 
+    static let martiniIconName = "glow.martini"
+    static let candyIconName = "glow.candy.gummies"
+    static let cannabisIconName = "glow.cannabis"
+
+    private static let legacyAutomaticIconNames: Set<String> = [
+        "birthday.cake.fill",
+        "checkmark.circle",
+        "glow.candy",
+        "heart.fill",
+        "nosign"
+    ]
+
+    private static let upgradedSemanticIconNames: Set<String> = [
+        martiniIconName,
+        candyIconName,
+        "gift.fill",
+        "fork.knife",
+        cannabisIconName
+    ]
+
     // NOTE: order matters – the first matching icon wins.
     static let all: [HabitIcon] = [
+        HabitIcon(
+            name: martiniIconName,
+            label: "No Alcohol",
+            keywords: ["no alcohol", "alcohol-free", "sober", "sobriety"]
+        ),
+        HabitIcon(
+            name: candyIconName,
+            label: "No Candy",
+            keywords: ["no candy", "no sweets", "candy-free"]
+        ),
+        HabitIcon(
+            name: "gift.fill",
+            label: "No Purchases",
+            keywords: ["no purchases", "no purchase", "no shopping", "no spending", "buy nothing"]
+        ),
+        HabitIcon(
+            name: "fork.knife",
+            label: "No Meat",
+            keywords: ["no meat", "meat-free", "vegetarian"]
+        ),
+        HabitIcon(
+            name: cannabisIconName,
+            label: "No Grass",
+            keywords: ["no grass", "no marijuana", "no cannabis", "no weed"]
+        ),
         HabitIcon(
             name: "drop.fill",
             label: "Hydrate",
@@ -45,12 +90,12 @@ enum HabitIconLibrary {
         HabitIcon(
             name: "heart.fill",
             label: "Health",
-            keywords: ["diet", "nutrition", "eat clean", "no candy", "no sugar", "no junk"]
+            keywords: ["diet", "nutrition", "eat clean", "no sugar", "no junk"]
         ),
         HabitIcon(
             name: "nosign",
             label: "No",
-            keywords: ["no candy", "no sugar", "no soda", "no smoking", "no vape", "no alcohol"]
+            keywords: ["no sugar", "no soda", "no smoking", "no vape"]
         ),
         HabitIcon(
             name: "lungs.fill",
@@ -135,5 +180,20 @@ enum HabitIconLibrary {
 
         // 3. Fallback
         return "checkmark.circle"
+    }
+
+    /// Returns a semantic replacement for an icon that was automatically assigned
+    /// by an older version of Glow. Explicitly chosen, non-generic icons are preserved.
+    static func upgradedIcon(for title: String, currentIcon: String) -> String? {
+        guard legacyAutomaticIconNames.contains(currentIcon) else { return nil }
+
+        let recommendedIcon = guessIcon(for: title)
+        guard upgradedSemanticIconNames.contains(recommendedIcon),
+              recommendedIcon != currentIcon
+        else {
+            return nil
+        }
+
+        return recommendedIcon
     }
 }

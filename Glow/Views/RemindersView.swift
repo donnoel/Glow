@@ -120,8 +120,7 @@ private struct ReminderRow: View {
                 Circle()
                     .fill(habit.accentColor.opacity(colorScheme == .dark ? 0.22 : 0.14))
                     .frame(width: 34, height: 34)
-                Image(systemName: habit.iconName)
-                    .font(.system(size: 16, weight: .semibold))
+                HabitIconSymbol(name: habit.iconName, size: 16)
                     .foregroundStyle(habit.accentColor)
             }
 

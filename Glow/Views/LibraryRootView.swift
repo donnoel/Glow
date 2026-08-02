@@ -147,7 +147,7 @@ struct LibraryRootView: View {
             )
         } label: {
             HStack(spacing: 12) {
-                Image(systemName: habit.iconName)
+                HabitIconSymbol(name: habit.iconName)
                     .foregroundStyle(habit.accentColor)
                     .frame(width: 24)
 

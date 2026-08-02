@@ -49,8 +49,7 @@ private struct IconChip: View {
                         )
                         .frame(width: 50, height: 50)
 
-                    Image(systemName: symbolName)
-                        .font(.system(size: 21, weight: .semibold))
+                    HabitIconSymbol(name: symbolName, size: 21)
                         .foregroundStyle(
                             isSelected
                             ? tint

@@ -312,8 +312,7 @@ private struct HabitPerformanceRow: View {
                     .fill(bubbleColor)
                     .frame(width: 32, height: 32)
 
-                Image(systemName: stat.habit.iconName)
-                    .font(.system(size: 16, weight: .semibold))
+                HabitIconSymbol(name: stat.habit.iconName, size: 16)
                     .foregroundStyle(stat.habit.accentColor)
             }
 

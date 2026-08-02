@@ -39,4 +39,27 @@ struct HabitIconLibraryTests {
         #expect(walk != "checkmark.circle")
         #expect(drink != "checkmark.circle")
     }
+
+    @Test
+    func guessIcon_matches_requested_noHabitSymbols() {
+        #expect(HabitIconLibrary.guessIcon(for: "No Alcohol") == HabitIconLibrary.martiniIconName)
+        #expect(HabitIconLibrary.guessIcon(for: "No Candy") == HabitIconLibrary.candyIconName)
+        #expect(HabitIconLibrary.guessIcon(for: "No Purchases") == "gift.fill")
+        #expect(HabitIconLibrary.guessIcon(for: "No Meat") == "fork.knife")
+        #expect(HabitIconLibrary.guessIcon(for: "No Grass") == HabitIconLibrary.cannabisIconName)
+    }
+
+    @Test
+    func upgradedIcon_replacesOnlyLegacyAutomaticIcons() {
+        #expect(
+            HabitIconLibrary.upgradedIcon(for: "No Alcohol", currentIcon: "nosign")
+                == HabitIconLibrary.martiniIconName
+        )
+        #expect(HabitIconLibrary.upgradedIcon(for: "No Candy", currentIcon: "heart.fill") == HabitIconLibrary.candyIconName)
+        #expect(HabitIconLibrary.upgradedIcon(for: "No Candy", currentIcon: "glow.candy") == HabitIconLibrary.candyIconName)
+        #expect(HabitIconLibrary.upgradedIcon(for: "No Candy", currentIcon: "birthday.cake.fill") == HabitIconLibrary.candyIconName)
+        #expect(HabitIconLibrary.upgradedIcon(for: "No Purchases", currentIcon: "checkmark.circle") == "gift.fill")
+        #expect(HabitIconLibrary.upgradedIcon(for: "No Meat", currentIcon: "star.fill") == nil)
+        #expect(HabitIconLibrary.upgradedIcon(for: "Read", currentIcon: "checkmark.circle") == nil)
+    }
 }

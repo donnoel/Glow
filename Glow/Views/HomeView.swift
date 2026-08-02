@@ -339,7 +339,7 @@ struct HomeView: View {
             .accessibilityHint("Shows streaks, heatmap, and history")
 
             HStack(spacing: 12) {
-                Image(systemName: habit.iconName)
+                HabitIconSymbol(name: habit.iconName)
                     .foregroundStyle(habit.accentColor)
                     .frame(width: 24, height: 24)
 

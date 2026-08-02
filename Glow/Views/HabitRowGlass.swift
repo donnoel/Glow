@@ -65,8 +65,7 @@ struct HabitRowGlass: View {
                     .fill(iconBubbleColor)
                     .frame(width: 32, height: 32)
 
-                Image(systemName: habit.iconName)
-                    .font(.system(size: 16, weight: .semibold))
+                HabitIconSymbol(name: habit.iconName, size: 16)
                     .foregroundStyle(habit.accentColor)
             }
 

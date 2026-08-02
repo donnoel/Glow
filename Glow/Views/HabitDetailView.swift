@@ -124,8 +124,7 @@ struct HabitDetailView: View {
                         )
                         .frame(width: 40, height: 40)
 
-                    Image(systemName: viewModel.habit.iconName)
-                        .font(.system(size: 18, weight: .semibold))
+                    HabitIconSymbol(name: viewModel.habit.iconName)
                         .foregroundStyle(viewModel.habitTint)
                 }
 

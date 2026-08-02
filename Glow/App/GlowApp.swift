@@ -27,6 +27,8 @@ struct GlowApp: App {
             UserDefaults.standard.set(true, forKey: "hasSeenGlowOnboarding")
         }
         #endif
+
+        Self.upgradeLegacyHabitIcons()
     }
 
     private static func updateSettingsVersionDisplay() {
@@ -44,6 +46,37 @@ struct GlowApp: App {
         }
 
         UserDefaults.standard.set(displayValue, forKey: settingsVersionKey)
+    }
+
+    private static func upgradeLegacyHabitIcons() {
+        let context = modelContainer.mainContext
+
+        do {
+            let habits = try context.fetch(FetchDescriptor<Habit>())
+            var didChange = false
+
+            for habit in habits {
+                guard let upgradedIcon = HabitIconLibrary.upgradedIcon(
+                    for: habit.title,
+                    currentIcon: habit.iconName
+                ) else {
+                    continue
+                }
+
+                habit.iconName = upgradedIcon
+                didChange = true
+            }
+
+            guard didChange else { return }
+            guard context.saveSafelyReturningSuccess() else {
+                context.rollback()
+                return
+            }
+        } catch {
+            #if DEBUG
+            print("⚠️ Legacy habit icon upgrade failed: \(error)")
+            #endif
+        }
     }
 
     #if DEBUG
