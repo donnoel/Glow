@@ -38,7 +38,9 @@ nonisolated struct NotificationScheduleSnapshot: Sendable {
 
 protocol NotificationScheduling {
     func add(_ request: UNNotificationRequest) async throws
+    func pendingNotificationRequests() async -> [UNNotificationRequest]
     func removePendingNotificationRequests(withIdentifiers identifiers: [String])
+    func removeDeliveredNotifications(withIdentifiers identifiers: [String])
 }
 
 extension UNUserNotificationCenter: NotificationScheduling { }
@@ -260,7 +262,26 @@ enum NotificationManager {
         let scheduler = center
         await withCoalescedOperation(for: snapshot.habitID) { _ in
             removePendingNotifications(for: snapshot, scheduler: scheduler)
+            removeDeliveredNotifications(for: snapshot, scheduler: scheduler)
         }
+    }
+
+    /// Removes notification requests that no longer have a matching active habit reminder.
+    /// This repairs reminders left behind by deleted habits or interrupted state changes.
+    static func removeStaleNotifications(validSnapshots: [NotificationScheduleSnapshot]) async {
+        let scheduler = center
+        let validIdentifiers = Set(
+            validSnapshots
+                .filter { !$0.isArchived }
+                .flatMap(notificationIdentifiers(for:))
+        )
+        let staleIdentifiers = await scheduler.pendingNotificationRequests()
+            .map(\.identifier)
+            .filter { $0.hasPrefix("habit.") && !validIdentifiers.contains($0) }
+
+        guard !staleIdentifiers.isEmpty else { return }
+        scheduler.removePendingNotificationRequests(withIdentifiers: staleIdentifiers)
+        scheduler.removeDeliveredNotifications(withIdentifiers: staleIdentifiers)
     }
 
     private static func removePendingNotifications(
@@ -271,6 +292,14 @@ enum NotificationManager {
         // regardless of current schedule or reminder state.
         let ids = Weekday.allCases.map { identifier(for: snapshot, weekday: $0) }
         scheduler.removePendingNotificationRequests(withIdentifiers: ids)
+    }
+
+    private static func removeDeliveredNotifications(
+        for snapshot: NotificationScheduleSnapshot,
+        scheduler: NotificationScheduling
+    ) {
+        let ids = Weekday.allCases.map { identifier(for: snapshot, weekday: $0) }
+        scheduler.removeDeliveredNotifications(withIdentifiers: ids)
     }
 
     private static func requestAndScheduleIfPossible(

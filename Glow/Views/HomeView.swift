@@ -149,6 +149,7 @@ struct HomeView: View {
         }
         .onAppear {
             refreshFromHabits()
+            removeStaleNotifications()
             scheduleMidnightRefresh()
         }
         .onChange(of: habits) { _, _ in
@@ -160,6 +161,7 @@ struct HomeView: View {
             let startOfNow = Calendar.current.startOfDay(for: Date())
             viewModel.advanceToToday(startOfNow)
             viewModel.syncProgressToWidget()
+            removeStaleNotifications()
             scheduleRefresh()
             scheduleMidnightRefresh()
         }
@@ -606,6 +608,13 @@ struct HomeView: View {
         GlowTheme.tapHaptic()
         if HabitArchiveAction.setArchived(archived, for: habit, in: context) {
             refreshFromHabits()
+        }
+    }
+
+    private func removeStaleNotifications() {
+        let snapshots = habits.map(NotificationScheduleSnapshot.init(habit:))
+        Task {
+            await NotificationManager.removeStaleNotifications(validSnapshots: snapshots)
         }
     }
 

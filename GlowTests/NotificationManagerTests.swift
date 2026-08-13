@@ -40,19 +40,37 @@ struct NotificationManagerTests {
     /// Fake notification center used for tests to avoid hitting the real UNUserNotificationCenter.
     final class FakeNotificationCenter: NotificationScheduling {
         private(set) var addedRequests: [UNNotificationRequest] = []
+        private(set) var pendingRequests: [UNNotificationRequest] = []
         private(set) var removedIdentifiers: [[String]] = []
+        private(set) var removedDeliveredIdentifiers: [[String]] = []
         
         func add(_ request: UNNotificationRequest) async throws {
             addedRequests.append(request)
+        }
+
+        func pendingNotificationRequests() async -> [UNNotificationRequest] {
+            pendingRequests
         }
         
         func removePendingNotificationRequests(withIdentifiers identifiers: [String]) {
             removedIdentifiers.append(identifiers)
         }
+
+        func removeDeliveredNotifications(withIdentifiers identifiers: [String]) {
+            removedDeliveredIdentifiers.append(identifiers)
+        }
+
+        func setPendingIdentifiers(_ identifiers: [String]) {
+            pendingRequests = identifiers.map {
+                UNNotificationRequest(identifier: $0, content: UNMutableNotificationContent(), trigger: nil)
+            }
+        }
         
         func reset() {
             addedRequests.removeAll()
+            pendingRequests.removeAll()
             removedIdentifiers.removeAll()
+            removedDeliveredIdentifiers.removeAll()
         }
     }
     
@@ -157,6 +175,39 @@ struct NotificationManagerTests {
             fakeCenter.removedIdentifiers.contains(where: { $0 == expectedIds }),
             "Cancel should attempt to remove pending notifications for the habit"
         )
+        #expect(
+            fakeCenter.removedDeliveredIdentifiers.contains(where: { $0 == expectedIds }),
+            "Cancel should also clear already delivered notifications for the habit"
+        )
+    }
+
+    @Test
+    func reconciliation_removes_only_notifications_without_an_active_reminder() async {
+        let fakeCenter = FakeNotificationCenter()
+        NotificationManager.center = fakeCenter
+        defer { NotificationManager.center = UNUserNotificationCenter.current() }
+
+        let active = makeHabit(
+            title: "Active",
+            reminderEnabled: true,
+            hour: 8,
+            minute: 0
+        )
+        let validIdentifier = allNotificationIdentifiers(for: active)[0]
+        let orphanedIdentifier = "habit.deleted-practice.weekday.2"
+        let unrelatedIdentifier = "another-feature.notification"
+        fakeCenter.setPendingIdentifiers([
+            validIdentifier,
+            orphanedIdentifier,
+            unrelatedIdentifier
+        ])
+
+        await NotificationManager.removeStaleNotifications(
+            validSnapshots: [NotificationScheduleSnapshot(habit: active)]
+        )
+
+        #expect(fakeCenter.removedIdentifiers == [[orphanedIdentifier]])
+        #expect(fakeCenter.removedDeliveredIdentifiers == [[orphanedIdentifier]])
     }
 
     @Test
