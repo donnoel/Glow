@@ -327,51 +327,51 @@ struct HomeView: View {
     private func rowCell(habit: Habit, isArchived: Bool) -> some View {
         let completed = viewModel.completedTodayHabitIDs.contains(habit.id)
 
-        ZStack {
-            // Invisible full-row detail target without List disclosure artwork.
+        HStack(spacing: 0) {
             Button {
                 habitToShowDetails = habit
             } label: {
-                Color.clear
-                    .contentShape(Rectangle())
+                HStack(spacing: 12) {
+                    HabitIconSymbol(name: habit.iconName)
+                        .foregroundStyle(habit.accentColor)
+                        .frame(width: 24, height: 24)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(habit.title)
+                            .font(.body.weight(.semibold))
+                            .foregroundStyle(GlowTheme.textPrimary)
+
+                        Text(todayScheduleSubtitle(for: habit))
+                            .font(.caption)
+                            .foregroundStyle(GlowTheme.textSecondary)
+                    }
+
+                    Spacer(minLength: 12)
+                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Open details for \(habit.title)")
             .accessibilityValue(completed ? "Completed today" : "Not completed today")
             .accessibilityHint("Shows streaks, heatmap, and history")
 
-            HStack(spacing: 12) {
-                HabitIconSymbol(name: habit.iconName)
-                    .foregroundStyle(habit.accentColor)
-                    .frame(width: 24, height: 24)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(habit.title)
-                        .font(.body.weight(.semibold))
-                        .foregroundStyle(GlowTheme.textPrimary)
-
-                    Text(todayScheduleSubtitle(for: habit))
-                        .font(.caption)
-                        .foregroundStyle(GlowTheme.textSecondary)
+            if !isArchived {
+                Button {
+                    toggleToday(habit)
+                } label: {
+                    Image(systemName: completed ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(completed ? Color.green : GlowTheme.borderMuted)
+                        .contentTransition(.symbolEffect(.replace))
+                        .frame(minWidth: 72, minHeight: 44)
+                        .contentShape(Rectangle())
                 }
-
-                Spacer()
-
-                if !isArchived {
-                    Button {
-                        toggleToday(habit)
-                    } label: {
-                        Image(systemName: completed ? "checkmark.circle.fill" : "circle")
-                            .font(.title3)
-                            .foregroundStyle(completed ? Color.green : GlowTheme.borderMuted)
-                            .contentTransition(.symbolEffect(.replace))
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(completed ? "Mark \(habit.title) not done today" : "Mark \(habit.title) done today")
-                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(completed ? "Mark \(habit.title) not done today" : "Mark \(habit.title) done today")
             }
-            .padding(.vertical, 4)
         }
+        .padding(.vertical, 4)
         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
             Button {
                 toggleToday(habit)
