@@ -110,7 +110,40 @@ final class GlowUITests: XCTestCase {
                       "Add Practice button should be hittable on home screen.")
     }
 
-    // 2) Add practice flow works (sheet or push)
+    @MainActor
+    func testIPadSidebarVisibilitySurvivesRelaunch() throws {
+        try XCTSkipUnless(UIDevice.current.userInterfaceIdiom == .pad, "iPad-only sidebar")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        defer { XCUIDevice.shared.orientation = .portrait }
+        launchForHome(resetData: false)
+
+        let library = app.staticTexts["Library"].firstMatch
+        let toggle = app.buttons.matching(
+            NSPredicate(format: "label IN %@", ["Hide Sidebar", "Show Sidebar"])
+        ).firstMatch
+        XCTAssertTrue(toggle.waitForExistence(timeout: 5))
+        if !library.isHittable {
+            toggle.tap()
+        }
+        XCTAssertTrue(library.waitForExistence(timeout: 5))
+        XCTAssertTrue(library.isHittable)
+
+        toggle.tap()
+        XCTAssertTrue(library.waitForNonExistence(timeout: 5))
+        app.terminate()
+        app.launch()
+        waitForHome()
+        XCTAssertFalse(library.isHittable, "Closed sidebar should remain closed after relaunch")
+
+        toggle.tap()
+        XCTAssertTrue(library.waitForExistence(timeout: 5))
+        app.terminate()
+        app.launch()
+        waitForHome()
+        XCTAssertTrue(library.waitForExistence(timeout: 5))
+        XCTAssertTrue(library.isHittable, "Open sidebar should remain open after relaunch")
+    }
+
     @MainActor
     func testAddPracticeFlow() throws {
         launchForHome()

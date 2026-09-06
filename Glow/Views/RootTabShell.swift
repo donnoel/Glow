@@ -29,9 +29,29 @@ struct RootTabShell: View {
 
 private struct IPadRootShell: View {
     @State private var selection: AppSection? = .today
+    @AppStorage("iPadSidebarVisibility") private var savedSidebarVisibility = "automatic"
+
+    private var columnVisibility: Binding<NavigationSplitViewVisibility> {
+        Binding {
+            guard UIDevice.current.userInterfaceIdiom == .pad else { return .automatic }
+            switch savedSidebarVisibility {
+            case "open": return .all
+            case "closed": return .detailOnly
+            default: return .automatic
+            }
+        } set: { visibility in
+            guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+            // Automatic layout changes must not replace an explicit user preference.
+            if visibility == .detailOnly {
+                savedSidebarVisibility = "closed"
+            } else if visibility == .all || visibility == .doubleColumn {
+                savedSidebarVisibility = "open"
+            }
+        }
+    }
 
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: columnVisibility) {
             List(AppSection.allCases, selection: $selection) { section in
                 Label(section.title, systemImage: section.icon)
                     .tag(section)
