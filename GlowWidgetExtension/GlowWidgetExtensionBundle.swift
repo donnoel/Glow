@@ -110,11 +110,20 @@ struct TodayProgressWidgetView: View {
     @Environment(\.colorScheme) private var colorScheme
     var entry: TodayProgressEntry
     
-    private let glowAccent = Color(red: 0.63, green: 0.24, blue: 0.93)
-    private let completedAccent = Color(red: 0.10, green: 0.62, blue: 0.52)
-    private let warmAccent = Color(red: 1.0, green: 0.66, blue: 0.20)
+    private let stepTeal = Color(red: 0.00, green: 0.71, blue: 0.63)
+    private let stepBlue = Color(red: 0.00, green: 0.63, blue: 1.00)
+    private let stepCoral = Color(red: 1.00, green: 0.43, blue: 0.62)
+    private let goalLight = Color(red: 1.00, green: 0.84, blue: 0.43)
     private let tilePrimary = Color.white
-    private let tileSecondary = Color.white.opacity(0.68)
+    private let tileSecondary = Color.white.opacity(0.74)
+
+    private var progressGradient: LinearGradient {
+        LinearGradient(
+            colors: [stepTeal, stepBlue, stepCoral, goalLight],
+            startPoint: .bottomLeading,
+            endPoint: .topTrailing
+        )
+    }
     
     // Clamp percent so the ring never overfills
     private var percent: Double {
@@ -184,9 +193,9 @@ struct TodayProgressWidgetView: View {
         ZStack(alignment: .topLeading) {
             LinearGradient(
                 colors: [
-                    Color(red: 0.08, green: 0.07, blue: 0.13),
-                    Color(red: 0.08, green: 0.16, blue: 0.15),
-                    Color(red: 0.18, green: 0.10, blue: 0.23)
+                    Color(red: 0.01, green: 0.08, blue: 0.10),
+                    Color(red: 0.02, green: 0.13, blue: 0.17),
+                    Color(red: 0.04, green: 0.08, blue: 0.15)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -194,23 +203,34 @@ struct TodayProgressWidgetView: View {
 
             RadialGradient(
                 colors: [
-                    glowAccent.opacity(0.52),
+                    goalLight.opacity(0.30),
                     .clear
                 ],
-                center: .topLeading,
+                center: .topTrailing,
                 startRadius: 4,
-                endRadius: family == .systemSmall ? 130 : 190
+                endRadius: family == .systemSmall ? 115 : 175
             )
             .blendMode(.screen)
 
             RadialGradient(
                 colors: [
-                    completedAccent.opacity(0.34),
+                    stepTeal.opacity(0.42),
                     .clear
                 ],
-                center: .bottomTrailing,
+                center: .bottomLeading,
                 startRadius: 8,
                 endRadius: family == .systemSmall ? 120 : 180
+            )
+            .blendMode(.screen)
+
+            RadialGradient(
+                colors: [
+                    stepCoral.opacity(0.22),
+                    .clear
+                ],
+                center: .trailing,
+                startRadius: 8,
+                endRadius: family == .systemSmall ? 105 : 160
             )
             .blendMode(.screen)
         }
@@ -222,7 +242,7 @@ struct TodayProgressWidgetView: View {
             HStack(spacing: WidgetTokens.markSpacing) {
                 ForEach(0..<entry.total, id: \.self) { index in
                     Capsule()
-                        .fill(index < entry.done ? completedAccent : markBackground)
+                        .fill(index < entry.done ? practiceAccent(at: index) : markBackground)
                         .overlay(
                             Capsule()
                                 .stroke(index < entry.done ? Color.clear : markStroke, lineWidth: 1)
@@ -248,7 +268,7 @@ struct TodayProgressWidgetView: View {
 
                 if progressWidth > 0 {
                     Capsule()
-                        .fill(completedAccent)
+                        .fill(progressGradient)
                         .frame(width: progressWidth)
                 }
             }
@@ -267,6 +287,22 @@ struct TodayProgressWidgetView: View {
         Color.white.opacity(0.18)
     }
 
+    private func practiceAccent(at index: Int) -> Color {
+        guard entry.total > 1 else { return goalLight }
+
+        let position = Double(index) / Double(entry.total - 1)
+        switch position {
+        case ..<0.25:
+            return stepTeal
+        case ..<0.58:
+            return stepBlue
+        case ..<0.88:
+            return stepCoral
+        default:
+            return goalLight
+        }
+    }
+
     private var gaugeView: some View {
         ZStack {
             Circle()
@@ -275,7 +311,7 @@ struct TodayProgressWidgetView: View {
             Circle()
                 .trim(from: 0, to: CGFloat(percent))
                 .stroke(
-                    completedAccent,
+                    progressGradient,
                     style: StrokeStyle(lineWidth: 9, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
@@ -298,7 +334,7 @@ struct TodayProgressWidgetView: View {
     private var syncBadge: some View {
         Image(systemName: "arrow.clockwise")
             .font(.caption.weight(.semibold))
-            .foregroundStyle(glowAccent)
+            .foregroundStyle(stepBlue)
             .padding(7)
             .background(
                 Circle()
@@ -310,10 +346,10 @@ struct TodayProgressWidgetView: View {
     private var completionSeal: some View {
         ZStack {
             Circle()
-                .fill(Color.white.opacity(0.13))
+                .fill(goalLight.opacity(0.20))
             Image(systemName: "checkmark")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(completedAccent)
+                .foregroundStyle(goalLight)
         }
         .frame(width: 28, height: 28)
         .accessibilityHidden(true)
@@ -356,7 +392,7 @@ struct TodayProgressWidgetView: View {
             } else if !entry.isCurrentDay {
                 Image(systemName: "arrow.clockwise")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(glowAccent)
+                    .foregroundStyle(stepBlue)
             }
 
             Text(statusDetail)
@@ -372,12 +408,12 @@ struct TodayProgressWidgetView: View {
             if entry.isCurrentDay && entry.bonus > 0 {
                 Text("+\(entry.bonus)")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(warmAccent)
+                    .foregroundStyle(goalLight)
                     .padding(.horizontal, 7)
                     .padding(.vertical, 3)
                     .background(
                         Capsule()
-                            .fill(warmAccent.opacity(colorScheme == .dark ? 0.18 : 0.14))
+                            .fill(goalLight.opacity(colorScheme == .dark ? 0.22 : 0.18))
                     )
             }
         }
@@ -390,20 +426,20 @@ struct TodayProgressWidgetView: View {
 
             Circle()
                 .trim(from: 0, to: entry.isCurrentDay ? CGFloat(percent) : 0)
-                .stroke(completedAccent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                .stroke(progressGradient, style: StrokeStyle(lineWidth: 3, lineCap: .round))
                 .rotationEffect(.degrees(-90))
 
             if entry.isCurrentDay && isComplete {
                 Image(systemName: "checkmark")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(completedAccent)
+                    .foregroundStyle(goalLight)
             } else if entry.isCurrentDay {
                 Text("\(entry.done)")
                     .font(.caption2)
             } else {
                 Image(systemName: "arrow.clockwise")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(glowAccent)
+                    .foregroundStyle(stepBlue)
             }
         }
         .accessibilityHidden(true)
