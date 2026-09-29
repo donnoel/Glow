@@ -1,19 +1,28 @@
 import SwiftUI
 
 extension Habit {
+    private static let accentColorNames = [
+        "PracticeBlueAccent",
+        "PracticeGreenAccent",
+        "PracticePurpleAccent",
+        "PracticeOrangeAccent",
+        "PracticePinkAccent",
+        "PracticeTealAccent",
+        "PracticeAmberAccent",
+        "PracticeCoralAccent",
+        "PracticeLavenderAccent",
+        "PracticeMintAccent"
+    ]
+
     var accentColorName: String {
-        switch abs(id.hashValue) % 10 {
-        case 0: return "PracticeBlueAccent"
-        case 1: return "PracticeGreenAccent"
-        case 2: return "PracticePurpleAccent"
-        case 3: return "PracticeOrangeAccent"
-        case 4: return "PracticePinkAccent"
-        case 5: return "PracticeTealAccent"
-        case 6: return "PracticeAmberAccent"
-        case 7: return "PracticeCoralAccent"
-        case 8: return "PracticeLavenderAccent"
-        default: return "PracticeMintAccent"
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        for byte in id.utf8 {
+            hash ^= UInt64(byte)
+            hash &*= 1_099_511_628_211
         }
+
+        let index = Int(hash % UInt64(Self.accentColorNames.count))
+        return Self.accentColorNames[index]
     }
 
     var accentColor: Color { Color(accentColorName) }
