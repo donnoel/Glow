@@ -54,6 +54,34 @@ do not substitute for those specific device checks.
 ## Publication
 
 After accepting the companion, the user authorized committing and pushing this
-sprint to the repository's configured `github` remote on `main`. The commit
-identity and final publication outcome are recorded in Git and the completion
-report. No TestFlight submission or App Store release was requested.
+sprint to the repository's configured `github` remote on `main`. Feature commit
+`07a87cb` was pushed successfully. No TestFlight submission or App Store release
+was requested.
+
+## Version 2.2 device follow-up
+
+The user additionally requested an appropriate version increment and delivery to
+all their devices. The new companion increments the shipping app, widget, and
+Watch targets from 2.1 to **2.2 (1)**, including Debug and Release settings.
+
+- Named-device Debug builds for the iPhone, iPad, and Watch passed with warnings
+  treated as errors and no warnings reported.
+- The signed app, widget, embedded Watch app, and standalone Watch app all
+  report 2.2 (1). Strict signature checks passed, including deep verification
+  of the containing iOS app. Profiles cover the named devices.
+- The prior feature tests remain the behavioral validation. Tests were not
+  repeated for this version-only follow-up.
+
+| Device | 2.2 (1) install | Launch | Evidence |
+| --- | --- | --- | --- |
+| Don's iPhone — iPhone 15 Pro Max | Succeeded | Succeeded | Installed version read back; launch PID 1169 |
+| iPad — iPad Pro 13-inch (M4), iPadOS 27.0.1 | Succeeded | Succeeded | Installed version read back; launch PID 890 |
+| Don's Apple Watch — Ultra 4 | Succeeded | Succeeded | Installed version read back; launch PID 574 |
+
+The first Watch launch attempt timed out establishing the Mac diagnostic
+tunnel. A bounded retry using its CoreDevice identifier succeeded. Installation
+preserved existing app data. These acknowledgements establish device delivery;
+the user's hands-on acceptance above remains the product validation.
+
+The version follow-up commit and final remote parity are recorded in Git and
+the completion report.
