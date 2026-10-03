@@ -10,9 +10,19 @@
 		5AA2D2B32EC2824000162A86 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AA2D2B22EC2824000162A86 /* WidgetKit.framework */; };
 		5AA2D2B52EC2824000162A86 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AA2D2B42EC2824000162A86 /* SwiftUI.framework */; };
 		5AA2D2C42EC2824100162A86 /* GlowWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		9FE450DE07BF862BFA7C821E /* HabitIconSymbol.swift in Sources */ = {isa = PBXBuildFile; fileRef = B973A91096FAFD47652C89FC /* HabitIconSymbol.swift */; };
+		A373491E65DFB357BF105602 /* HabitIconLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FC308C8DA68D7ACFE4E2DFC /* HabitIconLibrary.swift */; };
+		AC94E551A4A95FF0DE99C5B1 /* GlowWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 9B28BB256E8B70646B10494F /* GlowWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		552C7D8A4E200D25EACA750B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5A402FC92EB27B0400C855A9 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 96779A50B3B84859FC9FA05E;
+			remoteInfo = GlowWatch;
+		};
 		5A402FE32EB27B0500C855A9 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5A402FC92EB27B0400C855A9 /* Project object */;
@@ -48,15 +58,29 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D92CCD260FF44CC0D67C0A6D /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				AC94E551A4A95FF0DE99C5B1 /* GlowWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1FC308C8DA68D7ACFE4E2DFC /* HabitIconLibrary.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HabitIconLibrary.swift; path = Glow/Resources/Icon/HabitIconLibrary.swift; sourceTree = "<group>"; };
 		5A402FD12EB27B0400C855A9 /* Glow.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Glow.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A402FE22EB27B0500C855A9 /* GlowTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlowTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5A402FEC2EB27B0500C855A9 /* GlowUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = GlowUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GlowWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		5AA2D2B22EC2824000162A86 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		5AA2D2B42EC2824000162A86 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		9B28BB256E8B70646B10494F /* GlowWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GlowWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B973A91096FAFD47652C89FC /* HabitIconSymbol.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = HabitIconSymbol.swift; path = Glow/Views/Components/HabitIconSymbol.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -77,6 +101,13 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		3913D0B4CF3F083474B2906E /* GlowShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = GlowShared;
+			sourceTree = "<group>";
+		};
 		5A402FD32EB27B0400C855A9 /* Glow */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -101,6 +132,13 @@
 				5AA2D2C82EC2824100162A86 /* Exceptions for "GlowWidgetExtension" folder in "GlowWidgetExtension" target */,
 			);
 			path = GlowWidgetExtension;
+			sourceTree = "<group>";
+		};
+		7F354AAEEBB2D7BF049D4931 /* GlowWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			path = GlowWatch;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -136,6 +174,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F672D05E65A19F68E671104D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -148,6 +193,9 @@
 				5AA2D2B62EC2824000162A86 /* GlowWidgetExtension */,
 				5AA2D2B12EC2824000162A86 /* Frameworks */,
 				5A402FD22EB27B0400C855A9 /* Products */,
+				7F354AAEEBB2D7BF049D4931 /* GlowWatch */,
+				3913D0B4CF3F083474B2906E /* GlowShared */,
+				F0F489DEF09F3094A02B428A /* Shared habit icons */,
 			);
 			sourceTree = "<group>";
 		};
@@ -158,6 +206,7 @@
 				5A402FE22EB27B0500C855A9 /* GlowTests.xctest */,
 				5A402FEC2EB27B0500C855A9 /* GlowUITests.xctest */,
 				5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */,
+				9B28BB256E8B70646B10494F /* GlowWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -171,6 +220,15 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		F0F489DEF09F3094A02B428A /* Shared habit icons */ = {
+			isa = PBXGroup;
+			children = (
+				B973A91096FAFD47652C89FC /* HabitIconSymbol.swift */,
+				1FC308C8DA68D7ACFE4E2DFC /* HabitIconLibrary.swift */,
+			);
+			name = "Shared habit icons";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -182,13 +240,16 @@
 				5A402FCE2EB27B0400C855A9 /* Frameworks */,
 				5A402FCF2EB27B0400C855A9 /* Resources */,
 				5AA2D2C92EC2824100162A86 /* Embed Foundation Extensions */,
+				D92CCD260FF44CC0D67C0A6D /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				5AA2D2C32EC2824100162A86 /* PBXTargetDependency */,
+				A09E7F053EE74EDE9B52A1FA /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
+				3913D0B4CF3F083474B2906E /* GlowShared */,
 				5A402FD32EB27B0400C855A9 /* Glow */,
 			);
 			name = Glow;
@@ -266,6 +327,27 @@
 			productReference = 5AA2D2B02EC2824000162A86 /* GlowWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		96779A50B3B84859FC9FA05E /* GlowWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 315DE98F3A1948AF2A554B07 /* Build configuration list for PBXNativeTarget "GlowWatch" */;
+			buildPhases = (
+				EE6A2AAA4EFFE31A7B54BFB6 /* Sources */,
+				F672D05E65A19F68E671104D /* Frameworks */,
+				DCB9A8DE36A4BB2686DB3833 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				3913D0B4CF3F083474B2906E /* GlowShared */,
+				7F354AAEEBB2D7BF049D4931 /* GlowWatch */,
+			);
+			name = GlowWatch;
+			productName = GlowWatch;
+			productReference = 9B28BB256E8B70646B10494F /* GlowWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -290,6 +372,9 @@
 					5AA2D2AF2EC2824000162A86 = {
 						CreatedOnToolsVersion = 26.1;
 					};
+					96779A50B3B84859FC9FA05E = {
+						CreatedOnToolsVersion = 27.0;
+					};
 				};
 			};
 			buildConfigurationList = 5A402FCC2EB27B0400C855A9 /* Build configuration list for PBXProject "Glow" */;
@@ -310,6 +395,7 @@
 				5A402FE12EB27B0500C855A9 /* GlowTests */,
 				5A402FEB2EB27B0500C855A9 /* GlowUITests */,
 				5AA2D2AF2EC2824000162A86 /* GlowWidgetExtension */,
+				96779A50B3B84859FC9FA05E /* GlowWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -337,6 +423,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		5AA2D2AE2EC2824000162A86 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DCB9A8DE36A4BB2686DB3833 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -374,6 +467,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EE6A2AAA4EFFE31A7B54BFB6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9FE450DE07BF862BFA7C821E /* HabitIconSymbol.swift in Sources */,
+				A373491E65DFB357BF105602 /* HabitIconLibrary.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -392,9 +494,46 @@
 			target = 5AA2D2AF2EC2824000162A86 /* GlowWidgetExtension */;
 			targetProxy = 5AA2D2C22EC2824100162A86 /* PBXContainerItemProxy */;
 		};
+		A09E7F053EE74EDE9B52A1FA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = GlowWatch;
+			target = 96779A50B3B84859FC9FA05E /* GlowWatch */;
+			targetProxy = 552C7D8A4E200D25EACA750B /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		118C83D2A6C20635987D018A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H7LG8SK72M;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Glow;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = movie.Glow;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				MARKETING_VERSION = 2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = movie.Glow.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
 		5A402FF62EB27B0500C855A9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -585,9 +724,9 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
-				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
 				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
@@ -788,9 +927,50 @@
 			};
 			name = Release;
 		};
+		C8BFABE5C2B3227194AAD03F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = H7LG8SK72M;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Glow;
+				INFOPLIST_KEY_WKApplication = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = movie.Glow;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				MARKETING_VERSION = 2.1;
+				PRODUCT_BUNDLE_IDENTIFIER = movie.Glow.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		315DE98F3A1948AF2A554B07 /* Build configuration list for PBXNativeTarget "GlowWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C8BFABE5C2B3227194AAD03F /* Release */,
+				118C83D2A6C20635987D018A /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		5A402FCC2EB27B0400C855A9 /* Build configuration list for PBXProject "Glow" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

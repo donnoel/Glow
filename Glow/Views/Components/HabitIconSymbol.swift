@@ -32,7 +32,7 @@ struct HabitIconSymbol: View {
     }
 }
 
-private struct MartiniGlassShape: Shape {
+nonisolated private struct MartiniGlassShape: Shape {
     func path(in rect: CGRect) -> Path {
         let width = rect.width
         let height = rect.height

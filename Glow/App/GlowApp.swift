@@ -29,6 +29,7 @@ struct GlowApp: App {
         #endif
 
         Self.upgradeLegacyHabitIcons()
+        Self.watchSync.start()
     }
 
     private static func updateSettingsVersionDisplay() {
@@ -104,6 +105,8 @@ struct GlowApp: App {
     #endif
 
     // MARK: - Shared SwiftData + CloudKit container
+
+    private static let watchSync = GlowPhoneWatchSync(container: modelContainer)
     
     private static let modelContainer: ModelContainer = {
         let schema = Schema([

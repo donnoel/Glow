@@ -17,6 +17,7 @@ Success means users can define habits, follow schedules, complete check-ins, see
 - Onboarding gate controlled by `hasSeenGlowOnboarding`
 - Home screen widget backed by shared App Group progress values
 - SwiftData persistence with CloudKit private database configuration and local fallback
+- Watch companion: existing habits, today's completion/undo, and a durable local outbox sent through the paired iPhone
 
 2) Architecture boundaries
 - SwiftUI views handle presentation and user interaction
@@ -80,6 +81,8 @@ Success means users can define habits, follow schedules, complete check-ins, see
 - Widget shared defaults use the existing keys: `today_done`, `today_total`, `today_bonus`, `today_date`, `today_stamp`, `last_updated`.
 - App-group identifier remains `group.movie.Glow` unless explicitly migrated.
 - CloudKit-backed model container failure falls back to local storage rather than crashing.
+- Watch packets set an explicit completion status for their original civil day; retries must not toggle or move a check-in to the delivery day.
+- A Watch check-in stays pending until the iPhone saves it and returns a receipt. Archived/deleted habits are rejected without recreating them.
 - Onboarding visibility remains controlled by `hasSeenGlowOnboarding` and UI tests can bypass onboarding.
 
 ## UX rules
@@ -95,7 +98,9 @@ Success means users can define habits, follow schedules, complete check-ins, see
 ## Build/run notes
 - Project: `Glow.xcodeproj`
 - Scheme: `Glow`
-- Targets: `Glow`, `GlowTests`, `GlowUITests`, `GlowWidgetExtension`
+- Targets: `Glow`, `GlowTests`, `GlowUITests`, `GlowWidgetExtension`, `GlowWatch`
+- Watch scheme: `GlowWatch`; sync contracts and actor-backed outbox live in `GlowShared/`.
+- Watch setup and validation: `docs/WATCH_COMPANION.md`.
 - Build command:
   - `xcodebuild -project Glow.xcodeproj -scheme Glow -destination 'generic/platform=iOS Simulator' clean build`
 - Test command:

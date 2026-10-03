@@ -183,7 +183,7 @@ Plus a UI test that covers onboarding → add practice.
 ## 🧩 Roadmap
 
 - [ ] iPad layouts  
-- [ ] watchOS app  
+- [x] watchOS companion for daily habit check-ins (see [Watch companion](docs/WATCH_COMPANION.md))
 - [ ] Shared Habits (Glow Circles)  
 - [ ] More widget styles  
 - [ ] Custom practice colors  
