@@ -15,7 +15,7 @@ It focuses on clarity, aesthetic calm, and meaningful progress — not guilt or 
 
 Glow is about *celebrating* the tiny wins that build toward growth.
 
-The current source version is **2.3 (1)**, including the app, widget and Watch
+The current source version is **2.3 (2)**, including the app, widget and Watch
 companion. This update adds water tracking to the daily habit loop.
 
 ---

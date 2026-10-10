@@ -6,7 +6,7 @@
 Glow is a habit-tracking app focused on clear daily progress, low-friction check-ins, and calm visual feedback.
 Success means users can define habits, follow schedules, complete check-ins, see progress trends, and keep data consistent across app + widget.
 
-Current source version: **2.3 (1)** across Glow, GlowWidgetExtension and GlowWatch
+Current source version: **2.3 (2)** across Glow, GlowWidgetExtension and GlowWatch
 (Debug and Release). Version settings live in `Glow.xcodeproj/project.pbxproj`;
 About Glow and the system Settings version row read the built app bundle.
 
@@ -117,6 +117,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Scheme: `Glow`
 - Targets: `Glow`, `GlowTests`, `GlowUITests`, `GlowWidgetExtension`, `GlowWatch`
 - Watch scheme: `GlowWatch`; sync contracts and actor-backed outbox live in `GlowShared/`.
+- App Store release evidence: `docs/APP_STORE_RELEASE_2026-10-10.md`.
 - Watch setup and validation: `docs/WATCH_COMPANION.md`.
 - Watch water delivery evidence: `docs/WATCH_WATER_DELIVERY_2026-10-10.md`.
 - Water behavior, migration and sync boundaries: `docs/WATER_TRACKING.md`.
