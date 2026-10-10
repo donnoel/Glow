@@ -35,7 +35,7 @@ companion. This update adds water tracking to the daily habit loop.
 | 🔔 **Reminders** | Gentle notifications aligned with your schedule. |
 | 🗂️ **Archive** | Hide old practices without losing data. |
 | 🧩 **Home Screen Widgets** | Glanceable daily progress synced from the app. |
-| ⌚ **Watch Companion** | Existing habits with today's completion/undo and a durable queue through the paired iPhone. |
+| ⌚ **Watch Companion** | Direct habit completion/undo, 8/21/24 oz water logging and daily goal progress, with a durable queue through the paired iPhone. |
 | 🪄 **Four-Page Onboarding** | A smooth intro featuring gestures, reminders, iCloud, and widget setup. |
 | 🌙 **Adaptive Themes** | Light, Dark, High-Contrast, and Reduce Motion. |
 | 🥂 **Completion Pulse** | A gentle celebration when you finish your day. |
@@ -48,7 +48,7 @@ companion. This update adds water tracking to the daily habit loop.
 - **Unified Add/Edit flow:** Habit creation and editing route through one shared form implementation.
 - **Faster daily loop:** Completion interactions include a lightweight undo path for quick correction.
 - **Water tracking:** Today includes one-tap amounts, custom entries and saved Male/Female/Custom goals. Insights shows 7/30-day water reporting with saved daily goals and visibly unlogged days (see [Water tracking](docs/WATER_TRACKING.md)).
-- **Watch daily check-ins:** The companion lists existing habits, supports completion and undo for the original civil day, and retains pending actions until the paired iPhone acknowledges them (see [Watch companion](docs/WATCH_COMPANION.md)).
+- **Watch daily check-ins:** The companion lists existing habits, supports completion and undo for the original civil day, logs 8/21/24 oz drinks and shows water goal progress. Pending actions remain until the paired iPhone acknowledges them (see [Watch companion](docs/WATCH_COMPANION.md)).
 - **Settings app version row:** `Settings > Apps > Glow` now shows a single `Version` row using live app bundle version/build values.
 
 ---
@@ -175,7 +175,7 @@ Handles:
 - Highlights the last amount locally and supports custom drinks, undo and correction
 - Saves each day's goal with its first entry, preserving historical comparisons
 - Distinguishes unlogged days from measured intake in 7/30-day reports
-- Keeps water separate from habit scores, widget counts and Watch check-ins
+- Keeps water separate from habit scores, widget counts and Watch habit completion
 
 Suggested goals are adjustable beverage-intake starting points. Food and other
 drinks also contribute water; see the explanation and source in
@@ -209,22 +209,25 @@ Glow includes tests for:
 - Icon library  
 - Weekly Insights calculations
 - Watch packets, durable outbox, receipts and civil-day actions
+- Watch water retries, undo, partial acknowledgements, rollover and cache upgrades
 - Water input, persistence, saved goals, reports and additive store migration
 
 UI tests cover onboarding, adding and completing practices, and water logging,
 undo/relaunch, saved Female/preset settings, custom correction and Insights.
 
-The October 10 feature validation passed 100 unit tests, the existing habit
+The initial October 10 water feature validation passed 100 unit tests, the existing habit
 completion smoke test, and the three water flows on iPhone and iPad simulators.
 Build/install evidence and remaining manual checks are recorded in
 [Water delivery](docs/WATER_DELIVERY_2026-10-10.md).
+The Watch water extension passed all 108 unit tests, including eight additional
+Watch water tests (see [Watch water delivery](docs/WATCH_WATER_DELIVERY_2026-10-10.md)).
 
 ---
 
 ## 🧩 Roadmap
 
 - [x] Native iPad sidebar and dedicated Today/Insights layouts
-- [x] watchOS companion for daily habit check-ins (see [Watch companion](docs/WATCH_COMPANION.md))
+- [x] watchOS companion for direct habit check-ins, water logging and daily goal progress (see [Watch companion](docs/WATCH_COMPANION.md))
 - [x] Water logging, saved goals and reporting (see [Water tracking](docs/WATER_TRACKING.md))
 - [ ] Shared Habits (Glow Circles)  
 - [ ] More widget styles  
@@ -235,6 +238,7 @@ Build/install evidence and remaining manual checks are recorded in
 - [Water behavior, storage and release checks](docs/WATER_TRACKING.md)
 - [Water feature and 2.3 delivery evidence](docs/WATER_DELIVERY_2026-10-10.md)
 - [Watch setup, transport and validation](docs/WATCH_COMPANION.md)
+- [Watch water feature and device delivery evidence](docs/WATCH_WATER_DELIVERY_2026-10-10.md)
 - [Historical Watch 2.2 delivery evidence](docs/WATCH_DELIVERY_2026-10-03.md)
 
 ---

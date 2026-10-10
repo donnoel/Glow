@@ -40,6 +40,9 @@ final class GlowWatchViewModel: ObservableObject {
         for command in state.pending {
             transport?.send(GlowWatchPacket(body: .completion(command)), durable: true)
         }
+        for command in state.pendingWater {
+            transport?.send(GlowWatchPacket(body: .water(command)), durable: true)
+        }
     }
 
     func setCompleted(_ completed: Bool, habitID: String, day: GlowWatchDay) async {
@@ -54,6 +57,35 @@ final class GlowWatchViewModel: ObservableObject {
         } catch {
             errorMessage = "Couldn't save this check-in. Please try again."
             logger.error("Local save failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func addWater(ounces: Int) async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            accept(try await store.addWater(WaterUnit.ounces.milliliters(from: Double(ounces)), at: Date()))
+            errorMessage = nil
+            WKInterfaceDevice.current().play(.click)
+            refresh()
+        } catch {
+            errorMessage = "Couldn't save this drink. Please try again."
+            logger.error("Local water save failed: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func undoWater() async {
+        guard !isSaving else { return }
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            accept(try await store.undoWater(on: GlowWatchDay.waterDay(date: Date())))
+            errorMessage = nil
+            WKInterfaceDevice.current().play(.click)
+            refresh()
+        } catch {
+            errorMessage = "Couldn't undo this drink. Please try again."
         }
     }
 

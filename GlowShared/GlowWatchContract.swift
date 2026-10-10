@@ -55,6 +55,7 @@ nonisolated struct GlowWatchSnapshot: Codable, Equatable, Sendable {
     let day: GlowWatchDay
     let habits: [GlowWatchHabit]
     let receipts: [GlowWatchReceipt]
+    var water: GlowWatchWaterSnapshot? = nil
 }
 
 nonisolated struct GlowWatchPacket: Codable, Sendable {
@@ -65,9 +66,18 @@ nonisolated struct GlowWatchPacket: Codable, Sendable {
         case requestSnapshot
         case snapshot(GlowWatchSnapshot)
         case completion(GlowWatchCommand)
+        case water(GlowWatchWaterCommand)
     }
 
     static let payloadKey = "glowWatchPayload"
+
+    var commandID: UUID? {
+        switch body {
+        case .completion(let command): command.id
+        case .water(let command): command.id
+        case .requestSnapshot, .snapshot: nil
+        }
+    }
 
     func data() throws -> Data { try JSONEncoder().encode(self) }
 
@@ -84,7 +94,27 @@ nonisolated struct GlowWatchState: Codable, Sendable {
     var revision: UInt64 = 0
     var snapshot: GlowWatchSnapshot?
     var pending: [GlowWatchCommand] = []
+    var pendingWater: [GlowWatchWaterCommand] = []
+    var lastWaterEntry: GlowWatchWaterCommand?
     var syncError: String?
+
+    init() {}
+
+    private enum CodingKeys: String, CodingKey {
+        case clientID, nextSequence, revision, snapshot, pending, pendingWater, lastWaterEntry, syncError
+    }
+
+    init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        clientID = try values.decode(UUID.self, forKey: .clientID)
+        nextSequence = try values.decode(UInt64.self, forKey: .nextSequence)
+        revision = try values.decode(UInt64.self, forKey: .revision)
+        snapshot = try values.decodeIfPresent(GlowWatchSnapshot.self, forKey: .snapshot)
+        pending = try values.decode([GlowWatchCommand].self, forKey: .pending)
+        pendingWater = try values.decodeIfPresent([GlowWatchWaterCommand].self, forKey: .pendingWater) ?? []
+        lastWaterEntry = try values.decodeIfPresent(GlowWatchWaterCommand.self, forKey: .lastWaterEntry)
+        syncError = try values.decodeIfPresent(String.self, forKey: .syncError)
+    }
 
     func isCompleted(_ habitID: String, on day: GlowWatchDay) -> Bool {
         if let command = pending.last(where: { $0.habitID == habitID && $0.day == day }) {
@@ -117,6 +147,7 @@ nonisolated struct GlowWatchState: Codable, Sendable {
             if let rejection = receipt.rejection { syncError = rejection }
             return true
         }
+        receiveWater(incoming.water)
         if incoming.generatedAt >= (snapshot?.generatedAt ?? .distantPast) {
             snapshot = incoming
         }

@@ -31,6 +31,18 @@ actor GlowWatchStore {
         return try save(updated)
     }
 
+    func addWater(_ milliliters: Double, at date: Date) throws -> GlowWatchState {
+        var updated = try load()
+        updated.addWater(milliliters, at: date)
+        return try save(updated)
+    }
+
+    func undoWater(on day: GlowWatchDay) throws -> GlowWatchState {
+        var updated = try load()
+        updated.undoWater(on: day)
+        return try save(updated)
+    }
+
     private func save(_ updated: GlowWatchState) throws -> GlowWatchState {
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try JSONEncoder().encode(updated).write(to: url, options: .atomic)

@@ -41,12 +41,11 @@ nonisolated final class GlowWatchTransport: NSObject, WCSessionDelegate {
             }
         }
         if durable {
-            if case .completion(let command) = packet.body {
+            if let commandID = packet.commandID {
                 let alreadyQueued = session.outstandingUserInfoTransfers.contains { transfer in
                     guard let existingData = transfer.userInfo[GlowWatchPacket.payloadKey] as? Data,
-                          let existing = GlowWatchPacket.decode(existingData),
-                          case .completion(let queued) = existing.body else { return false }
-                    return queued.id == command.id
+                          let existing = GlowWatchPacket.decode(existingData) else { return false }
+                    return existing.commandID == commandID
                 }
                 guard !alreadyQueued else { return }
             }

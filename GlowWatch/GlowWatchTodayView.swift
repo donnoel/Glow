@@ -45,15 +45,16 @@ struct GlowWatchTodayView: View {
                                 .foregroundStyle(.teal)
                                 .accessibilityLabel("\(done) of \(scheduled.count) scheduled habits completed today")
                         }
-                        if !scheduled.isEmpty {
-                            Section("Today") {
-                                ForEach(scheduled) { habit in row(habit, day: day) }
-                            }
+                    }
+                    GlowWatchWaterView(model: model, now: now)
+                    if !scheduled.isEmpty {
+                        Section("Today") {
+                            ForEach(scheduled) { habit in row(habit, day: day) }
                         }
-                        if !other.isEmpty {
-                            Section(scheduled.isEmpty ? "Your habits" : "Other habits") {
-                                ForEach(other) { habit in row(habit, day: day) }
-                            }
+                    }
+                    if !other.isEmpty {
+                        Section(scheduled.isEmpty ? "Your habits" : "Other habits") {
+                            ForEach(other) { habit in row(habit, day: day) }
                         }
                     }
                     Section {

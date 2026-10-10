@@ -25,7 +25,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Onboarding gate controlled by `hasSeenGlowOnboarding`
 - Home screen widget backed by shared App Group progress values
 - SwiftData persistence with CloudKit private database configuration and local fallback
-- Watch companion: existing habits, today's completion/undo, and a durable local outbox sent through the paired iPhone
+- Watch companion: existing habits, today's completion/undo, 8/21/24 oz water logging and daily goal progress, with a durable local outbox sent through the paired iPhone
 
 2) Architecture boundaries
 - SwiftUI views handle presentation and user interaction
@@ -48,7 +48,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Widget shared progress store key/value contracts
 - Onboarding state transitions
 - Water quantities, locale input, settings persistence, saved daily goals and additive-store migration
-- Watch packet validation, durable outbox/receipts and original-day completion actions
+- Watch packet validation, durable outbox/receipts, original-day completion and idempotent water entries/undo
 
 ## Architecture snapshot (current)
 - App entry: `/Users/donnoel/Development/Glow/Glow/App/GlowApp.swift`
@@ -88,7 +88,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Archived habits are excluded from active home metrics and reminder scheduling.
 - `scheduledTodayHabits`, `dueButNotDoneToday`, and `bonusCompletedToday` stay schedule-accurate.
 - Distinct-day logic is preserved for consistency calculations (multiple same-day logs count once).
-- Water entries remain separate from habit completion, global scores, widget counts and Watch habit packets.
+- Water entries remain separate from habit completion, global scores and widget counts; Watch water messages use their own commands and receipts.
 - Water is stored in additive CloudKit-compatible models; never replace existing habit data during a schema update.
 - WaterDayGoal snapshots remain after entry deletion. Earliest snapshot wins if offline devices create duplicates.
 - Global streak/lifetime activity summaries are based on active-habit completed logs.
@@ -118,6 +118,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Targets: `Glow`, `GlowTests`, `GlowUITests`, `GlowWidgetExtension`, `GlowWatch`
 - Watch scheme: `GlowWatch`; sync contracts and actor-backed outbox live in `GlowShared/`.
 - Watch setup and validation: `docs/WATCH_COMPANION.md`.
+- Watch water delivery evidence: `docs/WATCH_WATER_DELIVERY_2026-10-10.md`.
 - Water behavior, migration and sync boundaries: `docs/WATER_TRACKING.md`.
 - Water build/test/device evidence: `docs/WATER_DELIVERY_2026-10-10.md`.
 - Build command:

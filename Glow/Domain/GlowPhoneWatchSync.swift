@@ -5,17 +5,17 @@ import UIKit
 import Combine
 import OSLog
 
-private actor GlowWatchReceiptStore {
+private actor GlowWatchReceiptStore<Receipt: Codable & Sendable> {
     private let url: URL
-    private var receipts: [String: GlowWatchReceipt]?
+    private var receipts: [String: Receipt]?
 
     init(url: URL) { self.url = url }
 
-    func load() throws -> [String: GlowWatchReceipt] {
+    func load() throws -> [String: Receipt] {
         if let receipts { return receipts }
-        let loaded: [String: GlowWatchReceipt]
+        let loaded: [String: Receipt]
         if FileManager.default.fileExists(atPath: url.path) {
-            loaded = try JSONDecoder().decode([String: GlowWatchReceipt].self, from: Data(contentsOf: url))
+            loaded = try JSONDecoder().decode([String: Receipt].self, from: Data(contentsOf: url))
         } else {
             loaded = [:]
         }
@@ -23,9 +23,9 @@ private actor GlowWatchReceiptStore {
         return loaded
     }
 
-    func record(_ receipt: GlowWatchReceipt) throws -> [String: GlowWatchReceipt] {
+    func record(_ receipt: Receipt, key: String) throws -> [String: Receipt] {
         var updated = try load()
-        updated[receipt.command.receiptKey] = receipt
+        updated[key] = receipt
         try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try JSONEncoder().encode(updated).write(to: url, options: .atomic)
         receipts = updated
@@ -37,11 +37,13 @@ private actor GlowWatchReceiptStore {
 @MainActor
 final class GlowPhoneWatchSync {
     private let context: ModelContext
-    private let receiptStore: GlowWatchReceiptStore
+    private let receiptStore: GlowWatchReceiptStore<GlowWatchReceipt>
+    private let waterReceiptStore: GlowWatchReceiptStore<GlowWatchWaterReceipt>
     private var receipts: [String: GlowWatchReceipt] = [:]
+    private var waterReceipts: [String: GlowWatchWaterReceipt] = [:]
     private var transport: GlowWatchTransport?
     private var subscriptions: Set<AnyCancellable> = []
-    private var commands: [GlowWatchCommand] = []
+    private var commands: [GlowWatchPacket.Body] = []
     private var processing: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
     private let logger = Logger(subsystem: "movie.Glow", category: "WatchSync")
@@ -50,6 +52,7 @@ final class GlowPhoneWatchSync {
         context = container.mainContext
         let root = URL.applicationSupportDirectory.appendingPathComponent("GlowWatch", isDirectory: true)
         receiptStore = GlowWatchReceiptStore(url: root.appendingPathComponent("receipts.json"))
+        waterReceiptStore = GlowWatchReceiptStore(url: root.appendingPathComponent("water-receipts.json"))
     }
 
     func start() {
@@ -75,8 +78,8 @@ final class GlowPhoneWatchSync {
         case .packet(let packet):
             switch packet.body {
             case .requestSnapshot: scheduleSnapshot()
-            case .completion(let command):
-                commands.append(command)
+            case .completion, .water:
+                commands.append(packet.body)
                 processCommands()
             case .snapshot: break
             }
@@ -97,17 +100,27 @@ final class GlowPhoneWatchSync {
             while !commands.isEmpty && !Task.isCancelled {
                 let command = commands.removeFirst()
                 do {
-                    receipts = try await receiptStore.load()
-                    if let previous = receipts[command.receiptKey], previous.command.sequence >= command.sequence {
-                        try publishSnapshot(acknowledging: command)
-                        continue
+                    switch command {
+                    case .completion(let habit):
+                        receipts = try await receiptStore.load()
+                        if receipts[habit.receiptKey].map({ $0.command.sequence < habit.sequence }) ?? true {
+                            let rejection = try apply(habit)
+                            receipts = try await receiptStore.record(GlowWatchReceipt(command: habit, rejection: rejection), key: habit.receiptKey)
+                        }
+                        try publishSnapshot(acknowledging: habit)
+                    case .water(let drink):
+                        waterReceipts = try await waterReceiptStore.load()
+                        if waterReceipts[drink.receiptKey].map({ $0.command.sequence < drink.sequence }) ?? true {
+                            let rejection = try WatchWaterAction.apply(drink, in: context)
+                            waterReceipts = try await waterReceiptStore.record(GlowWatchWaterReceipt(command: drink, rejection: rejection), key: drink.receiptKey)
+                            NotificationCenter.default.post(name: .glowDataDidChange, object: nil)
+                        }
+                        try publishSnapshot(waterCommand: drink)
+                    case .requestSnapshot, .snapshot: break
                     }
-                    let rejection = try apply(command)
-                    receipts = try await receiptStore.record(GlowWatchReceipt(command: command, rejection: rejection))
-                    try publishSnapshot(acknowledging: command)
                 } catch {
                     // No acknowledgement on failure: the durable Watch outbox retries on activation.
-                    logger.error("Completion delivery failed: \(error.localizedDescription, privacy: .public)")
+                    logger.error("Watch delivery failed: \(error.localizedDescription, privacy: .public)")
                 }
             }
         }
@@ -145,6 +158,7 @@ final class GlowPhoneWatchSync {
                 try await Task.sleep(for: .milliseconds(150))
                 guard let self else { return }
                 receipts = try await receiptStore.load()
+                waterReceipts = try await waterReceiptStore.load()
                 try publishSnapshot()
             } catch is CancellationError {
                 return
@@ -154,7 +168,8 @@ final class GlowPhoneWatchSync {
         }
     }
 
-    private func publishSnapshot(acknowledging command: GlowWatchCommand? = nil) throws {
+    private func publishSnapshot(acknowledging command: GlowWatchCommand? = nil,
+                                 waterCommand: GlowWatchWaterCommand? = nil) throws {
         let now = Date()
         let habits = try context.fetch(FetchDescriptor<Habit>())
             .filter { !$0.isArchived }
@@ -166,6 +181,11 @@ final class GlowPhoneWatchSync {
            !recentReceipts.contains(where: { $0.command.receiptKey == command.receiptKey }) {
             recentReceipts.append(receipt)
         }
+        var recentWaterReceipts = Array(waterReceipts.values.sorted { $0.command.sequence > $1.command.sequence }.prefix(64))
+        if let waterCommand, let receipt = waterReceipts[waterCommand.receiptKey],
+           !recentWaterReceipts.contains(where: { $0.command.receiptKey == waterCommand.receiptKey }) {
+            recentWaterReceipts.append(receipt)
+        }
         let snapshot = GlowWatchSnapshot(
             generatedAt: now, day: GlowWatchDay(date: now),
             habits: habits.map { habit in
@@ -175,10 +195,11 @@ final class GlowPhoneWatchSync {
                     completed: (habit.logs ?? []).contains { $0.completed && Calendar.current.isDate($0.date, inSameDayAs: now) }
                 )
             },
-            receipts: recentReceipts
+            receipts: recentReceipts,
+            water: try WatchWaterAction.snapshot(in: context, now: now, receipts: recentWaterReceipts)
         )
         transport?.publish(snapshot)
-        if command != nil { transport?.send(GlowWatchPacket(body: .snapshot(snapshot)), durable: true) }
+        if command != nil || waterCommand != nil { transport?.send(GlowWatchPacket(body: .snapshot(snapshot)), durable: true) }
         logger.info("Published Watch snapshot with \(snapshot.habits.count) active habits.")
     }
 }

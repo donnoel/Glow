@@ -1,7 +1,9 @@
 # Water tracking
 
-Added in Glow **2.3 (1)** for iPhone and iPad. The widget and Watch companion
-continue to show habit progress; they do not log or report water.
+Added in Glow **2.3 (1)** for iPhone and iPad. The Watch companion also logs
+8, 21 or 24 US fl oz drinks and shows today's progress against the daily goal,
+with an Undo last drink control. Settings and reports remain on iPhone/iPad.
+The widget continues to show habit progress.
 
 Today places Water below the daily habit summary. The initial quick amounts are
 8, 12, 21 and 24 US fluid ounces. Tapping one saves a drink immediately; Undo
@@ -64,3 +66,5 @@ Before release, manually verify VoiceOver, larger text, light/dark contrast,
 midnight behavior and iCloud water propagation on the intended devices.
 See [October 10 delivery evidence](WATER_DELIVERY_2026-10-10.md) for completed
 checks, user acceptance and the remaining verification boundaries.
+The [Watch water delivery](WATCH_WATER_DELIVERY_2026-10-10.md) records the
+companion extension's tests, paired-device integration and physical installations.
