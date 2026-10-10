@@ -43,4 +43,3 @@ nonisolated enum WaterUnit: String, CaseIterable, Identifiable {
         return Self.isValidAmount(amount) ? amount : nil
     }
 }
-
