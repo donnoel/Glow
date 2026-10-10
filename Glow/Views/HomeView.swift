@@ -17,6 +17,7 @@ struct HomeView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     @Query(sort: [
         SortDescriptor(\Habit.sortOrder, order: .forward),
@@ -424,6 +425,9 @@ struct HomeView: View {
             : Int((Double(doneScheduled) / Double(totalScheduled) * 100).rounded())
         let currentStreak = viewModel.globalStreak.current
         let bestStreak = viewModel.globalStreak.best
+        let metricsLayout = isIPadRegularWidth && dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: 10))
+            : AnyLayout(HStackLayout(spacing: 16))
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -435,10 +439,13 @@ struct HomeView: View {
                     .foregroundStyle(GlowTheme.accentPrimary)
             }
 
-            HStack(spacing: 16) {
+            metricsLayout {
                 Label("\(doneScheduled) done", systemImage: "checkmark.circle.fill")
+                    .frame(maxWidth: isIPadRegularWidth ? .infinity : nil, alignment: .leading)
                 Label("\(totalScheduled) due", systemImage: "calendar")
+                    .frame(maxWidth: isIPadRegularWidth ? .infinity : nil, alignment: .leading)
                 Label("\(currentStreak)d streak", systemImage: "flame.fill")
+                    .frame(maxWidth: isIPadRegularWidth ? .infinity : nil, alignment: .leading)
             }
             .font(.subheadline.monospacedDigit())
             .foregroundStyle(GlowTheme.textSecondary)
@@ -446,7 +453,7 @@ struct HomeView: View {
             Text(summarySupportingLine(done: doneScheduled, total: totalScheduled, streak: currentStreak, bestStreak: bestStreak))
                 .font(.footnote)
                 .foregroundStyle(GlowTheme.textSecondary)
-                .lineLimit(1)
+                .lineLimit(isIPadRegularWidth ? nil : 1)
         }
         .padding(.vertical, 6)
         .accessibilityElement(children: .combine)

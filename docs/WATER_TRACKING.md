@@ -10,6 +10,10 @@ Today places Water below the daily habit summary. The initial quick amounts are
 removes the most recently added entry. Custom amounts, entry editing and swipe
 deletion are available. The last used amount is highlighted and saved locally.
 
+On a wide iPad, the Water card places daily progress beside a larger 2×2 group
+of quick amounts. Narrow windows and accessibility text sizes use the stacked
+layout. The Daily Summary spreads its metrics across the iPad card.
+
 Water settings saves four editable presets, US fluid ounces or milliliters,
 and a Male, Female or Custom goal. Male starts at 100 fl oz and Female at 75
 fl oz; either can be adjusted. These are rounded beverage-intake starting

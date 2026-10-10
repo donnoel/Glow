@@ -4,6 +4,8 @@ import SwiftUI
 struct WaterTodayView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var hasWideCard = false
     @Query private var entries: [WaterEntry]
     @Query private var goals: [WaterDayGoal]
     @Query(sort: [SortDescriptor(\WaterPreferences.updatedAt, order: .reverse), SortDescriptor(\WaterPreferences.id)])
@@ -23,6 +25,9 @@ struct WaterTodayView: View {
     private var unit: WaterUnit { settings?.unit ?? .ounces }
     private var total: Double { entries.reduce(0) { $0 + $1.milliliters } }
     private var goal: Double { viewModel.goal(for: dayKey, goals: goals, preferences: settings) }
+    private var usesWideLayout: Bool {
+        horizontalSizeClass == .regular && hasWideCard && !dynamicTypeSize.isAccessibilitySize
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -39,32 +44,55 @@ struct WaterTodayView: View {
                 .accessibilityIdentifier("waterSettings")
             }
 
-            Button { viewModel.sheet = .history } label: {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("\(unit.number(total)) of \(unit.label(goal))")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(GlowTheme.textPrimary)
-                    ProgressView(value: min(total, goal), total: goal)
-                        .tint(GlowTheme.accentPrimary)
-                        .accessibilityHidden(true)
-                    HStack {
-                        Text(total + 0.001 >= goal ? "Daily goal reached" : "\(unit.label(max(0, goal - total))) remaining")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                    }
-                    .font(.subheadline)
-                    .foregroundStyle(GlowTheme.textSecondary)
+            if usesWideLayout {
+                HStack(alignment: .center, spacing: 32) {
+                    progressButton
+                        .frame(maxWidth: .infinity)
+                    loggingControls
+                        .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(Rectangle())
+            } else {
+                progressButton
+                loggingControls
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Water today")
-            .accessibilityValue("\(unit.label(total)) of \(unit.label(goal))")
-            .accessibilityHint("Shows today’s water entries")
-            .accessibilityIdentifier("waterProgress")
+        }
+        .padding(.vertical, 4)
+        .buttonStyle(.borderless)
+        .onGeometryChange(for: Bool.self) { geometry in
+            geometry.size.width >= 600
+        } action: { hasWideCard = $0 }
+    }
 
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 140 : 76))], spacing: 8) {
+    private var progressButton: some View {
+        Button { viewModel.sheet = .history } label: {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("\(unit.number(total)) of \(unit.label(goal))")
+                    .font(.title2.weight(.semibold))
+                    .foregroundStyle(GlowTheme.textPrimary)
+                ProgressView(value: min(total, goal), total: goal)
+                    .tint(GlowTheme.accentPrimary)
+                    .accessibilityHidden(true)
+                HStack {
+                    Text(total + 0.001 >= goal ? "Daily goal reached" : "\(unit.label(max(0, goal - total))) remaining")
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                }
+                .font(.subheadline)
+                .foregroundStyle(GlowTheme.textSecondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Water today")
+        .accessibilityValue("\(unit.label(total)) of \(unit.label(goal))")
+        .accessibilityHint("Shows today’s water entries")
+        .accessibilityIdentifier("waterProgress")
+    }
+
+    private var loggingControls: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            LazyVGrid(columns: presetColumns, spacing: 8) {
                 ForEach(Array((settings?.presets ?? WaterUnit.defaultPresets).enumerated()), id: \.offset) { index, amount in
                     let isLast = abs(amount - viewModel.lastAmount) < 0.001
                     Button {
@@ -76,7 +104,7 @@ struct WaterTodayView: View {
                             Text("+\(unit.number(amount))").font(.headline)
                             Text(unit.symbol).font(.caption)
                         }
-                        .frame(maxWidth: .infinity, minHeight: 48)
+                        .frame(maxWidth: .infinity, minHeight: usesWideLayout ? 60 : 48)
                         .foregroundStyle(GlowTheme.textPrimary)
                         .background(isLast ? GlowTheme.accentPrimary.opacity(0.18) : Color(uiColor: .tertiarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
                         .overlay {
@@ -106,8 +134,13 @@ struct WaterTodayView: View {
             }
             .font(.subheadline.weight(.medium))
         }
-        .padding(.vertical, 4)
-        .buttonStyle(.borderless)
+    }
+
+    private var presetColumns: [GridItem] {
+        if usesWideLayout {
+            return Array(repeating: GridItem(.flexible()), count: 2)
+        }
+        return [GridItem(.adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 140 : 76))]
     }
 }
 

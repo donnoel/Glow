@@ -125,3 +125,26 @@ No model fields or CloudKit schema changes were introduced.
 
 The physical-device button appearance and interactions remain pending user
 verification; installation and running-process checks do not establish them.
+
+## iPad Today layout follow-up
+
+The wide iPad Water card now places daily progress beside larger quick-add
+buttons in a 2×2 grid. Narrow windows and accessibility text sizes retain the
+stacked layout. Daily Summary metrics use the card's width and stack at
+accessibility text sizes. iPhone and Watch presentation stays unchanged.
+
+- Signed builds for the named iPad and iPhone passed with no warnings; strict
+  deep signature verification passed. Version remains **2.3 (1)**.
+- The existing iPad quick logging/Undo/relaunch UI test passed. It verified
+  8 + 24 fl oz, Undo back to 8 fl oz, and the total after relaunch.
+- Inspected a screenshot captured from the physical iPad. The user reviewed
+  the delivered layout and said "yep i like that better," then authorized
+  delivery to all devices and commit/push.
+- Installed and launched the current app independently on Don's iPhone 15 Pro
+  Max, iPad Pro 13-inch (M4), and Apple Watch Ultra. Existing data was preserved;
+  no test drinks or habits were inserted on physical devices.
+- Updated water behavior documentation. No model or persistence changes.
+
+This records iPad portrait visual acceptance. Full VoiceOver, larger text and
+narrow-window interaction checks remain pending; the layout includes fallbacks
+but those checks were not performed in this follow-up.
