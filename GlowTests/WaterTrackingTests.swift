@@ -36,6 +36,27 @@ struct WaterTrackingTests {
         #expect(WaterUnit.milliliters.parse(input) != nil, "Editable values must not include grouping separators")
     }
 
+    @Test func legacyFourthPresetUpgradesWithoutOverwritingCustomSettings() throws {
+        let store = try container()
+        let preferences = WaterPreferences()
+        preferences.presetsData = try JSONEncoder().encode([10, 12, 21, 32].map(WaterUnit.ounces.milliliters))
+        preferences.profileRaw = "female"
+        preferences.goalMilliliters = WaterGoalProfile.female.suggestedMilliliters!
+        store.mainContext.insert(preferences)
+        try store.mainContext.save()
+        #expect(preferences.presets.map(WaterUnit.ounces.value) == [10, 12, 21, 24])
+        #expect(preferences.profile == .female)
+        #expect(preferences.goalMilliliters == WaterGoalProfile.female.suggestedMilliliters)
+
+        preferences.presetsData = try JSONEncoder().encode([10, 12, 21, 28].map(WaterUnit.ounces.milliliters))
+        #expect(preferences.presets.map(WaterUnit.ounces.value) == [10, 12, 21, 28])
+
+        var draft = WaterSettingsDraft(preferences: preferences)
+        draft.presets[3] = WaterUnit.ounces.milliliters(from: 32)
+        #expect(model().saveSettings(draft, preferences: preferences, context: store.mainContext))
+        #expect(preferences.presets.map(WaterUnit.ounces.value) == [10, 12, 21, 32])
+    }
+
     @Test func repeatedDrinksUndoAndEditsDoNotTouchHabits() throws {
         let store = try container()
         let context = store.mainContext

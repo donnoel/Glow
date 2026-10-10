@@ -46,10 +46,21 @@ final class WaterPreferences {
     var profile: WaterGoalProfile { WaterGoalProfile(rawValue: profileRaw) ?? .custom }
     var unit: WaterUnit { WaterUnit(rawValue: unitRaw) ?? .ounces }
     var presets: [Double] {
+        // New saves use a keyed payload so explicitly choosing 32 oz remains
+        // possible after upgrading the original fourth preset to 24 oz.
+        if let payload = try? JSONDecoder().decode([String: [Double]].self, from: presetsData),
+           let values = payload["amounts"], values.count == 4,
+           values.allSatisfy(WaterUnit.isValidAmount) {
+            return values
+        }
         guard let values = try? JSONDecoder().decode([Double].self, from: presetsData),
               values.count == 4, values.allSatisfy(WaterUnit.isValidAmount) else {
             return WaterUnit.defaultPresets
         }
-        return values
+        var upgraded = values
+        if abs(values[3] - WaterUnit.ounces.milliliters(from: 32)) < 0.001 {
+            upgraded[3] = WaterUnit.defaultPresets[3]
+        }
+        return upgraded
     }
 }

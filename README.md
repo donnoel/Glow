@@ -170,7 +170,7 @@ Handles:
 - Updates when app progress values change
 
 ### **Water Tracking**
-- Starts with 8, 12, 21 and 32 US fl oz; all four amounts are editable
+- Starts with 8, 12, 21 and 24 US fl oz; all four amounts are editable
 - Saves Male (100 fl oz), Female (75 fl oz) or Custom suggestions and fl oz/mL units
 - Highlights the last amount locally and supports custom drinks, undo and correction
 - Saves each day's goal with its first entry, preserving historical comparisons

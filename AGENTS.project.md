@@ -14,7 +14,7 @@ About Glow and the system Settings version row read the built app bundle.
 1) Core scope
 - Root shell with three sections: Today, Insights, Library
 - Home dashboard (Today) with daily summary, due/completed/coming-up sections, and completion undo
-- Water card on Today with editable 8/12/21/32 US fl oz presets, custom amounts, undo and entry correction
+- Water card on Today with editable 8/12/21/24 US fl oz presets, custom amounts, undo and entry correction
 - Male/Female/Custom water goals and units persist; a day's first log saves its historical goal
 - Water reporting in Insights covers 7/30 days and treats days with no entries as unlogged
 - Habit creation/editing with title, schedule, icon, archive state, and reminders

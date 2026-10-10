@@ -7,7 +7,7 @@ nonisolated enum WaterUnit: String, CaseIterable, Identifiable {
     var title: String { self == .ounces ? "US fluid ounces" : "Milliliters" }
     var symbol: String { self == .ounces ? "fl oz" : "mL" }
     static let millilitersPerOunce = 29.5735295625
-    static var defaultPresets: [Double] { [8, 12, 21, 32].map { $0 * millilitersPerOunce } }
+    static var defaultPresets: [Double] { [8, 12, 21, 24].map { $0 * millilitersPerOunce } }
 
     func milliliters(from value: Double) -> Double {
         self == .ounces ? value * Self.millilitersPerOunce : value

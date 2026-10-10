@@ -4,7 +4,7 @@ Added in Glow **2.3 (1)** for iPhone and iPad. The widget and Watch companion
 continue to show habit progress; they do not log or report water.
 
 Today places Water below the daily habit summary. The initial quick amounts are
-8, 12, 21 and 32 US fluid ounces. Tapping one saves a drink immediately; Undo
+8, 12, 21 and 24 US fluid ounces. Tapping one saves a drink immediately; Undo
 removes the most recently added entry. Custom amounts, entry editing and swipe
 deletion are available. The last used amount is highlighted and saved locally.
 
@@ -19,6 +19,12 @@ Open the Water total to see today's entries; the sliders button beside Water
 opens Water settings. In Insights, choose 7 or 30 days and open a day in history to correct
 its entries. Settings persist in the model store; last-amount highlighting is a
 device-local preference. A tap on a quick amount logs immediately.
+
+The fourth default changed from 32 to 24 fl oz. Previously saved settings with
+32 fl oz in that position show 24 fl oz on upgrade; other amounts, goals and
+logged drinks stay intact. New settings saves use a keyed JSON payload in the
+existing data field, so a later explicit choice of 32 fl oz remains available.
+This compatibility update adds no model fields or CloudKit schema changes.
 
 The first drink logged on a civil day saves that day's goal. Changing settings
 afterward applies to the next day logged. Editing or deleting drinks never

@@ -101,7 +101,7 @@ final class WaterTrackerViewModel: ObservableObject {
         guard WaterUnit.isValidAmount(draft.goalMilliliters), draft.presets.count == 4,
               draft.presets.allSatisfy(WaterUnit.isValidAmount) else { return false }
         do {
-            let data = try JSONEncoder().encode(draft.presets)
+            let data = try JSONEncoder().encode(["amounts": draft.presets])
             let settings = preferences ?? WaterPreferences()
             if preferences == nil { context.insert(settings) }
             settings.profileRaw = draft.profile.rawValue

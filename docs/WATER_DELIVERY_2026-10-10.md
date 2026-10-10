@@ -104,3 +104,24 @@ deployment was not performed. Cross-device water sync is not claimed as verified
 The user's general visual acceptance is recorded above; it does not identify
 specific functional checks on each device. Pending manual checks: detailed
 physical water interactions, VoiceOver/larger text, and iCloud water propagation.
+
+## Fourth quick amount follow-up
+
+Changed the fourth default from **32 to 24 US fl oz**. Legacy saved settings
+upgrade that fourth amount when it is still 32 fl oz; other presets, goals,
+logged drinks and daily snapshots remain intact. New settings saves use a keyed
+payload in the existing Data field so users can explicitly choose 32 fl oz again.
+No model fields or CloudKit schema changes were introduced.
+
+- Focused validation: **10 water unit tests + 1 quick logging/Undo/relaunch UI
+  test passed**, with zero failures or skips. The UI test verified the fourth
+  button's label and that tapping it adds exactly 24 fl oz.
+- Signed device build passed without warnings; app, widget and embedded Watch
+  versions remain **2.3 (1)** and strict signature verification passed.
+- Updated the existing app without uninstall/reset on Don's iPhone and iPad.
+  Install, launch, installed-version and running-process checks passed separately:
+  iPhone PID **1625**, iPad PID **2270**.
+- Updated README, project guidance and water behavior documentation.
+
+The physical-device button appearance and interactions remain pending user
+verification; installation and running-process checks do not establish them.
