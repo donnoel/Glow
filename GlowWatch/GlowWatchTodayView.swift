@@ -30,7 +30,17 @@ struct GlowWatchTodayView: View {
                     } else {
                         Section {
                             let done = scheduled.filter { model.state.isCompleted($0.id, on: day) }.count
-                            Label("\(done) of \(scheduled.count) done", systemImage: "sparkles")
+                            Label {
+                                Text("\(done) of \(scheduled.count) done")
+                            } icon: {
+                                Image("GlowBrandIcon")
+                                    .renderingMode(.original)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 24, height: 24)
+                                    .clipShape(RoundedRectangle(cornerRadius: 5))
+                                    .accessibilityHidden(true)
+                            }
                                 .font(.headline)
                                 .foregroundStyle(.teal)
                                 .accessibilityLabel("\(done) of \(scheduled.count) scheduled habits completed today")
@@ -73,8 +83,10 @@ struct GlowWatchTodayView: View {
 
     private func row(_ habit: GlowWatchHabit, day: GlowWatchDay) -> some View {
         let completed = model.state.isCompleted(habit.id, on: day)
-        return NavigationLink {
-            GlowWatchHabitView(model: model, habitID: habit.id)
+        return Button {
+            let tappedDay = GlowWatchDay(date: Date())
+            let wasCompleted = model.state.isCompleted(habit.id, on: tappedDay)
+            Task { await model.setCompleted(!wasCompleted, habitID: habit.id, day: tappedDay) }
         } label: {
             HStack(spacing: 10) {
                 HabitIconSymbol(name: habit.iconName, size: 20)
@@ -88,63 +100,12 @@ struct GlowWatchTodayView: View {
                     .accessibilityHidden(true)
             }
             .frame(minHeight: 44)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .disabled(model.isSaving)
         .accessibilityLabel(habit.title)
         .accessibilityValue(completed ? "Completed today" : "Not completed today")
-        .accessibilityHint("Opens today's check-in")
-    }
-}
-
-private struct GlowWatchHabitView: View {
-    @ObservedObject var model: GlowWatchViewModel
-    let habitID: String
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 60)) { timeline in
-            let day = GlowWatchDay(date: timeline.date)
-            if let habit = model.state.snapshot?.habits.first(where: { $0.id == habitID }) {
-                let completed = model.state.isCompleted(habitID, on: day)
-                ScrollView {
-                    VStack(spacing: 16) {
-                        Image(systemName: completed ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 40))
-                            .foregroundStyle(.teal)
-                            .accessibilityHidden(true)
-                        Text(habit.title)
-                            .font(.title3.bold())
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(completed ? "Completed today" : "Not completed today")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                        Button {
-                            let tappedDay = GlowWatchDay(date: Date())
-                            let wasCompleted = model.state.isCompleted(habitID, on: tappedDay)
-                            Task { await model.setCompleted(!wasCompleted, habitID: habitID, day: tappedDay) }
-                        } label: {
-                            Text(completed ? "Mark incomplete" : "Done today")
-                                .frame(maxWidth: .infinity, minHeight: 44)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(model.isSaving)
-                        .accessibilityLabel(completed ? "Mark \(habit.title) incomplete today" : "Mark \(habit.title) done today")
-                        if model.state.pending.contains(where: { $0.habitID == habitID && $0.day == day }) {
-                            Text("Saved on Watch · waiting to sync")
-                                .font(.footnote)
-                                .foregroundStyle(.secondary)
-                                .multilineTextAlignment(.center)
-                        }
-                        if let error = model.errorMessage ?? model.state.syncError {
-                            Text(error).font(.footnote).multilineTextAlignment(.center)
-                        }
-                    }
-                    .padding(.horizontal, 8)
-                }
-            } else {
-                Text("This habit is no longer available.")
-                    .multilineTextAlignment(.center)
-            }
-        }
-        .navigationTitle("Today")
+        .accessibilityHint(completed ? "Marks this habit incomplete today" : "Marks this habit done today")
     }
 }

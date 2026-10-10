@@ -1,8 +1,9 @@
 # Glow Watch companion
 
 GlowWatch shows existing active habits, with scheduled habits first and other
-habits available for bonus check-ins. Selecting a habit opens **Done today** or
-**Mark incomplete**. Habit creation, editing, archiving, and history stay in the
+habits available for bonus check-ins. Tapping a habit row marks it done directly
+on the main list; tapping again marks it incomplete, with no second screen or
+confirmation. Habit creation, editing, archiving, and history stay in the
 iPhone/iPad app. Large native controls, scalable text, explicit completion
 labels, and a brief haptic keep check-ins simple. Water tracking in version 2.3
 stays in the iPhone/iPad app and does not affect Watch habit packets.
