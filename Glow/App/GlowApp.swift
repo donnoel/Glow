@@ -95,6 +95,11 @@ struct GlowApp: App {
                 context.delete(habit)
             }
 
+            for entry in try context.fetch(FetchDescriptor<WaterEntry>()) { context.delete(entry) }
+            for goal in try context.fetch(FetchDescriptor<WaterDayGoal>()) { context.delete(goal) }
+            for preferences in try context.fetch(FetchDescriptor<WaterPreferences>()) { context.delete(preferences) }
+            UserDefaults.standard.removeObject(forKey: "water.lastAmountMilliliters")
+
             try context.save()
             SharedProgressStore.resetToday()
         } catch {
@@ -111,7 +116,10 @@ struct GlowApp: App {
     private static let modelContainer: ModelContainer = {
         let schema = Schema([
             Habit.self,
-            HabitLog.self
+            HabitLog.self,
+            WaterEntry.self,
+            WaterDayGoal.self,
+            WaterPreferences.self
         ])
 
         let cloudKitID = "iCloud.movie.Glow"

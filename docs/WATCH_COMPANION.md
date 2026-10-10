@@ -4,8 +4,9 @@ GlowWatch shows existing active habits, with scheduled habits first and other
 habits available for bonus check-ins. Selecting a habit opens **Done today** or
 **Mark incomplete**. Habit creation, editing, archiving, and history stay in the
 iPhone/iPad app. Large native controls, scalable text, explicit completion
-labels, and a brief haptic keep check-ins simple. No custom motion or glass
-effects are required.
+labels, and a brief haptic keep check-ins simple. Water tracking in version 2.3
+stays in the iPhone/iPad app and does not affect Watch habit packets.
+No custom motion or glass effects are required.
 
 ## Data and delivery
 
@@ -28,7 +29,9 @@ with an explanation on the Watch. Persistence failures remain pending.
 
 The Watch outbox and phone receipt journal use separate actor-owned atomic JSON
 files under their respective Application Support/GlowWatch directories. The
-CloudKit model schema and container are unchanged. Receipts are local transport
+Watch transport does not change Habit/HabitLog fields or the CloudKit container.
+The iPhone/iPad app also includes additive water models described in
+[Water tracking](WATER_TRACKING.md). Receipts are local transport
 metadata; snapshots carry a bounded recent receipt window plus any receipt
 needed for the current acknowledgement.
 

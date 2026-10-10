@@ -30,7 +30,11 @@ struct InsightsRootView: View {
         NavigationStack {
             ScrollView {
                 if activeHabits.isEmpty {
-                    emptyState
+                    VStack(spacing: 24) {
+                        WaterInsightsView()
+                            .padding(.horizontal, isIPadRegularWidth ? 32 : 16)
+                        emptyState
+                    }
                 } else if isIPadRegularWidth {
                     regularWidthContent
                 } else {
@@ -69,6 +73,7 @@ struct InsightsRootView: View {
     private var compactContent: some View {
         VStack(alignment: .leading, spacing: 24) {
             storyCard
+            WaterInsightsView()
             rhythmSection
 
             if !viewModel.highlights.isEmpty {
@@ -85,6 +90,7 @@ struct InsightsRootView: View {
     private var regularWidthContent: some View {
         VStack(alignment: .leading, spacing: 28) {
             regularWidthStoryCard
+            WaterInsightsView()
             rhythmSection
 
             if !viewModel.highlights.isEmpty {
@@ -584,7 +590,7 @@ struct InsightsRootView: View {
     }
 }
 
-private extension View {
+extension View {
     func insightsSurfaceCard(cornerRadius: CGFloat) -> some View {
         background(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)

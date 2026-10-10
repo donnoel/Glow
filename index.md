@@ -5,9 +5,9 @@ title: Glow
 
 <section class="hero" aria-labelledby="hero-title">
   <div class="hero__copy">
-    <p class="eyebrow">iPhone + iPad <span aria-hidden="true">·</span> Habits without pressure</p>
+    <p class="eyebrow">iPhone + iPad + Watch <span aria-hidden="true">·</span> Habits without pressure</p>
     <h1 id="hero-title">Small practices. Clear progress. No guilt.</h1>
-    <p class="hero__lede">Glow is a calm habit tracker for building a daily rhythm, celebrating what you completed, and understanding your progress over time.</p>
+    <p class="hero__lede">Glow is a calm habit and water tracker for building a daily rhythm, celebrating what you completed, and understanding your progress over time.</p>
     <div class="hero__actions">
       <a class="button button--primary" href="{{ site.github_url }}">View on GitHub <span aria-hidden="true">↗</span></a>
       <a class="button button--quiet" href="#daily-loop">See the daily loop</a>
@@ -33,6 +33,8 @@ title: Glow
     <dl class="status-list">
       <div><dt>Daily check-ins</dt><dd>Ready</dd></div>
       <div><dt>Progress insights</dt><dd>Ready</dd></div>
+      <div><dt>Water tracking</dt><dd>Included</dd></div>
+      <div><dt>Watch check-ins</dt><dd>Included</dd></div>
       <div><dt>Home widget</dt><dd>Included</dd></div>
     </dl>
   </aside>
@@ -83,6 +85,8 @@ title: Glow
     <ul class="capability-list">
       <li><span aria-hidden="true">✓</span> Flexible schedules and reminders</li>
       <li><span aria-hidden="true">✓</span> Quick completion with undo</li>
+      <li><span aria-hidden="true">✓</span> Water quick amounts, saved goals, and history</li>
+      <li><span aria-hidden="true">✓</span> Daily habit check-ins on Apple Watch</li>
       <li><span aria-hidden="true">✓</span> Streaks, weekly summaries, and history</li>
       <li><span aria-hidden="true">✓</span> Archive without losing past progress</li>
     </ul>
@@ -95,8 +99,8 @@ title: Glow
       <li><span>01</span><div><strong>Add a practice</strong><p>Name it and choose its schedule.</p></div></li>
       <li><span>02</span><div><strong>Set a reminder</strong><p>Use a gentle cue when it helps.</p></div></li>
       <li><span>03</span><div><strong>Open Today</strong><p>See what fits this day.</p></div></li>
-      <li><span>04</span><div><strong>Check in</strong><p>Mark the practice complete in one step.</p></div></li>
-      <li><span>05</span><div><strong>Glance back</strong><p>Notice streaks and weekly movement.</p></div></li>
+      <li><span>04</span><div><strong>Check in</strong><p>Complete a practice or log a drink in one tap.</p></div></li>
+      <li><span>05</span><div><strong>Glance back</strong><p>Notice habit rhythm and 7/30-day water trends.</p></div></li>
       <li><span>06</span><div><strong>Adjust gently</strong><p>Edit, reschedule, or archive as life changes.</p></div></li>
     </ol>
   </div>
@@ -107,5 +111,5 @@ title: Glow
     <p class="eyebrow">Private by design</p>
     <h2 id="foundation-title">Your habits work locally first.</h2>
   </div>
-  <p>Glow stores progress with SwiftData and keeps the app usable if CloudKit setup is unavailable. Shared App Group values power the home-screen widget, while reminders and archived habits follow the same schedule rules as the app.</p>
+  <p>Glow stores progress with SwiftData and keeps the app usable if CloudKit setup is unavailable. Water logging lives on iPhone and iPad; the Watch companion handles daily habit check-ins through the paired iPhone. Shared App Group values power the habit widget, while reminders and archived habits follow the same schedule rules as the app.</p>
 </section>

@@ -6,13 +6,21 @@
 Glow is a habit-tracking app focused on clear daily progress, low-friction check-ins, and calm visual feedback.
 Success means users can define habits, follow schedules, complete check-ins, see progress trends, and keep data consistent across app + widget.
 
+Current source version: **2.3 (1)** across Glow, GlowWidgetExtension and GlowWatch
+(Debug and Release). Version settings live in `Glow.xcodeproj/project.pbxproj`;
+About Glow and the system Settings version row read the built app bundle.
+
 ## Current product phase (implemented baseline)
 1) Core scope
 - Root shell with three sections: Today, Insights, Library
 - Home dashboard (Today) with daily summary, due/completed/coming-up sections, and completion undo
+- Water card on Today with editable 8/12/21/32 US fl oz presets, custom amounts, undo and entry correction
+- Male/Female/Custom water goals and units persist; a day's first log saves its historical goal
+- Water reporting in Insights covers 7/30 days and treats days with no entries as unlogged
 - Habit creation/editing with title, schedule, icon, archive state, and reminders
 - Habit detail analytics (streaks, weekly summary, monthly history)
 - Integrated Insights screen (momentum, weekly activity, patterns, milestones)
+- Dedicated iPad Insights composition: full-width weekly story, habit rhythm table, highlights and a 2×2 metrics grid
 - Library management for active/archived habits plus reminder management entry
 - Onboarding gate controlled by `hasSeenGlowOnboarding`
 - Home screen widget backed by shared App Group progress values
@@ -39,6 +47,8 @@ Success means users can define habits, follow schedules, complete check-ins, see
 - Habit/HabitLog/HabitSchedule model rules
 - Widget shared progress store key/value contracts
 - Onboarding state transitions
+- Water quantities, locale input, settings persistence, saved daily goals and additive-store migration
+- Watch packet validation, durable outbox/receipts and original-day completion actions
 
 ## Architecture snapshot (current)
 - App entry: `/Users/donnoel/Development/Glow/Glow/App/GlowApp.swift`
@@ -51,13 +61,17 @@ Success means users can define habits, follow schedules, complete check-ins, see
   - `/Users/donnoel/Development/Glow/Glow/ViewModels/HomeViewModel.swift`
   - `/Users/donnoel/Development/Glow/Glow/ViewModels/HabitDetailViewModel.swift`
   - `/Users/donnoel/Development/Glow/Glow/ViewModels/TrendsViewModel.swift`
+  - `/Users/donnoel/Development/Glow/Glow/ViewModels/InsightsViewModel.swift`
+  - `/Users/donnoel/Development/Glow/Glow/ViewModels/WaterTrackerViewModel.swift`
 - Core models:
   - `/Users/donnoel/Development/Glow/Glow/Models/Habit.swift`
   - `/Users/donnoel/Development/Glow/Glow/Models/HabitLog.swift`
   - `/Users/donnoel/Development/Glow/Glow/Models/HabitSchedule.swift`
+  - `/Users/donnoel/Development/Glow/Glow/Models/WaterTracking.swift`
 - Domain/services:
   - `/Users/donnoel/Development/Glow/Glow/Domain/StreakEngine.swift`
   - `/Users/donnoel/Development/Glow/Glow/Domain/NotificationManager.swift`
+  - `/Users/donnoel/Development/Glow/Glow/Domain/WaterAnalytics.swift`
 - Utilities:
   - `/Users/donnoel/Development/Glow/Glow/Utilities/SharedProgressStore.swift`
   - `/Users/donnoel/Development/Glow/Glow/Utilities/ModelContext+Save.swift`
@@ -74,6 +88,9 @@ Success means users can define habits, follow schedules, complete check-ins, see
 - Archived habits are excluded from active home metrics and reminder scheduling.
 - `scheduledTodayHabits`, `dueButNotDoneToday`, and `bonusCompletedToday` stay schedule-accurate.
 - Distinct-day logic is preserved for consistency calculations (multiple same-day logs count once).
+- Water entries remain separate from habit completion, global scores, widget counts and Watch habit packets.
+- Water is stored in additive CloudKit-compatible models; never replace existing habit data during a schema update.
+- WaterDayGoal snapshots remain after entry deletion. Earliest snapshot wins if offline devices create duplicates.
 - Global streak/lifetime activity summaries are based on active-habit completed logs.
 - Completion toggle undo remains fast, local, and non-modal.
 - Reminder lists include only non-archived habits with reminders enabled and valid hour/minute.
@@ -101,10 +118,13 @@ Success means users can define habits, follow schedules, complete check-ins, see
 - Targets: `Glow`, `GlowTests`, `GlowUITests`, `GlowWidgetExtension`, `GlowWatch`
 - Watch scheme: `GlowWatch`; sync contracts and actor-backed outbox live in `GlowShared/`.
 - Watch setup and validation: `docs/WATCH_COMPANION.md`.
+- Water behavior, migration and sync boundaries: `docs/WATER_TRACKING.md`.
+- Water build/test/device evidence: `docs/WATER_DELIVERY_2026-10-10.md`.
 - Build command:
   - `xcodebuild -project Glow.xcodeproj -scheme Glow -destination 'generic/platform=iOS Simulator' clean build`
 - Test command:
-  - `xcodebuild -project Glow.xcodeproj -scheme Glow -destination 'platform=iOS Simulator,name=iPhone 16' test`
+  - Inspect installed destinations with `xcodebuild -project Glow.xcodeproj -scheme Glow -showdestinations`.
+  - `xcodebuild -project Glow.xcodeproj -scheme Glow -destination 'platform=iOS Simulator,id=<installed-simulator-UDID>' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES test`
 
 ## Near-term priorities
 - Expand automated coverage for reminder + widget edge cases.

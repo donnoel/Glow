@@ -25,6 +25,7 @@ struct HomeView: View {
     private var habits: [Habit]
 
     @StateObject private var viewModel = HomeViewModel()
+    @StateObject private var waterViewModel = WaterTrackerViewModel()
 
     // Add Sheet / New Practice fields
     @State private var listRefreshID = UUID()
@@ -131,6 +132,7 @@ struct HomeView: View {
                     Button("Cancel", role: .cancel) { habitToDelete = nil }
                 }
         }
+        .modifier(WaterSheetPresenter(day: viewModel.todayStartOfDay, viewModel: waterViewModel))
         .glowTint()
         .background {
             if isIPadRegularWidth {
@@ -228,6 +230,11 @@ struct HomeView: View {
         List {
             Section {
                 dailySummaryCard
+            }
+
+            Section {
+                WaterTodayView(day: viewModel.todayStartOfDay, viewModel: waterViewModel)
+                    .id(WaterAnalytics.dayKey(viewModel.todayStartOfDay))
             }
 
             if viewModel.activeHabits.isEmpty && viewModel.archivedHabits.isEmpty {

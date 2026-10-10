@@ -100,6 +100,94 @@ final class GlowUITests: XCTestCase {
         saveButton.tap()
     }
 
+    @MainActor
+    func testWaterQuickLoggingUndoAndRelaunch() throws {
+        launchForHome()
+        let progress = app.buttons["waterProgress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        app.buttons["waterPreset0"].tap()
+        app.buttons["waterPreset2"].tap()
+        XCTAssertEqual(progress.value as? String, "29 fl oz of 100 fl oz")
+        app.buttons["waterUndo"].tap()
+        XCTAssertEqual(progress.value as? String, "8 fl oz of 100 fl oz")
+        let todayScreenshot = XCTAttachment(screenshot: app.screenshot())
+        todayScreenshot.name = "Water Today"
+        todayScreenshot.lifetime = .keepAlways
+        add(todayScreenshot)
+        app.terminate()
+        launchForHome(resetData: false)
+        XCTAssertEqual(app.buttons["waterProgress"].value as? String, "8 fl oz of 100 fl oz")
+        XCTAssertEqual(app.buttons["waterPreset2"].value as? String, "Last used amount")
+    }
+
+    @MainActor
+    func testWaterSettingsPersist() throws {
+        launchForHome()
+        app.buttons["waterSettings"].tap()
+        let profile = app.buttons["waterGoalProfile"]
+        XCTAssertTrue(profile.waitForExistence(timeout: 5))
+        profile.tap()
+        app.buttons["Female"].tap()
+        let goal = app.textFields["waterGoalField"]
+        XCTAssertEqual(goal.value as? String, "75")
+        let preset = app.textFields["waterPresetField0"]
+        preset.doubleTap()
+        preset.typeText("10")
+        app.buttons["waterSettingsSave"].tap()
+        XCTAssertTrue(app.buttons["waterPreset0"].waitForExistence(timeout: 5))
+        app.buttons["waterPreset0"].tap()
+        XCTAssertEqual(app.buttons["waterProgress"].value as? String, "10 fl oz of 75 fl oz")
+        app.terminate()
+        launchForHome(resetData: false)
+        XCTAssertEqual(app.buttons["waterProgress"].value as? String, "10 fl oz of 75 fl oz")
+        app.buttons["waterSettings"].tap()
+        XCTAssertTrue(goal.waitForExistence(timeout: 5))
+        XCTAssertEqual(goal.value as? String, "75")
+        XCTAssertEqual(preset.value as? String, "10")
+    }
+
+    @MainActor
+    func testWaterCustomAmountEditAndInsights() throws {
+        launchForHome()
+        app.buttons["waterCustom"].tap()
+        let amount = app.textFields["waterAmountField"]
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        amount.tap()
+        amount.typeText("15")
+        app.buttons["waterAmountSave"].tap()
+        let progress = app.buttons["waterProgress"]
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        XCTAssertEqual(progress.value as? String, "15 fl oz of 100 fl oz")
+        progress.tap()
+        let entry = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "15 fl oz,")).firstMatch
+        XCTAssertTrue(entry.waitForExistence(timeout: 5))
+        entry.tap()
+        XCTAssertTrue(amount.waitForExistence(timeout: 5))
+        amount.doubleTap()
+        amount.typeText("12")
+        app.buttons["waterAmountSave"].tap()
+        let done = app.buttons["Done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 5))
+        done.tap()
+        XCTAssertEqual(progress.value as? String, "12 fl oz of 100 fl oz")
+        let insights = app.tabBars.buttons["Insights"].firstMatch
+        if insights.exists {
+            insights.tap()
+        } else {
+            let showSidebar = app.buttons["Show Sidebar"]
+            if showSidebar.exists { showSidebar.tap() }
+            let sidebarItem = app.staticTexts["Insights"].firstMatch
+            XCTAssertTrue(sidebarItem.waitForExistence(timeout: 5))
+            sidebarItem.tap()
+        }
+        XCTAssertTrue(app.staticTexts["waterReportStory"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["waterReportStory"].label.contains("water logged on 1"))
+        let insightsScreenshot = XCTAttachment(screenshot: app.screenshot())
+        insightsScreenshot.name = "Water Insights"
+        insightsScreenshot.lifetime = .keepAlways
+        add(insightsScreenshot)
+    }
+
     // 1) Smoke: app launches and we can see the add button (or its identifier)
     @MainActor
     func testHomeShowsAddPracticeButton() throws {
