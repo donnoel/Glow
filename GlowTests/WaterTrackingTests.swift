@@ -155,6 +155,30 @@ struct WaterTrackingTests {
         #expect(try store.mainContext.fetch(FetchDescriptor<WaterPreferences>()).isEmpty)
     }
 
+    @Test func nudgeSettingsUpgradeOldPayloadAndPreserveAmounts() throws {
+        let store = try container()
+        let preferences = WaterPreferences()
+        let amounts = [10, 12, 21, 32].map(WaterUnit.ounces.milliliters)
+        preferences.presetsData = try JSONEncoder().encode(["amounts": amounts])
+        store.mainContext.insert(preferences)
+        #expect(preferences.nudgeSettings == WaterNudgeSettings())
+        var draft = WaterSettingsDraft(preferences: preferences)
+        draft.nudges = WaterNudgeSettings(isEnabled: true, startHour: 7, endHour: 20)
+        #expect(model().saveSettings(draft, preferences: preferences, context: store.mainContext))
+        #expect(preferences.presets == amounts)
+        #expect(preferences.nudgeSettings == draft.nudges)
+        #expect(WaterSettingsDraft(preferences: preferences).nudges == draft.nudges)
+        let legacyRead = try JSONDecoder().decode([String: [Double]].self, from: preferences.presetsData)
+        #expect(legacyRead["amounts"] == amounts, "Released clients must retain their custom quick amounts")
+        let previous = preferences.presetsData
+        draft.nudges.endHour = 8
+        #expect(!model().saveSettings(draft, preferences: preferences, context: store.mainContext))
+        #expect(preferences.presetsData == previous)
+        draft.nudges.isEnabled = false
+        #expect(model().saveSettings(draft, preferences: preferences, context: store.mainContext))
+        #expect(!preferences.nudgeSettings.isEnabled, "An invalid window must not prevent disabling nudges")
+    }
+
     @Test func additiveSchemaRetainsExistingHabitsAndColdLoadsWaterSettings() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("GlowWaterMigration-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -181,6 +205,7 @@ struct WaterTrackingTests {
             draft.unit = .milliliters
             draft.goalMilliliters = 2_200
             draft.presets = [250, 350, 500, 750]
+            draft.nudges = WaterNudgeSettings(isEnabled: true, startHour: 9, endHour: 22)
             #expect(vm.saveSettings(draft, preferences: nil, context: upgraded.mainContext))
             #expect(vm.add(500, preferences: nil, goals: [], context: upgraded.mainContext))
         }
@@ -191,6 +216,7 @@ struct WaterTrackingTests {
         #expect(settings.unit == .milliliters)
         #expect(settings.goalMilliliters == 2_200)
         #expect(settings.presets == [250, 350, 500, 750])
+        #expect(settings.nudgeSettings == WaterNudgeSettings(isEnabled: true, startHour: 9, endHour: 22))
         #expect(try reloaded.mainContext.fetch(FetchDescriptor<WaterEntry>()).first?.milliliters == 500)
     }
 }

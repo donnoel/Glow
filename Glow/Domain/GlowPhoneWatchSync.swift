@@ -3,6 +3,7 @@ import SwiftData
 import WatchConnectivity
 import UIKit
 import Combine
+import CoreData
 import OSLog
 
 private actor GlowWatchReceiptStore<Receipt: Codable & Sendable> {
@@ -63,6 +64,7 @@ final class GlowPhoneWatchSync {
         }
         transport = connection
         for name in [ModelContext.didSave, .glowDataDidChange,
+                     .NSPersistentStoreRemoteChange,
                      UIApplication.didBecomeActiveNotification, UIApplication.significantTimeChangeNotification] {
             NotificationCenter.default.publisher(for: name).sink { [weak self] _ in
                 Task { @MainActor [weak self] in self?.scheduleSnapshot() }

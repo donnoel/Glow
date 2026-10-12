@@ -148,6 +148,47 @@ final class GlowUITests: XCTestCase {
     }
 
     @MainActor
+    func testGentleWaterNudgesAndIndependentPhoneSwitchPersist() throws {
+        launchForHome()
+        app.buttons["waterSettings"].tap()
+        let nudges = app.switches["waterNudgesEnabled"]
+        XCTAssertTrue(nudges.waitForExistence(timeout: 5))
+        for _ in 0..<3 where !nudges.isHittable { app.swipeUp() }
+        XCTAssertEqual(nudges.value as? String, "0")
+        nudges.switches.firstMatch.tap()
+        XCTAssertEqual(nudges.value as? String, "1")
+        app.swipeUp()
+        let phone = app.switches["waterPhoneNudgesEnabled"]
+        for _ in 0..<3 where !phone.exists || !phone.isHittable { app.swipeUp() }
+        XCTAssertTrue(phone.waitForExistence(timeout: 5))
+        XCTAssertEqual(phone.value as? String, "1")
+        phone.switches.firstMatch.tap()
+        XCTAssertEqual(phone.value as? String, "0")
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "Gentle water nudge settings"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+        app.buttons["waterSettingsSave"].tap()
+        XCTAssertTrue(app.buttons["waterProgress"].waitForExistence(timeout: 5))
+        app.terminate()
+        launchForHome(resetData: false)
+        app.buttons["waterSettings"].tap()
+        XCTAssertTrue(nudges.waitForExistence(timeout: 5))
+        XCTAssertEqual(nudges.value as? String, "1")
+        app.swipeUp()
+        for _ in 0..<3 where !phone.exists || !phone.isHittable { app.swipeUp() }
+        XCTAssertEqual(phone.value as? String, "0")
+        for _ in 0..<3 where !nudges.isHittable { app.swipeDown() }
+        nudges.switches.firstMatch.tap()
+        XCTAssertEqual(nudges.value as? String, "0")
+        app.buttons["waterSettingsSave"].tap()
+        XCTAssertTrue(app.buttons["waterProgress"].waitForExistence(timeout: 5))
+        app.buttons["waterSettings"].tap()
+        XCTAssertTrue(nudges.waitForExistence(timeout: 5))
+        XCTAssertEqual(nudges.value as? String, "0")
+    }
+
+    @MainActor
     func testWaterCustomAmountEditAndInsights() throws {
         launchForHome()
         app.buttons["waterCustom"].tap()

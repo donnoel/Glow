@@ -47,11 +47,13 @@ enum WatchWaterAction {
             day: day,
             entries: entries.compactMap { entry in
                 guard let id = UUID(uuidString: entry.id), WaterUnit.isValidAmount(entry.milliliters) else { return nil }
-                return GlowWatchWaterEntry(id: id, milliliters: entry.milliliters)
+                return GlowWatchWaterEntry(id: id, milliliters: entry.milliliters, timestamp: entry.timestamp)
             },
             goalMilliliters: model.goal(for: key, goals: goals, preferences: preferences),
             nextGoalMilliliters: preferences?.goalMilliliters ?? WaterGoalProfile.male.suggestedMilliliters!,
-            receipts: receipts
+            receipts: receipts,
+            nudges: preferences?.nudgeSettings ?? WaterNudgeSettings(),
+            unitRaw: preferences?.unit.rawValue ?? WaterUnit.ounces.rawValue
         )
     }
 }

@@ -21,6 +21,44 @@ struct WatchWaterTests {
         return try ModelContainer(for: schema, configurations: [ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)])
     }
 
+    @Test func oldWaterSnapshotDecodesWithoutNudgeSettingsOrTimestamps() throws {
+        let original = snapshot(at: today, entries: [GlowWatchWaterEntry(id: UUID(), milliliters: eight)])
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(GlowWatchSnapshot.self, from: data)
+        #expect(decoded.water?.nudges == nil)
+        #expect(decoded.water?.unitRaw == nil)
+        #expect(decoded.water?.entries.first?.timestamp == nil)
+        #expect(decoded == original)
+    }
+
+    @Test func lastDrinkUsesPendingWaterAndUndoBeforePhoneAcknowledges() {
+        var state = GlowWatchState()
+        let early = today.addingTimeInterval(8 * 3_600)
+        let later = today.addingTimeInterval(10 * 3_600)
+        let id = UUID()
+        state.receive(snapshot(at: today, entries: [GlowWatchWaterEntry(id: id, milliliters: eight, timestamp: early)]))
+        state.addWater(eight, at: later)
+        #expect(state.waterLastDrink(on: .waterDay(date: today)) == later)
+        state.undoWater(on: .waterDay(date: today))
+        #expect(state.waterLastDrink(on: .waterDay(date: today)) == early)
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: today)!
+        #expect(state.waterLastDrink(on: .waterDay(date: tomorrow)) == nil)
+    }
+
+    @Test func phoneSnapshotCarriesNudgesUnitsAndDrinkTimestamp() throws {
+        let store = try container()
+        let model = WaterTrackerViewModel()
+        var draft = WaterSettingsDraft()
+        draft.nudges.isEnabled = true
+        draft.unit = .milliliters
+        #expect(model.saveSettings(draft, preferences: nil, context: store.mainContext))
+        #expect(model.add(eight, preferences: nil, goals: [], context: store.mainContext, now: today))
+        let water = try WatchWaterAction.snapshot(in: store.mainContext, now: today)
+        #expect(water.nudges == draft.nudges)
+        #expect(water.unitRaw == "milliliters")
+        #expect(water.entries.first?.timestamp == today)
+    }
+
     @Test func repeatedDrinksAddUpAndPartialAcknowledgementDoesNotDoubleCount() {
         var state = GlowWatchState()
         state.receive(snapshot(at: today))

@@ -30,6 +30,7 @@ struct GlowApp: App {
 
         Self.upgradeLegacyHabitIcons()
         Self.watchSync.start()
+        Self.waterNudges.start()
     }
 
     private static func updateSettingsVersionDisplay() {
@@ -99,6 +100,7 @@ struct GlowApp: App {
             for goal in try context.fetch(FetchDescriptor<WaterDayGoal>()) { context.delete(goal) }
             for preferences in try context.fetch(FetchDescriptor<WaterPreferences>()) { context.delete(preferences) }
             UserDefaults.standard.removeObject(forKey: "water.lastAmountMilliliters")
+            UserDefaults.standard.removeObject(forKey: WaterNudgeCoordinator.phoneEnabledKey)
 
             try context.save()
             SharedProgressStore.resetToday()
@@ -112,6 +114,7 @@ struct GlowApp: App {
     // MARK: - Shared SwiftData + CloudKit container
 
     private static let watchSync = GlowPhoneWatchSync(container: modelContainer)
+    private static let waterNudges = WaterNudgeCoordinator(container: modelContainer)
     
     private static let modelContainer: ModelContainer = {
         let schema = Schema([

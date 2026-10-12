@@ -43,6 +43,9 @@ struct GlowWatchWaterView: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
+                if model.waterNudgesEnabled {
+                    waterTapStatus
+                }
             } else {
                 Text("Open Glow on your iPhone to load your water goal.")
                     .font(.footnote)
@@ -50,6 +53,27 @@ struct GlowWatchWaterView: View {
             }
         }
         .tint(.cyan)
+    }
+
+    @ViewBuilder
+    private var waterTapStatus: some View {
+        switch model.waterNotificationStatus {
+        case .notDetermined:
+            Button("Enable water taps", systemImage: "hand.wave") {
+                Task { await model.enableWaterTaps() }
+            }
+            .frame(minHeight: 44)
+            .disabled(model.isRequestingWaterPermission)
+            .accessibilityHint("Allows gentle Watch notifications when you are behind your water goal")
+        case .denied:
+            Text("Water taps are off for this Watch. Allow Glow notifications in Watch settings to receive them.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        case .authorized:
+            Text("Gentle water taps are on.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+        }
     }
 
     private var amountButtons: some View {

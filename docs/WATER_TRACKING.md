@@ -26,6 +26,11 @@ opens Water settings. In Insights, choose 7 or 30 days and open a day in history
 its entries. Settings persist in the model store; last-amount highlighting is a
 device-local preference. A tap on a quick amount logs immediately.
 
+Water settings also offers opt-in [gentle water nudges](WATER_NUDGES.md): adaptive
+Watch notification taps, a configurable daytime window, and an independent
+switch for quiet phone copies. Logging, undo and goal completion update the
+plan; no hourly repeating alarm is used.
+
 The fourth default changed from 32 to 24 fl oz. Previously saved settings with
 32 fl oz in that position show 24 fl oz on upgrade; other amounts, goals and
 logged drinks stay intact. New settings saves use a keyed JSON payload in the

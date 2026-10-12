@@ -3,6 +3,13 @@ import Foundation
 nonisolated struct GlowWatchWaterEntry: Codable, Equatable, Sendable {
     let id: UUID
     let milliliters: Double
+    let timestamp: Date?
+
+    init(id: UUID, milliliters: Double, timestamp: Date? = nil) {
+        self.id = id
+        self.milliliters = milliliters
+        self.timestamp = timestamp
+    }
 }
 
 /// Each drink has its own ID. Retrying a delivery must never add another drink.
@@ -31,6 +38,22 @@ nonisolated struct GlowWatchWaterSnapshot: Codable, Equatable, Sendable {
     let goalMilliliters: Double
     let nextGoalMilliliters: Double
     let receipts: [GlowWatchWaterReceipt]
+    let nudges: WaterNudgeSettings?
+    let unitRaw: String?
+
+    init(
+        day: GlowWatchDay, entries: [GlowWatchWaterEntry], goalMilliliters: Double,
+        nextGoalMilliliters: Double, receipts: [GlowWatchWaterReceipt],
+        nudges: WaterNudgeSettings? = nil, unitRaw: String? = nil
+    ) {
+        self.day = day
+        self.entries = entries
+        self.goalMilliliters = goalMilliliters
+        self.nextGoalMilliliters = nextGoalMilliliters
+        self.receipts = receipts
+        self.nudges = nudges
+        self.unitRaw = unitRaw
+    }
 }
 
 extension GlowWatchDay {
@@ -50,6 +73,19 @@ extension GlowWatchDay {
 }
 
 extension GlowWatchState {
+    nonisolated func waterLastDrink(on day: GlowWatchDay) -> Date? {
+        var timestamps: [UUID: Date] = [:]
+        if let water = snapshot?.water, water.day == day {
+            for entry in water.entries where WaterUnit.isValidAmount(entry.milliliters) {
+                timestamps[entry.id] = entry.timestamp
+            }
+        }
+        for command in pendingWater where command.day == day {
+            timestamps[command.entryID] = command.isDeleted ? nil : command.timestamp
+        }
+        return timestamps.values.max()
+    }
+
     nonisolated func waterTotal(on day: GlowWatchDay) -> Double {
         var amounts: [UUID: Double] = [:]
         if let water = snapshot?.water, water.day == day {

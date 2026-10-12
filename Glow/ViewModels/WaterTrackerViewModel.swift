@@ -13,6 +13,7 @@ struct WaterSettingsDraft {
     var unit: WaterUnit = .ounces
     var goalMilliliters: Double = WaterGoalProfile.male.suggestedMilliliters!
     var presets: [Double] = WaterUnit.defaultPresets
+    var nudges = WaterNudgeSettings()
 
     init(preferences: WaterPreferences? = nil) {
         guard let preferences else { return }
@@ -20,6 +21,7 @@ struct WaterSettingsDraft {
         unit = preferences.unit
         goalMilliliters = preferences.goalMilliliters
         presets = preferences.presets
+        nudges = preferences.nudgeSettings
     }
 }
 
@@ -99,9 +101,10 @@ final class WaterTrackerViewModel: ObservableObject {
     func saveSettings(_ draft: WaterSettingsDraft, preferences: WaterPreferences?,
                       context: ModelContext, now: Date = .now) -> Bool {
         guard WaterUnit.isValidAmount(draft.goalMilliliters), draft.presets.count == 4,
-              draft.presets.allSatisfy(WaterUnit.isValidAmount) else { return false }
+              draft.presets.allSatisfy(WaterUnit.isValidAmount),
+              !draft.nudges.isEnabled || draft.nudges.isValid else { return false }
         do {
-            let data = try JSONEncoder().encode(["amounts": draft.presets])
+            let data = try JSONEncoder().encode(WaterPreferencesPayload(amounts: draft.presets, nudges: draft.nudges))
             let settings = preferences ?? WaterPreferences()
             if preferences == nil { context.insert(settings) }
             settings.profileRaw = draft.profile.rawValue
