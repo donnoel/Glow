@@ -16,7 +16,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Home dashboard (Today) with daily summary, due/completed/coming-up sections, and completion undo
 - Water card on Today with editable 8/12/21/24 US fl oz presets, custom amounts, undo and entry correction
 - Male/Female/Custom water goals and units persist; a day's first log saves its historical goal
-- Opt-in gentle water nudges: up to three adaptive Watch notification taps per day, daytime/quiet window, with independent quiet phone copies
+- Opt-in gentle water nudges: progress-driven timing chosen automatically, up to three Watch taps per day, quiet overnight, independent quiet phone copies
 - Water reporting in Insights covers 7/30 days and treats days with no entries as unlogged
 - Habit creation/editing with title, schedule, icon, archive state, and reminders
 - Habit detail analytics (streaks, weekly summary, monthly history)
@@ -91,7 +91,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Distinct-day logic is preserved for consistency calculations (multiple same-day logs count once).
 - Water entries remain separate from habit completion, global scores and widget counts; Watch water messages use their own commands and receipts.
 - Water is stored in additive CloudKit-compatible models; never replace existing habit data during a schema update.
-- Water nudges own only `water.nudge.` identifiers, honor spent slots and quiet spacing, and never change water goals or habit reminders. Phone-copy preference is device-local; nudge configuration uses the existing presets payload.
+- Water nudges own `water.nudge.` identifiers, honor spent opportunities and quiet spacing, and never change water goals or habit reminders. Phone-copy preference is device-local; nudge configuration uses the existing presets payload.
 - WaterDayGoal snapshots remain after entry deletion. Earliest snapshot wins if offline devices create duplicates.
 - Global streak/lifetime activity summaries are based on active-habit completed logs.
 - Completion toggle undo remains fast, local, and non-modal.

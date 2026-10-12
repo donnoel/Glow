@@ -123,6 +123,38 @@ struct WaterNudgeSchedulerTests {
         }
     }
 
+    @Test func eveningEnableQueuesTodayAndRefreshKeepsItsOriginalDeadline() async throws {
+        let client = Client()
+        let storage = suite()
+        defer { clear(storage) }
+        let now = date(hour: 20)
+        let scheduler = WaterNudgeScheduler(client: client, defaultsSuiteName: storage)
+        await scheduler.sync(input: input(at: now, ounces: 40), settings: settings,
+                             enabledOnDevice: true, haptic: true, now: now, calendar: calendar)
+        let expected = now.addingTimeInterval(300)
+        #expect(await scheduler.nextScheduledNudge(now: now) == expected)
+        let later = now.addingTimeInterval(120)
+        await scheduler.sync(input: input(at: later, ounces: 40), settings: settings,
+                             enabledOnDevice: true, haptic: true, now: later, calendar: calendar)
+        #expect(await scheduler.nextScheduledNudge(now: later) == expected)
+        let afterDelivery = expected.addingTimeInterval(60)
+        await scheduler.sync(input: input(at: afterDelivery, ounces: 40), settings: settings,
+                             enabledOnDevice: true, haptic: true, now: afterDelivery, calendar: calendar)
+        #expect(await client.pending().allSatisfy { !calendar.isDate($0.fireDate, inSameDayAs: now) })
+    }
+
+    @Test func legacyHoursDoNotChooseReminderTimes() async {
+        let client = Client()
+        let storage = suite()
+        defer { clear(storage) }
+        let now = date()
+        let scheduler = WaterNudgeScheduler(client: client, defaultsSuiteName: storage)
+        await scheduler.sync(input: input(at: now, ounces: 40),
+                             settings: WaterNudgeSettings(isEnabled: true, startHour: 18, endHour: 23),
+                             enabledOnDevice: true, haptic: true, now: now, calendar: calendar)
+        #expect(await scheduler.nextScheduledNudge(now: now) == now.addingTimeInterval(6.5 * 3_600))
+    }
+
     @Test func existingHabitsReserveCapacityBeforeTheWaterHorizon() async {
         let client = Client()
         let storage = suite()

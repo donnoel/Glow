@@ -73,6 +73,13 @@ struct GlowWatchWaterView: View {
             Text("Gentle water taps are on.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
+            if let next = model.nextWaterNudge, next > now {
+                Text("Next planned nudge: \(next.formatted(date: .abbreviated, time: .shortened))")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
         }
     }
 

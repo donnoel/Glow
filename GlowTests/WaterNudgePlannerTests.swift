@@ -25,11 +25,11 @@ nonisolated struct WaterNudgePlannerTests {
     @Test func emptyDayHasThreeSeparatedGentleOpportunities() {
         let now = date(hour: 8)
         let items = WaterNudgePlanner.plan(input: input(now: now), settings: enabled, now: now, calendar: calendar)
-        #expect(items.map(\.fireDate) == [date(hour: 11, minute: 54), date(hour: 15, minute: 9), date(hour: 18, minute: 24)])
+        #expect(items.map(\.fireDate) == [date(hour: 9, minute: 18), date(hour: 12, minute: 18), date(hour: 15, minute: 18)])
         #expect(Set(items.map(\.identifier)).count == 3)
         #expect(Set(items.map(\.title)).count == 3)
         #expect(items.allSatisfy { $0.body.contains("If you haven’t logged more") && $0.body.contains("100 fl oz") })
-        #expect(items.allSatisfy { $0.fireDate <= date(hour: 20) })
+        #expect(items.allSatisfy { $0.fireDate < date(hour: 21) })
         for pair in zip(items, items.dropFirst()) {
             #expect(pair.1.fireDate.timeIntervalSince(pair.0.fireDate) >= 3 * 60 * 60)
         }
@@ -39,7 +39,7 @@ nonisolated struct WaterNudgePlannerTests {
         let now = date(hour: 12)
         let items = WaterNudgePlanner.plan(input: input(total: 40, now: now), settings: enabled, now: now, calendar: calendar)
         #expect(items.first?.fireDate == date(hour: 14, minute: 30))
-        #expect(items.map(\.fireDate) == [date(hour: 14, minute: 30), date(hour: 17, minute: 30)])
+        #expect(items.map(\.fireDate) == [date(hour: 14, minute: 30), date(hour: 17, minute: 30), date(hour: 20, minute: 30)])
         #expect(items.allSatisfy { $0.body.contains("60 fl oz") })
         let nearGoal = WaterNudgePlanner.plan(input: input(total: 90, now: now), settings: enabled, now: now, calendar: calendar)
         #expect(nearGoal.isEmpty)
@@ -58,15 +58,16 @@ nonisolated struct WaterNudgePlannerTests {
         #expect(WaterNudgePlanner.plan(input: input(goal: 0, now: now), settings: enabled, now: now, calendar: calendar).isEmpty)
     }
 
-    @Test func lateStartSkipsMissedOpportunitiesWithoutCatchUp() {
-        let early = date(hour: 8)
-        let original = WaterNudgePlanner.plan(input: input(now: early), settings: enabled, now: early, calendar: calendar)
+    @Test func lateStartGetsAnOpportunityWithoutBurstingOrIgnoringQuietHours() {
         let now = date(hour: 16)
         let remaining = WaterNudgePlanner.plan(input: input(now: now), settings: enabled, now: now, calendar: calendar)
-        #expect(remaining.count == 1)
-        #expect(remaining.first == original.last)
-        let atFire = date(hour: 18, minute: 24)
-        #expect(WaterNudgePlanner.plan(input: input(now: atFire), settings: enabled, now: atFire, calendar: calendar).isEmpty)
+        #expect(remaining.map(\.fireDate) == [date(hour: 16, minute: 5), date(hour: 19, minute: 5)])
+        let late = date(hour: 20, minute: 50)
+        let final = WaterNudgePlanner.plan(input: input(total: 40, now: late), settings: enabled, now: late, calendar: calendar)
+        #expect(final.map(\.fireDate) == [date(hour: 20, minute: 55)])
+        #expect(final.first?.body.contains("over about") == false, "Late encouragement must not suggest rushing the remaining goal")
+        let tooLate = date(hour: 20, minute: 58)
+        #expect(WaterNudgePlanner.plan(input: input(now: tooLate), settings: enabled, now: tooLate, calendar: calendar).isEmpty)
         let evening = date(hour: 21)
         #expect(WaterNudgePlanner.plan(input: input(now: evening), settings: enabled, now: evening, calendar: calendar).isEmpty)
     }
@@ -78,7 +79,31 @@ nonisolated struct WaterNudgePlannerTests {
         #expect(items.first!.fireDate.timeIntervalSince(now) == 90 * 60)
         let previousDay = date(day: 10, hour: 23)
         let withOldDrink = WaterNudgePlanner.plan(input: input(now: now, lastDrink: previousDay), settings: enabled, now: now, calendar: calendar)
-        #expect(withOldDrink.first?.fireDate == date(hour: 11, minute: 54))
+        #expect(withOldDrink.first?.fireDate == date(hour: 11, minute: 35))
+    }
+
+    @Test func largerShortfallAdaptsDrinkPauseWithoutBecomingAnHourlyAlarm() {
+        let now = date(hour: 19, minute: 10)
+        let lastDrink = date(hour: 18, minute: 59)
+        let items = WaterNudgePlanner.plan(input: input(total: 40, now: now, lastDrink: lastDrink),
+                                          settings: enabled, now: now, calendar: calendar)
+        #expect(items.map(\.fireDate) == [date(hour: 19, minute: 44)])
+        let onPace = WaterNudgePlanner.plan(input: input(total: 90, now: now, lastDrink: lastDrink),
+                                           settings: enabled, now: now, calendar: calendar)
+        #expect(onPace.isEmpty)
+    }
+
+    @Test func pendingLateNudgeDoesNotSlideAwayAndSpentOpportunitiesDoNotCountAgain() {
+        let now = date(hour: 19)
+        let initial = WaterNudgePlanner.plan(input: input(total: 40, now: now), settings: enabled, now: now, calendar: calendar)
+        let fires = Dictionary(uniqueKeysWithValues: initial.map { ($0.identifier, $0.fireDate) })
+        let later = date(hour: 19, minute: 3)
+        let refreshed = WaterNudgePlanner.plan(input: input(total: 40, now: later), settings: enabled, now: later,
+                                              calendar: calendar, existingFireDates: fires)
+        #expect(refreshed.first?.fireDate == date(hour: 19, minute: 5))
+        let spent = Set((0..<3).map { "water.nudge.2026-10-11.\($0)" })
+        #expect(WaterNudgePlanner.plan(input: input(now: now), settings: enabled, now: now,
+                                      calendar: calendar, spentIdentifiers: spent).isEmpty)
     }
 
     @Test func unitChangesOnlyTheMessageAndUsesProvidedDailyGoal() {
@@ -127,7 +152,7 @@ nonisolated struct WaterNudgePlannerTests {
             #expect(!items.isEmpty)
             #expect(items.count <= 3)
             #expect(items.allSatisfy { GlowWatchDay(date: $0.fireDate, calendar: calendar) == GlowWatchDay(date: day, calendar: calendar) })
-            #expect(items.allSatisfy { $0.fireDate <= end.addingTimeInterval(-60 * 60) })
+            #expect(items.allSatisfy { $0.fireDate < end })
             for pair in zip(items, items.dropFirst()) {
                 #expect(pair.1.fireDate.timeIntervalSince(pair.0.fireDate) >= 3 * 60 * 60)
             }

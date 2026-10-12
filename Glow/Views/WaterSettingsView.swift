@@ -27,7 +27,7 @@ struct WaterSettingsView: View {
         _unit = State(initialValue: draft.unit)
         _goalText = State(initialValue: draft.unit.inputNumber(draft.goalMilliliters))
         _presetTexts = State(initialValue: draft.presets.map(draft.unit.inputNumber))
-        _nudges = State(initialValue: draft.nudges)
+        _nudges = State(initialValue: WaterNudgeSettings(isEnabled: draft.nudges.isEnabled))
         let defaults = UserDefaults.standard
         _phoneNudges = State(initialValue: defaults.object(forKey: WaterNudgeCoordinator.phoneEnabledKey) == nil
                             || defaults.bool(forKey: WaterNudgeCoordinator.phoneEnabledKey))
@@ -79,18 +79,6 @@ struct WaterSettingsView: View {
                     Toggle("Gentle water nudges", isOn: $nudges.isEnabled)
                         .accessibilityIdentifier("waterNudgesEnabled")
                     if nudges.isEnabled {
-                        Picker("Start of day", selection: $nudges.startHour) {
-                            ForEach(0..<24, id: \.self) { hour in Text(hourLabel(hour)).tag(hour) }
-                        }
-                        .accessibilityIdentifier("waterNudgeStart")
-                        Picker("Wind down", selection: $nudges.endHour) {
-                            ForEach(0..<24, id: \.self) { hour in Text(hourLabel(hour)).tag(hour) }
-                        }
-                        .accessibilityIdentifier("waterNudgeEnd")
-                        if !nudges.isValid {
-                            Text("Choose a daytime window of at least six hours, finishing the same day.")
-                                .foregroundStyle(.secondary)
-                        }
                         Toggle("Quiet phone notifications", isOn: $phoneNudges)
                             .accessibilityHint("Keeps a quiet copy in this device’s Notification Center. Watch taps stay enabled.")
                             .accessibilityIdentifier("waterPhoneNudgesEnabled")
@@ -103,7 +91,7 @@ struct WaterSettingsView: View {
                 } header: {
                     Text("A little encouragement")
                 } footer: {
-                    Text("Up to three gentle Watch taps a day, several hours apart, based on your logged water and time remaining. A drink gives you a quiet stretch; reaching your goal clears today’s nudges. Open Glow on your Watch to allow notifications. Phone copies stay quiet in Notification Center and can be switched off separately.")
+                    Text("Glow chooses when to nudge based on your logged water and how much of the day remains. Up to three gentle Watch taps a day, several hours apart, with quiet time after a drink and overnight. Reaching your goal clears today’s nudges. Open Glow on your Watch to allow notifications. Phone copies stay quiet in Notification Center and can be switched off separately.")
                 }
 
                 Section {
@@ -146,11 +134,6 @@ struct WaterSettingsView: View {
             } message: { Text(permissionError ?? "") }
         }
         .glowTint()
-    }
-
-    private func hourLabel(_ hour: Int) -> String {
-        let date = Calendar.current.date(from: DateComponents(year: 2026, month: 1, day: 1, hour: hour)) ?? .now
-        return date.formatted(date: .omitted, time: .shortened)
     }
 
     private func saveSettings() async {

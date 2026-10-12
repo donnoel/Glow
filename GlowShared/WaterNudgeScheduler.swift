@@ -100,6 +100,12 @@ actor WaterNudgeScheduler {
         } ?? [:]
     }
 
+    func nextScheduledNudge(now: Date = .now) async -> Date? {
+        await client.pending()
+            .filter { $0.identifier.hasPrefix(Self.prefix) && $0.fireDate > now && $0.fireDate < .distantFuture }
+            .map(\.fireDate).min()
+    }
+
     func sync(input: WaterNudgeInput?, settings: WaterNudgeSettings, enabledOnDevice: Bool,
               haptic: Bool, now: Date = .now, calendar: Calendar = .current,
               nextGoalMilliliters: Double? = nil) async {
@@ -107,7 +113,9 @@ actor WaterNudgeScheduler {
         var waterCalendar = Calendar(identifier: .gregorian)
         waterCalendar.timeZone = calendar.timeZone
         revision &+= 1
-        latest = Update(revision: revision, input: input, settings: settings,
+        // Reminder times are automatic. Retain old payload fields for compatibility,
+        // but stop using previously saved hours as a user-authored reminder schedule.
+        latest = Update(revision: revision, input: input, settings: WaterNudgeSettings(isEnabled: settings.isEnabled),
                         enabledOnDevice: enabledOnDevice, haptic: haptic, now: now,
                         calendar: waterCalendar, nextGoalMilliliters: nextGoalMilliliters)
         if isProcessing {
@@ -173,11 +181,15 @@ actor WaterNudgeScheduler {
         guard update.settings.isEnabled, update.settings.isValid else { return [] }
         let today = update.calendar.startOfDay(for: update.now)
         let todayKey = GlowWatchDay(date: update.now, calendar: update.calendar)
+        let spent = Set(ledger.filter { $0.value <= update.now }.keys)
+        let notBefore = ledger.values.filter { $0 <= update.now }.max()?.addingTimeInterval(3 * 3_600)
         var items: [WaterNudgePlanItem] = []
         let hasTodayInput = update.input?.day == todayKey
         if let input = update.input, hasTodayInput {
             items = WaterNudgePlanner.plan(input: input, settings: update.settings,
-                                          now: update.now, calendar: update.calendar)
+                                          now: update.now, calendar: update.calendar,
+                                          existingFireDates: ledger, notBefore: notBefore,
+                                          spentIdentifiers: spent)
         }
         guard let futureGoal = update.nextGoalMilliliters ?? update.input?.goalMilliliters,
               WaterUnit.isValidAmount(futureGoal) else { return items }
@@ -188,7 +200,9 @@ actor WaterNudgeScheduler {
                                        totalMilliliters: 0, goalMilliliters: futureGoal,
                                        lastDrinkAt: nil, unit: update.input?.unit ?? .ounces)
             let future = WaterNudgePlanner.plan(input: input, settings: update.settings,
-                                                now: offset == 0 ? update.now : day, calendar: update.calendar)
+                                                now: offset == 0 ? update.now : day, calendar: update.calendar,
+                                                existingFireDates: ledger, notBefore: notBefore,
+                                                spentIdentifiers: spent)
             items += future.map { item in
                 WaterNudgePlanItem(identifier: item.identifier, fireDate: item.fireDate,
                                    title: "A little water break?",

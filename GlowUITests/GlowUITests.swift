@@ -157,6 +157,8 @@ final class GlowUITests: XCTestCase {
         XCTAssertEqual(nudges.value as? String, "0")
         nudges.switches.firstMatch.tap()
         XCTAssertEqual(nudges.value as? String, "1")
+        XCTAssertFalse(app.buttons["waterNudgeStart"].exists)
+        XCTAssertFalse(app.buttons["waterNudgeEnd"].exists)
         app.swipeUp()
         let phone = app.switches["waterPhoneNudgesEnabled"]
         for _ in 0..<3 where !phone.exists || !phone.isHittable { app.swipeUp() }

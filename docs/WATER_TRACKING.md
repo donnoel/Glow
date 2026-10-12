@@ -27,7 +27,7 @@ its entries. Settings persist in the model store; last-amount highlighting is a
 device-local preference. A tap on a quick amount logs immediately.
 
 Water settings also offers opt-in [gentle water nudges](WATER_NUDGES.md): adaptive
-Watch notification taps, a configurable daytime window, and an independent
+Watch notification taps, automatic daytime pacing, and an independent
 switch for quiet phone copies. Logging, undo and goal completion update the
 plan; no hourly repeating alarm is used.
 

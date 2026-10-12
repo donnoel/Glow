@@ -3,6 +3,7 @@ import Combine
 import WatchConnectivity
 import WatchKit
 import OSLog
+import UserNotifications
 
 @MainActor
 final class GlowWatchViewModel: ObservableObject {
@@ -12,8 +13,10 @@ final class GlowWatchViewModel: ObservableObject {
     @Published private(set) var phoneReachable = false
     @Published private(set) var waterNotificationStatus: WaterNudgeAuthorizationStatus = .notDetermined
     @Published private(set) var isRequestingWaterPermission = false
+    @Published private(set) var nextWaterNudge: Date?
     private let store: GlowWatchStore
     private let waterNudgeScheduler = WaterNudgeScheduler()
+    private let waterNotificationDelegate = GlowWatchWaterNotificationDelegate()
     private var waterNudgeSyncTask: Task<Void, Never>?
     private var waterNudgeSyncRevision: UInt64 = 0
     private var transport: GlowWatchTransport?
@@ -24,6 +27,7 @@ final class GlowWatchViewModel: ObservableObject {
     init() {
         let root = URL.applicationSupportDirectory.appendingPathComponent("GlowWatch", isDirectory: true)
         store = GlowWatchStore(url: root.appendingPathComponent("state.json"))
+        UNUserNotificationCenter.current().delegate = waterNotificationDelegate
     }
 
     func start() async {
@@ -185,6 +189,9 @@ final class GlowWatchViewModel: ObservableObject {
                 input: input, settings: settings, enabledOnDevice: authorization == .authorized,
                 haptic: true, now: now, nextGoalMilliliters: water?.nextGoalMilliliters
             )
+            let nextNudge = await waterNudgeScheduler.nextScheduledNudge()
+            guard revision == waterNudgeSyncRevision else { continue }
+            nextWaterNudge = nextNudge
             if revision == waterNudgeSyncRevision { break }
         }
         waterNudgeSyncTask = nil
