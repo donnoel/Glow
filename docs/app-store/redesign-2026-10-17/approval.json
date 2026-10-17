@@ -1,0 +1,84 @@
+{
+  "approved_date": "2026-10-17",
+  "time_zone": "America/Los_Angeles",
+  "approval_text": "Looks good. Go ahead and upload the screenshots, update the description, and submit for review.",
+  "approved_exports": [
+    {
+      "path": "exports/iphone/01-today.png",
+      "sha256": "20426c82ab842f4c917b6340b53b11c05e0b22563540513730083cdf462609c4"
+    },
+    {
+      "path": "exports/iphone/02-insights.png",
+      "sha256": "17f7512d9e0e386a25526aa22c625525d54de70c8f47d549003eb49f4b29d617"
+    },
+    {
+      "path": "exports/iphone/03-water.png",
+      "sha256": "9536a2364d35d99ff450b4bf9f9888e4d13847297a5a1a1bb2cdb0019d9ac77a"
+    },
+    {
+      "path": "exports/iphone/04-habit-detail.png",
+      "sha256": "4a09fdaf6937c2e85809fc4d01fcfee586c8ffc32f9501dc64cfb63030253f1a"
+    },
+    {
+      "path": "exports/iphone/05-schedule.png",
+      "sha256": "ed691bddabf571c2950ab0abfb2de711d42822abba6c70a579ab99cfa39d806e"
+    },
+    {
+      "path": "exports/iphone-large/01-today.png",
+      "sha256": "19a5ae5bba9e8563e5f0eb7544afede28e5b716ae6b946d51359a3520bc65fd4"
+    },
+    {
+      "path": "exports/iphone-large/02-insights.png",
+      "sha256": "3b8a56f70d1ae33a4ae622d329443d421ea53ac2376c5e7afa06eb4a0588fbbd"
+    },
+    {
+      "path": "exports/iphone-large/03-water.png",
+      "sha256": "8253084128f5b7c42af303a123979d49f344e259f9684e3146a4dab201b04385"
+    },
+    {
+      "path": "exports/iphone-large/04-habit-detail.png",
+      "sha256": "bba1181af0501b99f20e82b3026278f9f636a2df7ccd220b92a22e04efe0b31e"
+    },
+    {
+      "path": "exports/iphone-large/05-schedule.png",
+      "sha256": "f729d97fa9f897d1970936c24eec7b79cf842197f3dd2ceb685a2cd889bab7d2"
+    },
+    {
+      "path": "exports/ipad/01-today.png",
+      "sha256": "aa5450d1bfc82b3dbd08c624dd21401388c2eb65303f66fa32fbd3dd0de28f19"
+    },
+    {
+      "path": "exports/ipad/02-insights.png",
+      "sha256": "7eb0ad6407107ee5971b9b2a61089109cefe90ffa299d4ae79b5fb29702951ea"
+    },
+    {
+      "path": "exports/ipad/03-water.png",
+      "sha256": "a82599444a7c26fd8394032f63503fbd5bd0896cc7bf3a4ddfc81cb839baa097"
+    },
+    {
+      "path": "exports/ipad/04-habit-detail.png",
+      "sha256": "d227bef729ab83a0bf1c4e906659e24197875d0a7b2104d14f1c2465c65e7fd9"
+    },
+    {
+      "path": "exports/ipad/05-schedule.png",
+      "sha256": "87f4ead10b0477bd7d3f397beb626cda8051f85e630ee5517c820c0ecab83c1f"
+    },
+    {
+      "path": "exports/watch/01-daily-progress.png",
+      "sha256": "dd15f42475879d7107a4ec9114accfb2649adff633412ddd6707ab1152a53c2d"
+    },
+    {
+      "path": "exports/watch/02-quick-water.png",
+      "sha256": "27d0346fb09db427247fcb3415133a66ca376307240fe2967e91362b819f3de6"
+    }
+  ],
+  "approved_description": {
+    "path": "description.en-US.txt",
+    "sha256": "dc011bbd3d759b388bb701533afaec21daf6351b06b1eb314eafcf36369b4c5a"
+  },
+  "publication_status": "Submitted: 2.4 (3), Waiting for Review",
+  "proposed_minimum_release": "2.4 (3), published 2.3 source 29d3f07; preserves shipped behavior",
+  "live_state_evidence": "live-state-2026-10-17.png",
+  "capture_source_commit": "34b253828c179765f397e97193df08a0883feb7a",
+  "version_convention": "User requested two-part marketing version and parenthesized build; 2.4 (3)"
+}

@@ -1,0 +1,26 @@
+{
+  "app_id": "6755254758",
+  "version": "2.4",
+  "build": "3",
+  "status": "Waiting for Review",
+  "item_status": "Waiting for Review",
+  "submitted_at": "2026-10-17T10:50:00-07:00",
+  "submission_id": "7c3add5e-9d44-406c-a24c-598d4f22d939",
+  "url": "https://appstoreconnect.apple.com/apps/6755254758/distribution/reviewsubmissions/details/7c3add5e-9d44-406c-a24c-598d4f22d939",
+  "screenshot_counts": {
+    "iphone_medium": 5,
+    "iphone_large": 5,
+    "ipad_13_landscape": 5,
+    "apple_watch_ultra": 2
+  },
+  "localizations": [
+    "en-US"
+  ],
+  "inheritance": "Face ID large remains Using Existing Assets with new sequence; iPad and Watch scaling confirmations accepted",
+  "description": "description.en-US.txt",
+  "whats_new": "Retained verbatim from released 2.3; explicitly copied because new-version field started empty",
+  "release_settings": "Automatic release; immediate updates; keep existing rating",
+  "other_metadata": "Preserved",
+  "legal_agreements_accepted": false,
+  "evidence": "submitted-waiting-for-review.png"
+}

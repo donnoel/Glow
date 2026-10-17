@@ -1,0 +1,21 @@
+{
+  "version": "2.4",
+  "build": "3",
+  "source_commit": "29d3f071ab45bb51d9c4aabffc7e9f614cbba614",
+  "build_method": "Pinned published source; MARKETING_VERSION=2.4 CURRENT_PROJECT_VERSION=3 apply to every target; no application source changes",
+  "archive": "/Users/donnoel/Library/Developer/Xcode/Archives/2026-10-17/Glow 2.4 (3).xcarchive",
+  "warnings": 0,
+  "bundle_versions_verified": [
+    "movie.Glow",
+    "movie.Glow.GlowWidgetExtension",
+    "movie.Glow.watchkitapp"
+  ],
+  "strict_deep_codesign": "passed",
+  "upload": "succeeded; EXPORT SUCCEEDED",
+  "log_directory": "/Users/donnoel/Library/Logs/GlowRelease/2026-10-17-2.4-3",
+  "log_hashes": {
+    "archive.log": "b2358fb9bdfe8b0fbdde143d3405ad398719f3f95b232e3ffb318eed641b25d4",
+    "upload.log": "ce446e5d28e02d3923a986d953c26e2c4e24473529a13a33b982000de4c73818"
+  },
+  "app_binary_sha256": "531e09dc40b1fa3af0eae2f9ba891bd9ee7ed3eb953e42a57ad9f12fa56e940f"
+}

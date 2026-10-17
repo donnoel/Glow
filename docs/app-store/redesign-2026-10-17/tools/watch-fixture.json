@@ -1,0 +1,95 @@
+{
+  "clientID": "adfdfe81-8442-414d-9b65-1049b2a4fc4c",
+  "nextSequence": 1,
+  "revision": 1,
+  "snapshot": {
+    "generatedAt": 813947738.2670381,
+    "day": {
+      "year": 2026,
+      "month": 10,
+      "day": 17
+    },
+    "habits": [
+      {
+        "id": "9f286d94-35d5-44a5-af8c-f9e8124b65be",
+        "title": "Morning walk",
+        "iconName": "figure.walk",
+        "weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "completed": true
+      },
+      {
+        "id": "6e6c3a69-9352-42fc-8e8a-8224d946e689",
+        "title": "Read a little",
+        "iconName": "book.closed.fill",
+        "weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "completed": false
+      },
+      {
+        "id": "4c05f105-64d0-4f42-9015-db7393102618",
+        "title": "Stretch",
+        "iconName": "figure.flexibility",
+        "weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "completed": true
+      },
+      {
+        "id": "b1ab63f4-773e-42cf-b70f-b8afec082001",
+        "title": "Write a few lines",
+        "iconName": "pencil.line",
+        "weekdays": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "completed": false
+      }
+    ],
+    "receipts": [],
+    "water": {
+      "day": {
+        "year": 2026,
+        "month": 10,
+        "day": 17
+      },
+      "entries": [
+        {
+          "id": "5b3f3255-c4a6-408e-bcd0-3b6d5fe6fc4a",
+          "milliliters": 1685.6911850625,
+          "timestamp": 813945938.2670381
+        }
+      ],
+      "goalMilliliters": 2365.882365,
+      "nextGoalMilliliters": 2365.882365,
+      "receipts": []
+    }
+  },
+  "pending": [],
+  "pendingWater": []
+}

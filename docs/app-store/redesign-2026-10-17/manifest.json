@@ -1,0 +1,539 @@
+{
+  "title": "Glow Daily Practice screenshot proposal",
+  "prepared_date": "2026-10-17",
+  "time_zone": "America/Los_Angeles",
+  "approval": "approved; see submission.json for publication status",
+  "app_id": "6755254758",
+  "bundle_id": "movie.Glow",
+  "source_commit": "34b253828c179765f397e97193df08a0883feb7a",
+  "published_version": "2.3",
+  "published_build": "2",
+  "live_state_observed": "Ready for Distribution; no pending version",
+  "locale_observed": "en-US",
+  "capture_devices": {
+    "iphone": "iPhone 18 Pro / iOS 27.0",
+    "ipad": "iPad Pro 13-inch (M5), landscape / iPadOS 27.0",
+    "watch": "Apple Watch Ultra 4 / watchOS 27.0"
+  },
+  "fixture": "Fictional habits and water data; no personal records",
+  "rendering": "Apple AppKit/CoreGraphics; crop and uniform scale only; no UI reconstruction or retouching",
+  "requirements_url": "https://developer.apple.com/help/app-store-connect/reference/app-information/screenshot-specifications/",
+  "items": [
+    {
+      "platform": "iphone",
+      "sequence": 1,
+      "caption": "Daily habits. One clear view.",
+      "note": "Full Today capture: two completed habits, four scheduled, custom water goal.",
+      "export": {
+        "path": "exports/iphone/01-today.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 353665,
+        "sha256": "20426c82ab842f4c917b6340b53b11c05e0b22563540513730083cdf462609c4"
+      },
+      "source": {
+        "path": "captures/iphone/01-today.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 280560,
+        "sha256": "48e3a181ee06acaaece62cc1c0e074684632221a8c5379b96d50a32346a1534b"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone",
+      "sequence": 2,
+      "caption": "See your weekly rhythm.",
+      "note": "Contiguous crop of real Insights, emphasizing its weekly rhythm table.",
+      "export": {
+        "path": "exports/iphone/02-insights.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 1256309,
+        "sha256": "17f7512d9e0e386a25526aa22c625525d54de70c8f47d549003eb49f4b29d617"
+      },
+      "source": {
+        "path": "captures/iphone/02-insights.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1831007,
+        "sha256": "5ef438ad77862630b9a9ace8f0ac84077cf0b8ff95be1dc79b34ef79a4193531"
+      },
+      "source_crop_top_left": [
+        0,
+        820,
+        1206,
+        1802
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone",
+      "sequence": 3,
+      "caption": "Log every drink. See your daily total.",
+      "note": "Real populated Water today entry sheet; empty lower space cropped.",
+      "export": {
+        "path": "exports/iphone/03-water.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 384597,
+        "sha256": "9536a2364d35d99ff450b4bf9f9888e4d13847297a5a1a1bb2cdb0019d9ac77a"
+      },
+      "source": {
+        "path": "captures/iphone/03-water.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 432036,
+        "sha256": "a45e7e423ab4a6a85b60834dfa6eb6eb798824491ec036618263ea9250e10f28"
+      },
+      "source_crop_top_left": [
+        0,
+        0,
+        1206,
+        2190
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone",
+      "sequence": 4,
+      "caption": "See your progress over time.",
+      "note": "Real monthly habit history, naturally scrolled to the calendar.",
+      "export": {
+        "path": "exports/iphone/04-habit-detail.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 1554512,
+        "sha256": "4a09fdaf6937c2e85809fc4d01fcfee586c8ffc32f9501dc64cfb63030253f1a"
+      },
+      "source": {
+        "path": "captures/iphone/04-habit-detail.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1854438,
+        "sha256": "b6b82af635c349aa97cd094376f82fa07f1f297fac55e67491126006d5a563f2"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone",
+      "sequence": 5,
+      "caption": "Choose the days that work for you.",
+      "note": "Real configured form; crop ends after custom weekday choices.",
+      "export": {
+        "path": "exports/iphone/05-schedule.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 318924,
+        "sha256": "ed691bddabf571c2950ab0abfb2de711d42822abba6c70a579ab99cfa39d806e"
+      },
+      "source": {
+        "path": "captures/iphone/05-schedule.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 263383,
+        "sha256": "49d10cf028840d3b7055d978004ed89bf2febc908e8a821124eeca2a68b04312"
+      },
+      "source_crop_top_left": [
+        0,
+        0,
+        1206,
+        2130
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone-large",
+      "sequence": 1,
+      "caption": "Daily habits. One clear view.",
+      "note": "Full Today capture: two completed habits, four scheduled, custom water goal. Same genuine iPhone capture uniformly scaled for the large export.",
+      "export": {
+        "path": "exports/iphone-large/01-today.png",
+        "width": 1320,
+        "height": 2868,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 417304,
+        "sha256": "19a5ae5bba9e8563e5f0eb7544afede28e5b716ae6b946d51359a3520bc65fd4"
+      },
+      "source": {
+        "path": "captures/iphone/01-today.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 280560,
+        "sha256": "48e3a181ee06acaaece62cc1c0e074684632221a8c5379b96d50a32346a1534b"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone-large",
+      "sequence": 2,
+      "caption": "See your weekly rhythm.",
+      "note": "Contiguous crop of real Insights, emphasizing its weekly rhythm table. Same genuine iPhone capture uniformly scaled for the large export.",
+      "export": {
+        "path": "exports/iphone-large/02-insights.png",
+        "width": 1320,
+        "height": 2868,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 1393030,
+        "sha256": "3b8a56f70d1ae33a4ae622d329443d421ea53ac2376c5e7afa06eb4a0588fbbd"
+      },
+      "source": {
+        "path": "captures/iphone/02-insights.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1831007,
+        "sha256": "5ef438ad77862630b9a9ace8f0ac84077cf0b8ff95be1dc79b34ef79a4193531"
+      },
+      "source_crop_top_left": [
+        0,
+        820,
+        1206,
+        1802
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone-large",
+      "sequence": 3,
+      "caption": "Log every drink. See your daily total.",
+      "note": "Real populated Water today entry sheet; empty lower space cropped. Same genuine iPhone capture uniformly scaled for the large export.",
+      "export": {
+        "path": "exports/iphone-large/03-water.png",
+        "width": 1320,
+        "height": 2868,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 450324,
+        "sha256": "8253084128f5b7c42af303a123979d49f344e259f9684e3146a4dab201b04385"
+      },
+      "source": {
+        "path": "captures/iphone/03-water.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 432036,
+        "sha256": "a45e7e423ab4a6a85b60834dfa6eb6eb798824491ec036618263ea9250e10f28"
+      },
+      "source_crop_top_left": [
+        0,
+        0,
+        1206,
+        2190
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone-large",
+      "sequence": 4,
+      "caption": "See your progress over time.",
+      "note": "Real monthly habit history, naturally scrolled to the calendar. Same genuine iPhone capture uniformly scaled for the large export.",
+      "export": {
+        "path": "exports/iphone-large/04-habit-detail.png",
+        "width": 1320,
+        "height": 2868,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 1893635,
+        "sha256": "bba1181af0501b99f20e82b3026278f9f636a2df7ccd220b92a22e04efe0b31e"
+      },
+      "source": {
+        "path": "captures/iphone/04-habit-detail.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1854438,
+        "sha256": "b6b82af635c349aa97cd094376f82fa07f1f297fac55e67491126006d5a563f2"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "iphone-large",
+      "sequence": 5,
+      "caption": "Choose the days that work for you.",
+      "note": "Real configured form; crop ends after custom weekday choices. Same genuine iPhone capture uniformly scaled for the large export.",
+      "export": {
+        "path": "exports/iphone-large/05-schedule.png",
+        "width": 1320,
+        "height": 2868,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 378701,
+        "sha256": "f729d97fa9f897d1970936c24eec7b79cf842197f3dd2ceb685a2cd889bab7d2"
+      },
+      "source": {
+        "path": "captures/iphone/05-schedule.png",
+        "width": 1206,
+        "height": 2622,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 263383,
+        "sha256": "49d10cf028840d3b7055d978004ed89bf2febc908e8a821124eeca2a68b04312"
+      },
+      "source_crop_top_left": [
+        0,
+        0,
+        1206,
+        2130
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "ipad",
+      "sequence": 1,
+      "caption": "Your daily habits, clearly in view.",
+      "note": "Native sidebar and wide Today layout.",
+      "export": {
+        "path": "exports/ipad/01-today.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 356880,
+        "sha256": "aa5450d1bfc82b3dbd08c624dd21401388c2eb65303f66fa32fbd3dd0de28f19"
+      },
+      "source": {
+        "path": "captures/ipad/01-today.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 312713,
+        "sha256": "a34838edd8c619d3bb7753b67becbf6e82ae0a6a9056d31f2a002882e03dc3a4"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "ipad",
+      "sequence": 2,
+      "caption": "See your weekly rhythm.",
+      "note": "Wide rhythm table, highlights and metrics; caption below the capture.",
+      "export": {
+        "path": "exports/ipad/02-insights.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 1815688,
+        "sha256": "7eb0ad6407107ee5971b9b2a61089109cefe90ffa299d4ae79b5fb29702951ea"
+      },
+      "source": {
+        "path": "captures/ipad/02-insights.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1818811,
+        "sha256": "be26a37b7b83051f81b5b1b17490f33c4248e0045d97a14ca7fbae247d753ac2"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "ipad",
+      "sequence": 3,
+      "caption": "Water, alongside your daily habits.",
+      "note": "One contiguous crop of the real 30-day water report, enlarged for readability.",
+      "export": {
+        "path": "exports/ipad/03-water.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 688224,
+        "sha256": "a82599444a7c26fd8394032f63503fbd5bd0896cc7bf3a4ddfc81cb839baa097"
+      },
+      "source": {
+        "path": "captures/ipad/03-water.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1280873,
+        "sha256": "e0ad0dd9ea2cff38c94c8b1af420bed6f281f4d3c079d136fff363bce92852c7"
+      },
+      "source_crop_top_left": [
+        530,
+        620,
+        2170,
+        950
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "ipad",
+      "sequence": 4,
+      "caption": "Every habit has a history.",
+      "note": "Real monthly habit history on the wide layout.",
+      "export": {
+        "path": "exports/ipad/04-habit-detail.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 1546954,
+        "sha256": "d227bef729ab83a0bf1c4e906659e24197875d0a7b2104d14f1c2465c65e7fd9"
+      },
+      "source": {
+        "path": "captures/ipad/04-habit-detail.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1643335,
+        "sha256": "88f6ab71080d2edb966ad03c1e527803589408543088236983feaf6d362ae0d1"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "ipad",
+      "sequence": 5,
+      "caption": "Your week. Your schedule.",
+      "note": "Complete native schedule form cropped from its real surrounding screen.",
+      "export": {
+        "path": "exports/ipad/05-schedule.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 504542,
+        "sha256": "87f4ead10b0477bd7d3f397beb626cda8051f85e630ee5517c820c0ecab83c1f"
+      },
+      "source": {
+        "path": "captures/ipad/05-schedule.png",
+        "width": 2752,
+        "height": 2064,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 1323707,
+        "sha256": "ab653e0c1f62c2b7fa8e3262443f60023d0555e21f39f6e903468269d1cffe99"
+      },
+      "source_crop_top_left": [
+        745,
+        350,
+        1260,
+        1370
+      ],
+      "approval": "approved"
+    },
+    {
+      "platform": "watch",
+      "sequence": 1,
+      "caption": "Your daily habit and water progress",
+      "note": "Full native Watch capture; no added caption overlay.",
+      "export": {
+        "path": "exports/watch/01-daily-progress.png",
+        "width": 422,
+        "height": 514,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 32288,
+        "sha256": "dd15f42475879d7107a4ec9114accfb2649adff633412ddd6707ab1152a53c2d"
+      },
+      "source": {
+        "path": "captures/watch/01-daily-progress.png",
+        "width": 422,
+        "height": 514,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 36708,
+        "sha256": "61b8ac3783b20390cd75c719e891ca6b7d09f2b35c52c103f69b1bf6e3be201d"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    },
+    {
+      "platform": "watch",
+      "sequence": 2,
+      "caption": "Quick water logging and today\u2019s check-ins",
+      "note": "Full native Watch capture; no added caption overlay.",
+      "export": {
+        "path": "exports/watch/02-quick-water.png",
+        "width": 422,
+        "height": 514,
+        "bit_depth": 8,
+        "png_color_type": 2,
+        "has_alpha": false,
+        "bytes": 65719,
+        "sha256": "27d0346fb09db427247fcb3415133a66ca376307240fe2967e91362b819f3de6"
+      },
+      "source": {
+        "path": "captures/watch/02-quick-water.png",
+        "width": 422,
+        "height": 514,
+        "bit_depth": 8,
+        "png_color_type": 6,
+        "has_alpha": true,
+        "bytes": 76192,
+        "sha256": "0a92a72c230fda24911d953d14a4397035bd2b3c4607c938f1f444fa53f27aee"
+      },
+      "source_crop_top_left": null,
+      "approval": "approved"
+    }
+  ]
+}
