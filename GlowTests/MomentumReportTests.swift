@@ -14,6 +14,14 @@ struct MomentumReportTests {
         calendar.date(from: DateComponents(year: year, month: month, day: day, hour: hour))!
     }
 
+    private func makeLog(date: Date, completed: Bool, habit: Habit) -> HabitLog {
+        let log = HabitLog(date: date, completed: completed, habit: habit)
+        // HabitLog's initializer uses Calendar.current. Keep these fixtures in
+        // the report's explicit civil-day calendar even on a UTC CI runner.
+        log.date = calendar.startOfDay(for: date)
+        return log
+    }
+
     private func report(_ period: MomentumReportPeriod = .weekly, habits: [Habit] = [],
                         entries: [WaterEntry] = [], goals: [WaterDayGoal] = [],
                         now: Date? = nil, unit: WaterUnit = .milliliters,
@@ -50,15 +58,15 @@ struct MomentumReportTests {
     @Test func scheduleCreationDuplicatesAndArchivedFiltering() throws {
         let habit = Habit(title: "Read", createdAt: date(2025, 10, 15), schedule: .weekdays([.wed, .fri]))
         habit.logs = [
-            HabitLog(date: date(2025, 10, 15), completed: true, habit: habit),
-            HabitLog(date: date(2025, 10, 15), completed: true, habit: habit),
-            HabitLog(date: date(2025, 10, 16), completed: true, habit: habit),
-            HabitLog(date: date(2025, 10, 17), completed: false, habit: habit),
-            HabitLog(date: date(2025, 10, 14), completed: true, habit: habit),
-            HabitLog(date: date(2025, 10, 19), completed: true, habit: habit)
+            makeLog(date: date(2025, 10, 15), completed: true, habit: habit),
+            makeLog(date: date(2025, 10, 15), completed: true, habit: habit),
+            makeLog(date: date(2025, 10, 16), completed: true, habit: habit),
+            makeLog(date: date(2025, 10, 17), completed: false, habit: habit),
+            makeLog(date: date(2025, 10, 14), completed: true, habit: habit),
+            makeLog(date: date(2025, 10, 19), completed: true, habit: habit)
         ]
         let archived = Habit(title: "Archived", createdAt: date(2020, 1, 1), isArchived: true)
-        archived.logs = [HabitLog(date: date(2025, 10, 18), completed: true, habit: archived)]
+        archived.logs = [makeLog(date: date(2025, 10, 18), completed: true, habit: archived)]
         let result = report(habits: [habit, archived], scope: .active)
         #expect(result.habits.count == 1)
         #expect(result.scheduled == 2)
@@ -73,9 +81,9 @@ struct MomentumReportTests {
 
     @Test func allHabitsIncludesArchivedHistoryWithoutInventingMissedDays() {
         let active = Habit(title: "Read", createdAt: date(2025, 10, 18))
-        active.logs = [HabitLog(date: date(2025, 10, 18), completed: true, habit: active)]
+        active.logs = [makeLog(date: date(2025, 10, 18), completed: true, habit: active)]
         let archived = Habit(title: "Run", createdAt: date(2024, 1, 1), isArchived: true)
-        archived.logs = [17, 17].map { HabitLog(date: date(2025, 10, $0), completed: true, habit: archived) }
+        archived.logs = [17, 17].map { makeLog(date: date(2025, 10, $0), completed: true, habit: archived) }
         let all = report(habits: [active, archived])
         #expect(all.scope == .all)
         #expect(all.habits.count == 2)
@@ -105,7 +113,7 @@ struct MomentumReportTests {
         let first = Habit(title: "Stretch", createdAt: date(2025, 10, 1), schedule: .weekdays([]))
         let second = Habit(title: "Walk", createdAt: date(2025, 10, 1), schedule: .weekdays([]))
         for habit in [first, second] {
-            habit.logs = [HabitLog(date: date(2025, 10, 18), completed: true, habit: habit)]
+            habit.logs = [makeLog(date: date(2025, 10, 18), completed: true, habit: habit)]
         }
         let result = report(habits: [first, second])
         #expect(result.activeDays == 1)
@@ -117,7 +125,7 @@ struct MomentumReportTests {
 
     @Test func weeklyTotalsMatchInsights() {
         let habit = Habit(title: "Read", createdAt: date(2025, 10, 1), schedule: .weekdays([.mon, .wed, .fri]))
-        habit.logs = [13, 14, 17].map { HabitLog(date: date(2025, 10, $0), completed: true, habit: habit) }
+        habit.logs = [13, 14, 17].map { makeLog(date: date(2025, 10, $0), completed: true, habit: habit) }
         let insights = InsightsViewModel(habits: [habit], now: date(2025, 10, 18), calendar: calendar)
         let result = report(habits: [habit])
         #expect(result.completed == insights.completedScheduled)
