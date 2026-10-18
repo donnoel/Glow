@@ -13,6 +13,7 @@ struct InsightsRootView: View {
     @StateObject private var viewModel = InsightsViewModel()
     @State private var showAddHabit = false
     @State private var showsHistory = false
+    @State private var showsMomentumReport = false
 
     private var isIPadRegularWidth: Bool {
         horizontalSizeClass == .regular
@@ -47,6 +48,15 @@ struct InsightsRootView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        showsMomentumReport = true
+                    } label: {
+                        Label("Momentum report", systemImage: "doc.text")
+                    }
+                    .accessibilityHint("Preview and share a weekly, monthly, quarterly, annual, or lifetime report")
+                    .accessibilityIdentifier("momentumReport")
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         showAddHabit = true
                     } label: {
                         Image(systemName: "plus")
@@ -58,6 +68,9 @@ struct InsightsRootView: View {
                 AddOrEditHabitForm(mode: .add)
                     .presentationDetents([.large])
                     .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showsMomentumReport) {
+                MomentumReportView(habits: habits)
             }
             .onAppear {
                 refreshInsights()

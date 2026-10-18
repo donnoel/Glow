@@ -191,6 +191,54 @@ final class GlowUITests: XCTestCase {
     }
 
     @MainActor
+    func testMomentumReportPeriodsPreviewAndShare() throws {
+        launchForHome()
+        createPractice(named: "Read for ten minutes")
+        let insights = app.tabBars.buttons["Insights"].firstMatch
+        if insights.exists {
+            insights.tap()
+        } else {
+            let showSidebar = app.buttons["Show Sidebar"]
+            if showSidebar.exists { showSidebar.tap() }
+            let item = app.staticTexts["Insights"].firstMatch
+            XCTAssertTrue(item.waitForExistence(timeout: 5))
+            item.tap()
+        }
+        let report = app.buttons["momentumReport"]
+        XCTAssertTrue(report.waitForExistence(timeout: 5))
+        report.tap()
+        let title = app.staticTexts["momentumReportTitle"]
+        XCTAssertTrue(title.waitForExistence(timeout: 5))
+        XCTAssertEqual(title.label, "Weekly momentum")
+        XCTAssertTrue(app.staticTexts["Read for ten minutes"].exists)
+        app.buttons["momentumReportScope"].tap()
+        app.buttons["Active only"].tap()
+        app.buttons["momentumReportScope"].tap()
+        app.buttons["All habits"].tap()
+        for period in ["Monthly", "Quarterly", "Annual", "Lifetime", "Weekly"] {
+            app.buttons["momentumReportPeriod"].tap()
+            app.buttons[period].tap()
+            XCTAssertEqual(title.label, "\(period) momentum")
+        }
+        let preview = XCTAttachment(screenshot: app.screenshot())
+        preview.name = "Momentum report preview"
+        preview.lifetime = .keepAlways
+        add(preview)
+        app.buttons["shareMomentumReport"].tap()
+        let sharing = XCUIApplication(bundleIdentifier: "com.apple.SharingUIService")
+        let moreActions = sharing.cells["View More"]
+        if moreActions.waitForExistence(timeout: 3) { moreActions.tap() }
+        let copy = sharing.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Copy")).firstMatch
+        let localCopy = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Copy")).firstMatch
+        let sharedCopyExists = copy.waitForExistence(timeout: 10)
+        XCTAssertTrue(sharedCopyExists || localCopy.waitForExistence(timeout: 5), "Native share sheet should offer the report as text. \(sharing.debugDescription) \(app.debugDescription)")
+        let share = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        share.name = "Momentum report share sheet"
+        share.lifetime = .keepAlways
+        add(share)
+    }
+
+    @MainActor
     func testWaterCustomAmountEditAndInsights() throws {
         launchForHome()
         app.buttons["waterCustom"].tap()

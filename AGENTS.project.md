@@ -21,6 +21,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Habit creation/editing with title, schedule, icon, archive state, and reminders
 - Habit detail analytics (streaks, weekly summary, monthly history)
 - Integrated Insights screen (momentum, weekly activity, patterns, milestones)
+- Insights momentum report preview with native text sharing for last 7 days, month/quarter/year to date, and lifetime; All habits (default) or Active only, archived check-in history, and separate hydration summaries
 - Dedicated iPad Insights composition: full-width weekly story, habit rhythm table, highlights and a 2×2 metrics grid
 - Library management for active/archived habits plus reminder management entry
 - Onboarding gate controlled by `hasSeenGlowOnboarding`
