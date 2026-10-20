@@ -227,11 +227,24 @@ final class GlowUITests: XCTestCase {
         app.buttons["shareMomentumReport"].tap()
         let sharing = XCUIApplication(bundleIdentifier: "com.apple.SharingUIService")
         let moreActions = sharing.cells["View More"]
-        if moreActions.waitForExistence(timeout: 3) { moreActions.tap() }
+        let localMoreActions = app.cells["View More"]
         let copy = sharing.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Copy")).firstMatch
         let localCopy = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", "Copy")).firstMatch
-        let sharedCopyExists = copy.waitForExistence(timeout: 10)
-        XCTAssertTrue(sharedCopyExists || localCopy.waitForExistence(timeout: 5), "Native share sheet should offer the report as text. \(sharing.debugDescription) \(app.debugDescription)")
+        // A fresh simulator may still be starting the remote share service.
+        let shareDeadline = Date().addingTimeInterval(60)
+        var copyIsAvailable = false
+        repeat {
+            if copy.waitForExistence(timeout: 1) || localCopy.exists {
+                copyIsAvailable = true
+                break
+            }
+            if moreActions.exists && moreActions.isHittable {
+                moreActions.tap()
+            } else if localMoreActions.exists && localMoreActions.isHittable {
+                localMoreActions.tap()
+            }
+        } while Date() < shareDeadline
+        XCTAssertTrue(copyIsAvailable, "Native share sheet should offer the report as text. \(sharing.debugDescription) \(app.debugDescription)")
         let share = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         share.name = "Momentum report share sheet"
         share.lifetime = .keepAlways
