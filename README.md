@@ -9,7 +9,7 @@
 
 ---
 
-## ✨ Overview
+## 🧭 Overview
 
 <a id="-what-is-glow"></a>
 <a id="what-is-glow"></a>
