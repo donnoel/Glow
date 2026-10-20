@@ -1,16 +1,20 @@
-# ✨ **Glow**  
+# **Glow**
+
 ### *Build better habits. Celebrate your wins. Feel your progress.*
 
 <p align="center">
-  <img src="https://img.shields.io/badge/SwiftUI-Apple_native-orange?logo=swift">
-  <img src="https://img.shields.io/badge/Platform-iOS_26_|_iPadOS_26_|_watchOS_26-blue">
+  <img src="https://img.shields.io/badge/SwiftUI-Apple_native-orange?logo=swift" alt="SwiftUI: Apple native">
+  <img src="https://img.shields.io/badge/Platform-iOS_26_|_iPadOS_26_|_watchOS_26-blue" alt="Platform: iOS 26 | iPadOS 26 | watchOS 26">
 </p>
 
 ---
 
-## 🌟 What is Glow?
+## ✨ Overview
 
-Glow is a modern, mindful habit-tracking app built entirely with **SwiftUI**, **SwiftData**, and **CloudKit**.  
+<a id="-what-is-glow"></a>
+<a id="what-is-glow"></a>
+
+Glow is a modern, mindful habit-tracking app built entirely with **SwiftUI**, **SwiftData**, and **CloudKit**.
 It focuses on clarity, aesthetic calm, and meaningful progress — not guilt or dopamine loops.
 
 Glow is about *celebrating* the tiny wins that build toward growth.
@@ -18,9 +22,21 @@ Glow is about *celebrating* the tiny wins that build toward growth.
 The current source version is **2.3 (2)**, including the app, widget and Watch
 companion. This update adds water tracking to the daily habit loop.
 
----
-
 ## 💎 Core Features
+
+| Feature | What it does |
+| --- | --- |
+| **Daily habits** | Check in, undo a completion, and review today's progress. |
+| **Scheduling** | Define habits, reminders, and archived practices. |
+| **Insights** | Review habit rhythm, history, milestones, and dedicated iPad layouts. |
+| **Water tracking** | Log quick or custom amounts and review saved goals and history. |
+| **Widgets and Watch** | See daily progress and record habit or water actions from companion surfaces. |
+
+<details>
+<summary>Feature details and controls</summary>
+
+<a id="-core-features"></a>
+<a id="core-features"></a>
 
 ### A beautiful overview:
 
@@ -51,21 +67,10 @@ companion. This update adds water tracking to the daily habit loop.
 - **Watch daily check-ins:** The companion lists existing habits, supports completion and undo for the original civil day, logs 8/21/24 oz drinks and shows water goal progress. Pending actions remain until the paired iPhone acknowledges them (see [Watch companion](docs/WATCH_COMPANION.md)).
 - **Settings app version row:** `Settings > Apps > Glow` now shows a single `Version` row using live app bundle version/build values.
 
----
+<a id="-onboarding-experience"></a>
+<a id="onboarding-experience"></a>
 
-## 🛠 Built With
-
-- **Swift**
-- **SwiftUI**
-- **SwiftData + CloudKit**
-- **App Groups** (for widget sync)
-- **GlowTheme** (tokens for colors, spacing, materials)
-- **StreakEngine**
-- **Hero Card Engine**
-
----
-
-## 🧭 Onboarding Experience
+### Onboarding Experience
 
 Glow includes a fully custom **4-screen onboarding flow**:
 
@@ -76,9 +81,73 @@ Glow includes a fully custom **4-screen onboarding flow**:
 
 Users may tap **Skip** or flow through with smooth spring animations.
 
+</details>
+
 ---
 
-## 📁 Project Structure
+## 🚀 Getting Started
+
+### Build and run
+
+Open `Glow.xcodeproj`, select `Glow`, and choose an iPhone or iPad destination. For a simulator build:
+
+```sh
+xcodebuild -project Glow.xcodeproj -scheme Glow -destination 'generic/platform=iOS Simulator' clean build
+```
+
+List installed destinations with `xcodebuild -project Glow.xcodeproj -scheme Glow -showdestinations` before choosing one for tests.
+
+<a id="-tests"></a>
+<a id="tests"></a>
+
+### Tests
+
+Glow includes tests for:
+
+- StreakEngine
+- Habit schedules
+- Habit log normalization
+- Notifications
+- Archive filtering
+- App config
+- Icon library
+- Weekly Insights calculations
+- Watch packets, durable outbox, receipts and civil-day actions
+- Watch water retries, undo, partial acknowledgements, rollover and cache upgrades
+- Water input, persistence, saved goals, reports and additive store migration
+
+UI tests cover onboarding, adding and completing practices, and water logging,
+undo/relaunch, saved Female/preset settings, custom correction and Insights.
+
+The initial October 10 water feature validation passed 100 unit tests, the existing habit
+completion smoke test, and the three water flows on iPhone and iPad simulators.
+Build/install evidence and remaining manual checks are recorded in
+[Water delivery](docs/WATER_DELIVERY_2026-10-10.md).
+The Watch water extension passed all 108 unit tests, including eight additional
+Watch water tests (see [Watch water delivery](docs/WATCH_WATER_DELIVERY_2026-10-10.md)).
+
+## 🧠 How It Works
+
+<details>
+<summary>Architecture and component reference</summary>
+
+<a id="-built-with"></a>
+<a id="built-with"></a>
+
+### Built With
+
+- **Swift**
+- **SwiftUI**
+- **SwiftData + CloudKit**
+- **App Groups** (for widget sync)
+- **GlowTheme** (tokens for colors, spacing, materials)
+- **StreakEngine**
+- **Hero Card Engine**
+
+<a id="-project-structure"></a>
+<a id="project-structure"></a>
+
+### Project Structure
 
 ```
 Glow/
@@ -133,43 +202,44 @@ Glow/
 `GlowWatch/` contains the companion UI; `GlowShared/` contains its sync contracts,
 outbox and receipts. `GlowWidgetExtension/` contains the home-screen widget.
 
----
+<a id="-core-components"></a>
+<a id="core-components"></a>
 
-## 🧩 Core Components
+### Core Components
 
-### **GlowTheme**
+#### **GlowTheme**
 Token-driven system for:
-- Colors  
-- Materials  
-- Radius  
-- Spacing  
-- Typography  
-- Glass cards  
+- Colors
+- Materials
+- Radius
+- Spacing
+- Typography
+- Glass cards
 
-### **StreakEngine**
+#### **StreakEngine**
 Handles:
-- Daily streaks  
-- Weekly percentage  
-- Heatmap data  
-- Fast calculations  
+- Daily streaks
+- Weekly percentage
+- Heatmap data
+- Fast calculations
 
-### **Habit System**
-- SwiftData models  
-- Future-date clamping  
-- Archiving  
-- Reminder scheduling  
+#### **Habit System**
+- SwiftData models
+- Future-date clamping
+- Archiving
+- Reminder scheduling
 
-### **Hero Progress Card**
-- Animated pulse  
-- Overdrive effect at 100%  
-- Reduce Motion-aware  
+#### **Hero Progress Card**
+- Animated pulse
+- Overdrive effect at 100%
+- Reduce Motion-aware
 
-### **Widgets**
+#### **Widgets**
 - Uses `SharedProgressStore`
 - Shows today's progress from the shared app group
 - Updates when app progress values change
 
-### **Water Tracking**
+#### **Water Tracking**
 - Starts with 8, 12, 21 and 24 US fl oz; all four amounts are editable
 - Saves Male (100 fl oz), Female (75 fl oz) or Custom suggestions and fl oz/mL units
 - Highlights the last amount locally and supports custom drinks, undo and correction
@@ -181,59 +251,24 @@ Suggested goals are adjustable beverage-intake starting points. Food and other
 drinks also contribute water; see the explanation and source in
 [Water tracking](docs/WATER_TRACKING.md).
 
----
+<a id="-performance"></a>
+<a id="performance"></a>
 
-## ⚡ Performance
+### Performance
 
-Glow is tuned for smoothness:
+Shared theme components and deterministic analytics support the interface.
+Performance and energy claims require profiling on target devices; no frame-rate
+or GPU-cost benchmark is asserted here.
 
-- Cached month heatmaps  
-- Minimal dependency injection  
-- Reused materials (low GPU cost)  
-- Lazy views everywhere  
-- 60fps animations with soft springs  
-- SwiftData query minimization  
+</details>
 
----
+## 🔒 Data and Privacy
 
-## 🧪 Tests
+Habit data uses SwiftData with a private CloudKit database and a local fallback. Widget progress is shared through an App Group. Water storage, historical goals, and Watch transport boundaries are documented in the linked feature guides.
 
-Glow includes tests for:
+## 📚 Documentation
 
-- StreakEngine  
-- Habit schedules  
-- Habit log normalization  
-- Notifications  
-- Archive filtering  
-- App config  
-- Icon library  
-- Weekly Insights calculations
-- Watch packets, durable outbox, receipts and civil-day actions
-- Watch water retries, undo, partial acknowledgements, rollover and cache upgrades
-- Water input, persistence, saved goals, reports and additive store migration
-
-UI tests cover onboarding, adding and completing practices, and water logging,
-undo/relaunch, saved Female/preset settings, custom correction and Insights.
-
-The initial October 10 water feature validation passed 100 unit tests, the existing habit
-completion smoke test, and the three water flows on iPhone and iPad simulators.
-Build/install evidence and remaining manual checks are recorded in
-[Water delivery](docs/WATER_DELIVERY_2026-10-10.md).
-The Watch water extension passed all 108 unit tests, including eight additional
-Watch water tests (see [Watch water delivery](docs/WATCH_WATER_DELIVERY_2026-10-10.md)).
-
----
-
-## 🧩 Roadmap
-
-- [x] Native iPad sidebar and dedicated Today/Insights layouts
-- [x] watchOS companion for direct habit check-ins, water logging and daily goal progress (see [Watch companion](docs/WATCH_COMPANION.md))
-- [x] Water logging, saved goals and reporting (see [Water tracking](docs/WATER_TRACKING.md))
-- [ ] Shared Habits (Glow Circles)  
-- [ ] More widget styles  
-- [ ] Custom practice colors  
-
-## Documentation
+<a id="documentation"></a>
 
 - [Water behavior, storage and release checks](docs/WATER_TRACKING.md)
 - [Water feature and 2.3 delivery evidence](docs/WATER_DELIVERY_2026-10-10.md)
@@ -241,12 +276,27 @@ Watch water tests (see [Watch water delivery](docs/WATCH_WATER_DELIVERY_2026-10-
 - [Watch water feature and device delivery evidence](docs/WATCH_WATER_DELIVERY_2026-10-10.md)
 - [Historical Watch 2.2 delivery evidence](docs/WATCH_DELIVERY_2026-10-03.md)
 
+- [Repository guidance](AGENTS.md)
+- [Project guide](AGENTS.project.md)
+
+## 🗺️ Roadmap
+
+<a id="-roadmap"></a>
+<a id="roadmap"></a>
+
+- [x] Native iPad sidebar and dedicated Today/Insights layouts
+- [x] watchOS companion for direct habit check-ins, water logging and daily goal progress (see [Watch companion](docs/WATCH_COMPANION.md))
+- [x] Water logging, saved goals and reporting (see [Water tracking](docs/WATER_TRACKING.md))
+- [ ] Shared Habits (Glow Circles)
+- [ ] More widget styles
+- [ ] Custom practice colors
+
 ---
 
-## Credits
+## 🤝 Credits
+
+<a id="credits"></a>
 
 Built with care by **Don Noel** and Codex collaboration.
-
----
 
 > *Glow should feel like a breath. Every win should feel like a smile.*
