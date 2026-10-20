@@ -42,7 +42,7 @@ jobs:
           xcrun simctl list devicetypes
           xcodebuild -project Glow.xcodeproj -scheme Glow -showdestinations
 
-      - name: Prepare simulator
+      - name: Create and start simulator
         id: simulator
         run: |
           set -euo pipefail
@@ -113,11 +113,23 @@ jobs:
           )"
           echo "id=${SIMULATOR_ID}" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "${SIMULATOR_ID}" || true
-          xcrun simctl bootstatus "${SIMULATOR_ID}" -b
 
-      - name: Build and test
+      - name: Build for testing while simulator boots
         run: |
           set -euo pipefail
+          xcodebuild \
+            -project Glow.xcodeproj \
+            -scheme Glow \
+            -configuration Debug \
+            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}' \
+            -derivedDataPath "$DERIVED_DATA" \
+            IPHONEOS_DEPLOYMENT_TARGET=26.0 \
+            clean build-for-testing
+
+      - name: Wait for simulator and run tests
+        run: |
+          set -euo pipefail
+          xcrun simctl bootstatus '${{ steps.simulator.outputs.id }}' -b
           mkdir -p "$(dirname "$RESULT_BUNDLE")"
           rm -rf "$RESULT_BUNDLE"
           xcodebuild \
@@ -130,7 +142,7 @@ jobs:
             -parallel-testing-enabled NO \
             -maximum-concurrent-test-simulator-destinations 1 \
             IPHONEOS_DEPLOYMENT_TARGET=26.0 \
-            clean test
+            test-without-building
 
       - name: Upload xcodebuild artifacts
         if: failure()
