@@ -15,6 +15,27 @@ final class GlowUITests: XCTestCase {
 
     // MARK: - Helpers
 
+    private func replaceText(_ text: String, in field: XCUIElement,
+                             file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertTrue(field.waitForExistence(timeout: 5), file: file, line: line)
+        field.tap()
+        if let value = field.value as? String, !value.isEmpty, value != field.placeholderValue {
+            // Use the edit menu rather than assuming a gesture selected the text.
+            field.press(forDuration: 1)
+            let selectAllMenuItem = app.menuItems["Select All"]
+            let selectAllButton = app.buttons["Select All"]
+            if selectAllMenuItem.waitForExistence(timeout: 1) {
+                selectAllMenuItem.tap()
+            } else {
+                XCTAssertTrue(selectAllButton.waitForExistence(timeout: 5), file: file, line: line)
+                selectAllButton.tap()
+            }
+        }
+        field.typeText(text)
+        XCTAssertEqual(field.value as? String, text,
+                       "Text replacement must finish before saving.", file: file, line: line)
+    }
+
     private func launchForHome(resetData: Bool = true) {
         app = XCUIApplication()
         app.launchArguments += ["--uitesting"]
@@ -134,8 +155,7 @@ final class GlowUITests: XCTestCase {
         let goal = app.textFields["waterGoalField"]
         XCTAssertEqual(goal.value as? String, "75")
         let preset = app.textFields["waterPresetField0"]
-        preset.doubleTap()
-        preset.typeText("10")
+        replaceText("10", in: preset)
         app.buttons["waterSettingsSave"].tap()
         XCTAssertTrue(app.buttons["waterPreset0"].waitForExistence(timeout: 5))
         app.buttons["waterPreset0"].tap()
@@ -259,8 +279,7 @@ final class GlowUITests: XCTestCase {
         app.buttons["waterCustom"].tap()
         let amount = app.textFields["waterAmountField"]
         XCTAssertTrue(amount.waitForExistence(timeout: 5))
-        amount.tap()
-        amount.typeText("15")
+        replaceText("15", in: amount)
         app.buttons["waterAmountSave"].tap()
         let progress = app.buttons["waterProgress"]
         XCTAssertTrue(progress.waitForExistence(timeout: 5))
@@ -270,8 +289,7 @@ final class GlowUITests: XCTestCase {
         XCTAssertTrue(entry.waitForExistence(timeout: 5))
         entry.tap()
         XCTAssertTrue(amount.waitForExistence(timeout: 5))
-        amount.doubleTap()
-        amount.typeText("12")
+        replaceText("12", in: amount)
         app.buttons["waterAmountSave"].tap()
         let done = app.buttons["Done"]
         XCTAssertTrue(done.waitForExistence(timeout: 5))

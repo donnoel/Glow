@@ -12,6 +12,7 @@ jobs:
     env:
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
       RESULT_BUNDLE: ${{ github.workspace }}/TestResults/Glow.xcresult
+      IOS_SIMULATOR_VERSION: '26.5'
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -19,7 +20,7 @@ jobs:
       - name: Select Xcode
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: latest-stable
+          xcode-version: '26.6'
 
       - name: Cache SwiftPM
         uses: actions/cache@v4
@@ -48,6 +49,7 @@ jobs:
           set -euo pipefail
           SIMULATOR_ID="$(python3 <<'PY'
           import json
+          import os
           import subprocess
 
           runtimes = json.loads(
@@ -56,9 +58,10 @@ jobs:
           ios_runtimes = [
               runtime for runtime in runtimes
               if runtime.get("platform") == "iOS" and runtime.get("isAvailable")
+              and runtime.get("version") == os.environ["IOS_SIMULATOR_VERSION"]
           ]
           if not ios_runtimes:
-              raise SystemExit("No available iOS simulator runtimes.")
+              raise SystemExit(f"Required iOS {os.environ['IOS_SIMULATOR_VERSION']} runtime is unavailable.")
 
           def version_key(runtime):
               parts = []
@@ -112,37 +115,13 @@ jobs:
           PY
           )"
           echo "id=${SIMULATOR_ID}" >> "$GITHUB_OUTPUT"
-          xcrun simctl boot "${SIMULATOR_ID}" || true
+          xcrun simctl boot "${SIMULATOR_ID}"
 
       - name: Build for testing while simulator boots
-        run: |
-          set -euo pipefail
-          xcodebuild \
-            -project Glow.xcodeproj \
-            -scheme Glow \
-            -configuration Debug \
-            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}' \
-            -derivedDataPath "$DERIVED_DATA" \
-            IPHONEOS_DEPLOYMENT_TARGET=26.0 \
-            clean build-for-testing
+        run: bash scripts/ci.sh build '${{ steps.simulator.outputs.id }}'
 
       - name: Wait for simulator and run tests
-        run: |
-          set -euo pipefail
-          xcrun simctl bootstatus '${{ steps.simulator.outputs.id }}' -b
-          mkdir -p "$(dirname "$RESULT_BUNDLE")"
-          rm -rf "$RESULT_BUNDLE"
-          xcodebuild \
-            -project Glow.xcodeproj \
-            -scheme Glow \
-            -configuration Debug \
-            -destination 'platform=iOS Simulator,id=${{ steps.simulator.outputs.id }}' \
-            -derivedDataPath "$DERIVED_DATA" \
-            -resultBundlePath "$RESULT_BUNDLE" \
-            -parallel-testing-enabled NO \
-            -maximum-concurrent-test-simulator-destinations 1 \
-            IPHONEOS_DEPLOYMENT_TARGET=26.0 \
-            test-without-building
+        run: bash scripts/ci.sh test '${{ steps.simulator.outputs.id }}'
 
       - name: Upload xcodebuild artifacts
         if: failure()

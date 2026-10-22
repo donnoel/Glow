@@ -119,6 +119,20 @@ Glow includes tests for:
 UI tests cover onboarding, adding and completing practices, and water logging,
 undo/relaunch, saved Female/preset settings, custom correction and Insights.
 
+Run the same clean build and full unit/UI suite used by GitHub with an installed
+simulator UDID from `xcrun simctl list devices available`:
+
+```sh
+bash scripts/ci.sh all <simulator-UDID>
+```
+
+GitHub uses Xcode 26.6 and iOS Simulator 26.5, with warnings treated as errors
+and English/US UI tests. Select the matching installed Xcode with `DEVELOPER_DIR`
+when available; a different local SDK/runtime is not an exact CI reproduction.
+The script also supports separate `build` and `test` phases so compilation can
+overlap simulator startup. Test results are saved under `DerivedData/CIResults`
+unless `RESULT_BUNDLE` is set.
+
 The initial October 10 water feature validation passed 100 unit tests, the existing habit
 completion smoke test, and the three water flows on iPhone and iPad simulators.
 Build/install evidence and remaining manual checks are recorded in
