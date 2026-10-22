@@ -1,66 +1,75 @@
 #!/bin/bash
-# Shared local/GitHub build and full-suite check. No test exclusions or retries.
+# Same build and test contract locally and on GitHub. No retries or disabled assertions.
 set -euo pipefail
-
-phase="${1:-}"
+cd "$(dirname "$0")/.."
+export TZ=UTC LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+phase="${1:-all}"
+case "$phase" in environment|build|unit|ui|test|all) ;; *) echo "Usage: bash scripts/ci.sh {environment|build|unit|ui|test|all} <simulator-UDID>" >&2; exit 2 ;; esac
+expected_xcode=26.6
+project=Glow.xcodeproj
+scheme=Glow
+ui_target=GlowUITests
+actual_xcode="$(xcodebuild -version | sed -n '1p')"
+if [[ "$actual_xcode" != "Xcode $expected_xcode" ]]; then
+  echo "CI requires Xcode $expected_xcode; found $actual_xcode. Select it with DEVELOPER_DIR before running this check." >&2
+  exit 2
+fi
+printf 'Commit: %s\nToolchain: %s\nDeveloper directory: %s\nTimezone: %s; test language/region: en/US\n' "$(git rev-parse HEAD)" "$actual_xcode" "$(xcode-select -p)" "$TZ"
 simulator_id="${2:-}"
-case "$phase" in
-  build|test|all) ;;
-  *) echo 'Usage: bash scripts/ci.sh {build|test|all} <simulator-UDID>' >&2; exit 2 ;;
-esac
-if [[ -z "$simulator_id" ]]; then
+if [[ "$phase" != environment && -z "$simulator_id" ]]; then
   echo 'An installed simulator UDID is required.' >&2
   exit 2
 fi
-
-cd "$(dirname "$0")/.."
-export TZ=UTC
+if [[ -n "$simulator_id" ]]; then
+  python3 - "$simulator_id" 26.5 <<'PY_RUNTIME'
+import json, subprocess, sys
+runtimes = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'runtimes', '--json']))['runtimes']
+devices = json.loads(subprocess.check_output(['xcrun', 'simctl', 'list', 'devices', '--json']))['devices']
+for runtime in runtimes:
+    if any(device['udid'] == sys.argv[1] for device in devices.get(runtime['identifier'], [])):
+        if not runtime.get('isAvailable') or runtime.get('version') != sys.argv[2]:
+            raise SystemExit(f"CI requires simulator runtime {sys.argv[2]}; found {runtime.get('version')}.")
+        print('Simulator runtime:', runtime['identifier'], runtime['version'])
+        break
+else:
+    raise SystemExit('Simulator UDID was not found.')
+PY_RUNTIME
+fi
+destination="platform=iOS Simulator,id=$simulator_id,arch=$(uname -m)"
+if [[ "$phase" == environment ]]; then exit 0; fi
 DERIVED_DATA="${DERIVED_DATA:-$PWD/DerivedData}"
-RESULT_BUNDLE="${RESULT_BUNDLE:-$DERIVED_DATA/CIResults/Glow-$(uuidgen).xcresult}"
-
-common_args=(
-  -project Glow.xcodeproj
-  -scheme Glow
-  -configuration Debug
-  -destination "platform=iOS Simulator,id=$simulator_id"
-  -derivedDataPath "$DERIVED_DATA"
+RESULT_BUNDLE="${RESULT_BUNDLE:-${TMPDIR:-/tmp}/Glow-$(uuidgen).xcresult}"
+args=(
+  -project "$project" -scheme "$scheme" -configuration Debug
+  -destination "$destination" -derivedDataPath "$DERIVED_DATA"
   IPHONEOS_DEPLOYMENT_TARGET=26.0
   SWIFT_TREAT_WARNINGS_AS_ERRORS=YES
   GCC_TREAT_WARNINGS_AS_ERRORS=YES
 )
-
-build_for_testing() {
-  xcodebuild "${common_args[@]}" clean build-for-testing
+build() {
+  xcodebuild "${args[@]}" clean build-for-testing
 }
-
 run_tests() {
+  local kind="$1"
+  local state
+  state="$(xcrun simctl list devices --json | python3 -c 'import json,sys; print(next(d["state"] for ds in json.load(sys.stdin)["devices"].values() for d in ds if d["udid"] == sys.argv[1]))' "$simulator_id")"
+  if [[ "$state" != Booted ]]; then xcrun simctl boot "$simulator_id"; fi
   xcrun simctl bootstatus "$simulator_id" -b
-  mkdir -p "$(dirname "$RESULT_BUNDLE")"
-  xcodebuild "${common_args[@]}" \
-    -resultBundlePath "$RESULT_BUNDLE" \
-    -parallel-testing-enabled NO \
-    -maximum-concurrent-test-simulator-destinations 1 \
-    -testLanguage en -testRegion US \
-    test-without-building
+  local selection=()
+  if [[ "$kind" == unit ]]; then selection=("-skip-testing:$ui_target"); else selection=("-only-testing:$ui_target"); fi
+  local result="${RESULT_BUNDLE%.xcresult}-$kind.xcresult"
+  mkdir -p "$(dirname "$result")"
+  xcodebuild "${args[@]}" -resultBundlePath "$result" \
+    -parallel-testing-enabled NO -maximum-concurrent-test-simulator-destinations 1 \
+    -testLanguage en -testRegion US "${selection[@]}" test-without-building
 }
-
 case "$phase" in
-  build) build_for_testing ;;
-  test) run_tests ;;
+  build) build ;;
+  unit|ui) run_tests "$phase" ;;
+  test) run_tests unit; run_tests ui ;;
   all)
-    # Start boot without waiting, as in the GitHub workflow.
-    simulator_state="$(xcrun simctl list devices --json | python3 -c '
-import json, sys
-devices = (device for group in json.load(sys.stdin)["devices"].values() for device in group)
-device = next((device for device in devices if device["udid"] == sys.argv[1]), None)
-if device is None:
-    raise SystemExit("Simulator UDID was not found.")
-print(device["state"])
-' "$simulator_id")"
-    if [[ "$simulator_state" != Booted ]]; then
-      xcrun simctl boot "$simulator_id"
-    fi
-    build_for_testing
-    run_tests
+    state="$(xcrun simctl list devices --json | python3 -c 'import json,sys; print(next(d["state"] for ds in json.load(sys.stdin)["devices"].values() for d in ds if d["udid"] == sys.argv[1]))' "$simulator_id")"
+    if [[ "$state" != Booted ]]; then xcrun simctl boot "$simulator_id"; fi
+    build; run_tests unit; run_tests ui
     ;;
 esac

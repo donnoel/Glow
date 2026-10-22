@@ -3,13 +3,29 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - '**/*.mdx'
+      - 'LICENSE'
+      - 'LICENSE.*'
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
     runs-on: macos-26
+    timeout-minutes: 45
     env:
+      TZ: UTC
+      LANG: en_US.UTF-8
+      LC_ALL: en_US.UTF-8
       DERIVED_DATA: ${{ github.workspace }}/DerivedData
       RESULT_BUNDLE: ${{ github.workspace }}/TestResults/Glow.xcresult
       IOS_SIMULATOR_VERSION: '26.5'
@@ -27,10 +43,9 @@ jobs:
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
-            ~/Library/Developer/Xcode/DerivedData/ModuleCache.noindex
-          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          key: spm-${{ runner.os }}-${{ runner.arch }}-xcode-26.6-${{ hashFiles('**/Package.resolved') }}
           restore-keys: |
-            spm-${{ runner.os }}-
+            spm-${{ runner.os }}-${{ runner.arch }}-xcode-26.6-
 
       - name: Resolve packages
         run: xcodebuild -resolvePackageDependencies -project Glow.xcodeproj
@@ -117,11 +132,14 @@ jobs:
           echo "id=${SIMULATOR_ID}" >> "$GITHUB_OUTPUT"
           xcrun simctl boot "${SIMULATOR_ID}"
 
-      - name: Build for testing while simulator boots
+      - name: Build for testing
         run: bash scripts/ci.sh build '${{ steps.simulator.outputs.id }}'
 
-      - name: Wait for simulator and run tests
-        run: bash scripts/ci.sh test '${{ steps.simulator.outputs.id }}'
+      - name: Unit tests
+        run: bash scripts/ci.sh unit '${{ steps.simulator.outputs.id }}'
+
+      - name: UI tests
+        run: bash scripts/ci.sh ui '${{ steps.simulator.outputs.id }}'
 
       - name: Upload xcodebuild artifacts
         if: failure()
@@ -130,4 +148,5 @@ jobs:
           name: xcodebuild-artifacts
           path: |
             ${{ env.RESULT_BUNDLE }}
+            TestResults/**/*.xcresult
             ${{ env.DERIVED_DATA }}/Logs/Test

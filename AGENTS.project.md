@@ -136,6 +136,7 @@ About Glow and the system Settings version row read the built app bundle.
 
 - GitHub CI deliberately uses Xcode 26.6 and iOS Simulator 26.5. Upgrade these together in a dedicated, validated change; do not switch to an automatically changing toolchain/runtime.
 - Use `bash scripts/ci.sh all <installed-simulator-UDID>` for the same clean build, warning policy, English/US test configuration and full unit/UI suite as GitHub. Set `DEVELOPER_DIR` when selecting the matching installed Xcode. Report any local toolchain/runtime difference explicitly.
+- The same script exposes `build`, `unit`, and `ui` phases; `all` runs the complete suite. CI pins the runtime and compiler, skips prose-only pushes, keeps pull-request checks present, and cancels superseded same-ref runs. Compiler caches are not restored across Xcode/architecture versions.
 - Before publishing a settings/defaults change, exercise the affected UI flow as well as its unit tests. Before publishing a UI-test harness or CI change, run the full suite. A successful build or unit-only run does not establish UI-suite success.
 - UI tests must replace existing text with explicit select-all and verify the field value before saving. Do not rely on double-tap selection. Use readiness conditions for asynchronous UI; retain the behavior assertions.
 - Date-sensitive fixtures must use an explicit calendar/time zone and normalize model dates with that same calendar, independent of the runner's local time zone.
