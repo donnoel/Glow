@@ -86,7 +86,7 @@ final class WaterPreferences {
         if let payload = try? JSONDecoder().decode(WaterPreferencesPayload.self, from: presetsData),
            payload.amounts.count == 4,
            payload.amounts.allSatisfy(WaterUnit.isValidAmount) {
-            return payload.amounts
+            return upgradingDefaultPresets(payload.amounts)
         }
         guard let values = try? JSONDecoder().decode([Double].self, from: presetsData),
               values.count == 4, values.allSatisfy(WaterUnit.isValidAmount) else {
@@ -94,8 +94,17 @@ final class WaterPreferences {
         }
         var upgraded = values
         if abs(values[3] - WaterUnit.ounces.milliliters(from: 32)) < 0.001 {
-            upgraded[3] = WaterUnit.defaultPresets[3]
+            upgraded[3] = WaterUnit.ounces.milliliters(from: 24)
         }
-        return upgraded
+        return upgradingDefaultPresets(upgraded)
+    }
+
+    private func upgradingDefaultPresets(_ amounts: [Double]) -> [Double] {
+        let previousDefaults = [8, 12, 21, 24].map(WaterUnit.ounces.milliliters)
+        // Upgrade the complete old default set, preserving customized sets.
+        if zip(amounts, previousDefaults).allSatisfy({ abs($0 - $1) < 0.001 }) {
+            return WaterUnit.defaultPresets
+        }
+        return amounts
     }
 }

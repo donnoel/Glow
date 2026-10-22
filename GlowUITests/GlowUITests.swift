@@ -105,19 +105,21 @@ final class GlowUITests: XCTestCase {
         launchForHome()
         let progress = app.buttons["waterProgress"]
         XCTAssertTrue(progress.waitForExistence(timeout: 5))
-        XCTAssertEqual(app.buttons["waterPreset3"].label, "Add 24 fl oz of water")
+        for (index, ounces) in [12, 21, 24, 28].enumerated() {
+            XCTAssertEqual(app.buttons["waterPreset\(index)"].label, "Add \(ounces) fl oz of water")
+        }
         app.buttons["waterPreset0"].tap()
         app.buttons["waterPreset3"].tap()
-        XCTAssertEqual(progress.value as? String, "32 fl oz of 100 fl oz")
+        XCTAssertEqual(progress.value as? String, "40 fl oz of 100 fl oz")
         app.buttons["waterUndo"].tap()
-        XCTAssertEqual(progress.value as? String, "8 fl oz of 100 fl oz")
+        XCTAssertEqual(progress.value as? String, "12 fl oz of 100 fl oz")
         let todayScreenshot = XCTAttachment(screenshot: app.screenshot())
         todayScreenshot.name = "Water Today"
         todayScreenshot.lifetime = .keepAlways
         add(todayScreenshot)
         app.terminate()
         launchForHome(resetData: false)
-        XCTAssertEqual(app.buttons["waterProgress"].value as? String, "8 fl oz of 100 fl oz")
+        XCTAssertEqual(app.buttons["waterProgress"].value as? String, "12 fl oz of 100 fl oz")
         XCTAssertEqual(app.buttons["waterPreset3"].value as? String, "Last used amount")
     }
 

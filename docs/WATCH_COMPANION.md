@@ -9,7 +9,7 @@ labels, and a brief haptic keep check-ins simple.
 No custom motion or glass effects are required.
 
 The Water card shows today's total in US fluid ounces against the saved daily
-goal, plus **8**, **21**, and **24 oz** quick buttons. Each tap logs immediately;
+goal, plus **12**, **21**, and **28 oz** quick buttons. Each tap logs immediately;
 **Undo last drink** removes the most recent Watch drink. Goal reached is stated
 explicitly. Goal settings, custom amounts, entry editing and reports stay in
 the iPhone/iPad app. The Watch amounts are fixed and independent of phone presets.

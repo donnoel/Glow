@@ -26,7 +26,7 @@ struct WaterTrackingTests {
 
     @Test func quantitiesUseUSFluidOuncesAndLocaleAwareStrictInput() throws {
         #expect(abs(WaterUnit.ounces.milliliters(from: 8) - 236.5882365) < 0.0001)
-        #expect(WaterUnit.ounces.number(WaterUnit.defaultPresets[2]) == "21")
+        #expect(WaterUnit.defaultPresets.map(WaterUnit.ounces.value) == [12, 21, 24, 28])
         #expect(WaterUnit.milliliters.parse("12,5", locale: Locale(identifier: "fr_FR")) == 12.5)
         for text in ["", "0", "-8", "12oops", "1e3", "NaN", "12.3.4", "1,000"] {
             #expect(WaterUnit.ounces.parse(text, locale: Locale(identifier: "en_US")) == nil)
@@ -34,6 +34,29 @@ struct WaterTrackingTests {
         let goal = WaterGoalProfile.male.suggestedMilliliters!
         let input = WaterUnit.milliliters.inputNumber(goal)
         #expect(WaterUnit.milliliters.parse(input) != nil, "Editable values must not include grouping separators")
+    }
+
+    @Test func previousDefaultPresetsUpgradeInBothStoredFormats() throws {
+        let preferences = WaterPreferences()
+        #expect(preferences.presets == WaterUnit.defaultPresets)
+        for ounces in [[8.0, 12, 21, 32], [8.0, 12, 21, 24]] {
+            preferences.presetsData = try JSONEncoder().encode(ounces.map(WaterUnit.ounces.milliliters))
+            #expect(preferences.presets == WaterUnit.defaultPresets)
+        }
+
+        let nudges = WaterNudgeSettings(isEnabled: true)
+        preferences.presetsData = try JSONEncoder().encode(WaterPreferencesPayload(
+            amounts: [8, 12, 21, 24].map(WaterUnit.ounces.milliliters), nudges: nudges))
+        #expect(preferences.presets == WaterUnit.defaultPresets)
+        #expect(preferences.nudgeSettings == nudges)
+
+        let store = try container()
+        store.mainContext.insert(preferences)
+        #expect(model().saveSettings(WaterSettingsDraft(preferences: preferences),
+                                     preferences: preferences, context: store.mainContext))
+        let saved = try JSONDecoder().decode(WaterPreferencesPayload.self, from: preferences.presetsData)
+        #expect(saved.amounts == WaterUnit.defaultPresets)
+        #expect(saved.nudges == nudges)
     }
 
     @Test func legacyFourthPresetUpgradesWithoutOverwritingCustomSettings() throws {

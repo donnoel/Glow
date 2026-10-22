@@ -1,12 +1,12 @@
 # Water tracking
 
 Added in Glow **2.3 (1)** for iPhone and iPad. The Watch companion also logs
-8, 21 or 24 US fl oz drinks and shows today's progress against the daily goal,
+12, 21 or 28 US fl oz drinks and shows today's progress against the daily goal,
 with an Undo last drink control. Settings and reports remain on iPhone/iPad.
 The widget continues to show habit progress.
 
 Today places Water below the daily habit summary. The initial quick amounts are
-8, 12, 21 and 24 US fluid ounces. Tapping one saves a drink immediately; Undo
+12, 21, 24 and 28 US fluid ounces. Tapping one saves a drink immediately; Undo
 removes the most recently added entry. Custom amounts, entry editing and swipe
 deletion are available. The last used amount is highlighted and saved locally.
 
@@ -36,6 +36,10 @@ The fourth default changed from 32 to 24 fl oz. Previously saved settings with
 logged drinks stay intact. New settings saves use a keyed JSON payload in the
 existing data field, so a later explicit choice of 32 fl oz remains available.
 This compatibility update adds no model fields or CloudKit schema changes.
+
+The complete previous default set (8/12/21/24 fl oz, including the original
+array-encoded 8/12/21/32 set) now resolves to 12/21/24/28 fl oz in both stored
+formats. Customized sets retain their amounts and nudge settings remain intact.
 
 The first drink logged on a civil day saves that day's goal. Changing settings
 afterward applies to the next day logged. Editing or deleting drinks never

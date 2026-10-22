@@ -51,7 +51,7 @@ companion. This update adds water tracking to the daily habit loop.
 | 🔔 **Reminders** | Gentle notifications aligned with your schedule. |
 | 🗂️ **Archive** | Hide old practices without losing data. |
 | 🧩 **Home Screen Widgets** | Glanceable daily progress synced from the app. |
-| ⌚ **Watch Companion** | Direct habit completion/undo, 8/21/24 oz water logging and daily goal progress, with a durable queue through the paired iPhone. |
+| ⌚ **Watch Companion** | Direct habit completion/undo, 12/21/28 oz water logging and daily goal progress, with a durable queue through the paired iPhone. |
 | 🪄 **Four-Page Onboarding** | A smooth intro featuring gestures, reminders, iCloud, and widget setup. |
 | 🌙 **Adaptive Themes** | Light, Dark, High-Contrast, and Reduce Motion. |
 | 🥂 **Completion Pulse** | A gentle celebration when you finish your day. |
@@ -64,7 +64,7 @@ companion. This update adds water tracking to the daily habit loop.
 - **Unified Add/Edit flow:** Habit creation and editing route through one shared form implementation.
 - **Faster daily loop:** Completion interactions include a lightweight undo path for quick correction.
 - **Water tracking:** Today includes one-tap amounts, custom entries and saved Male/Female/Custom goals. Insights shows 7/30-day water reporting with saved daily goals and visibly unlogged days (see [Water tracking](docs/WATER_TRACKING.md)).
-- **Watch daily check-ins:** The companion lists existing habits, supports completion and undo for the original civil day, logs 8/21/24 oz drinks and shows water goal progress. Pending actions remain until the paired iPhone acknowledges them (see [Watch companion](docs/WATCH_COMPANION.md)).
+- **Watch daily check-ins:** The companion lists existing habits, supports completion and undo for the original civil day, logs 12/21/28 oz drinks and shows water goal progress. Pending actions remain until the paired iPhone acknowledges them (see [Watch companion](docs/WATCH_COMPANION.md)).
 - **Settings app version row:** `Settings > Apps > Glow` now shows a single `Version` row using live app bundle version/build values.
 
 <a id="-onboarding-experience"></a>
@@ -240,7 +240,7 @@ Handles:
 - Updates when app progress values change
 
 #### **Water Tracking**
-- Starts with 8, 12, 21 and 24 US fl oz; all four amounts are editable
+- Starts with 12, 21, 24 and 28 US fl oz; all four amounts are editable
 - Saves Male (100 fl oz), Female (75 fl oz) or Custom suggestions and fl oz/mL units
 - Highlights the last amount locally and supports custom drinks, undo and correction
 - Saves each day's goal with its first entry, preserving historical comparisons

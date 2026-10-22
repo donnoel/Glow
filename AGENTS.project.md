@@ -14,7 +14,7 @@ About Glow and the system Settings version row read the built app bundle.
 1) Core scope
 - Root shell with three sections: Today, Insights, Library
 - Home dashboard (Today) with daily summary, due/completed/coming-up sections, and completion undo
-- Water card on Today with editable 8/12/21/24 US fl oz presets, custom amounts, undo and entry correction
+- Water card on Today with editable 12/21/24/28 US fl oz presets, custom amounts, undo and entry correction
 - Male/Female/Custom water goals and units persist; a day's first log saves its historical goal
 - Opt-in gentle water nudges: progress-driven timing chosen automatically, up to three Watch taps per day, quiet overnight, independent quiet phone copies
 - Water reporting in Insights covers 7/30 days and treats days with no entries as unlogged
@@ -27,7 +27,7 @@ About Glow and the system Settings version row read the built app bundle.
 - Onboarding gate controlled by `hasSeenGlowOnboarding`
 - Home screen widget backed by shared App Group progress values
 - SwiftData persistence with CloudKit private database configuration and local fallback
-- Watch companion: existing habits, today's completion/undo, 8/21/24 oz water logging and daily goal progress, with a durable local outbox sent through the paired iPhone
+- Watch companion: existing habits, today's completion/undo, 12/21/28 oz water logging and daily goal progress, with a durable local outbox sent through the paired iPhone
 
 2) Architecture boundaries
 - SwiftUI views handle presentation and user interaction

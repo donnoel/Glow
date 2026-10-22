@@ -84,7 +84,7 @@ struct GlowWatchWaterView: View {
     }
 
     private var amountButtons: some View {
-        ForEach([12, 21, 24], id: \.self) { ounces in
+        ForEach([12, 21, 28], id: \.self) { ounces in
             Button {
                 Task { await model.addWater(ounces: ounces) }
             } label: {
