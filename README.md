@@ -119,11 +119,15 @@ Glow includes tests for:
 UI tests cover onboarding, adding and completing practices, and water logging,
 undo/relaunch, saved Female/preset settings, custom correction and Insights.
 
-Run the same clean build and full unit/UI suite used by GitHub with an installed
+For daily work, run a focused build/test through
+`bash scripts/local-check.sh <command> [args...]`; it selects an already-installed
+CI Xcode for that command without changing global defaults or installing tools.
+
+For deliberate complete CI reproduction, use an installed iOS 26.5
 simulator UDID from `xcrun simctl list devices available`:
 
 ```sh
-bash scripts/ci.sh all <simulator-UDID>
+bash scripts/local-check.sh bash scripts/ci.sh all <simulator-UDID>
 ```
 
 GitHub uses Xcode 26.6 and iOS Simulator 26.5, with warnings treated as errors

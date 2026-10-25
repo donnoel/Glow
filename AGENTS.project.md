@@ -132,12 +132,14 @@ About Glow and the system Settings version row read the built app bundle.
   - Inspect installed destinations with `xcodebuild -project Glow.xcodeproj -scheme Glow -showdestinations`.
   - `xcodebuild -project Glow.xcodeproj -scheme Glow -destination 'platform=iOS Simulator,id=<installed-simulator-UDID>' SWIFT_TREAT_WARNINGS_AS_ERRORS=YES GCC_TREAT_WARNINGS_AS_ERRORS=YES test`
 
-## CI reliability and pre-push validation
+## CI reliability and local validation
 
-- GitHub CI deliberately uses Xcode 26.6 and iOS Simulator 26.5. Upgrade these together in a dedicated, validated change; do not switch to an automatically changing toolchain/runtime.
-- Use `bash scripts/ci.sh all <installed-simulator-UDID>` for the same clean build, warning policy, English/US test configuration and full unit/UI suite as GitHub. Set `DEVELOPER_DIR` when selecting the matching installed Xcode. Report any local toolchain/runtime difference explicitly.
-- The same script exposes `build`, `unit`, and `ui` phases; `all` runs the complete suite. CI pins the runtime and compiler, skips prose-only pushes, keeps pull-request checks present, and cancels superseded same-ref runs. Compiler caches are not restored across Xcode/architecture versions.
-- Before publishing a settings/defaults change, exercise the affected UI flow as well as its unit tests. Before publishing a UI-test harness or CI change, run the full suite. A successful build or unit-only run does not establish UI-suite success.
+- For ordinary changes, start with the narrowest relevant build, unit test or UI check. Expand for shared behavior, persistence, startup or release risk. Documentation and local tool-selection helper changes need scoped structural/contract checks; they do not require an application rebuild solely to repeat CI.
+- Use `bash scripts/local-check.sh <command> [args...]` for local checks. It selects already-installed Xcode 26.6 for that command without changing global defaults, and preserves an explicit `DEVELOPER_DIR`. If unavailable, focused commands can use the existing compiler with the difference reported; the strict CI driver still rejects a mismatch.
+- GitHub keeps Xcode 26.6 and Simulator 26.5. For deliberate complete reproduction use `bash scripts/local-check.sh bash scripts/ci.sh all <fresh-iOS-26.5-simulator-UDID>`. Fresh simulators are for isolated/full reproduction; preserve existing simulator data. Upgrade pinned baselines in a separate validated change.
+- Run the complete affected suites when changing build/test workflow behavior, test harnesses or shared fixtures, or when reproducing a hosted failure. Full local CI is not a blanket prerequisite for every edit. Keep GitHub CI enabled and all existing suites/assertions; a focused pass is not a full-suite pass.
+- Check installed tools and equivalent capabilities before proposing a download. Do not install or switch global tools merely to obtain exact CI parity for an unrelated change. Report local compiler/runtime/browser/OS differences and checks not run; only observed GitHub results establish hosted CI success.
+- Before publishing a settings/defaults change, exercise the affected UI flow as well as its unit tests. For changes to UI-test harness or CI build/test behavior, run the full affected suite. A successful build or unit-only run does not establish UI-suite success.
 - UI tests must replace existing text with explicit select-all and verify the field value before saving. Do not rely on double-tap selection. Use readiness conditions for asynchronous UI; retain the behavior assertions.
 - Date-sensitive fixtures must use an explicit calendar/time zone and normalize model dates with that same calendar, independent of the runner's local time zone.
 
