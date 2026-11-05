@@ -145,6 +145,50 @@ final class GlowUITests: XCTestCase {
     }
 
     @MainActor
+    func testWaterCollapsePersistsAndKeepsLoggedWater() throws {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            XCUIDevice.shared.orientation = .landscapeLeft
+        }
+        defer { XCUIDevice.shared.orientation = .portrait }
+        launchForHome()
+        let toggle = app.buttons["waterExpansionToggle"]
+        let progress = app.buttons["waterProgress"]
+        XCTAssertEqual(toggle.value as? String, "Expanded")
+        XCTAssertGreaterThanOrEqual(toggle.frame.height, 44)
+        app.buttons["waterPreset0"].tap()
+        XCTAssertEqual(progress.value as? String, "12 fl oz of 100 fl oz")
+        toggle.tap()
+        XCTAssertTrue(progress.waitForNonExistence(timeout: 5))
+        XCTAssertEqual(toggle.value as? String, "Collapsed")
+        XCTAssertFalse(app.buttons["waterPreset0"].exists)
+        XCTAssertFalse(app.buttons["waterCustom"].exists)
+        XCTAssertFalse(app.buttons["waterUndo"].exists)
+        let collapsed = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        collapsed.name = "Water collapsed"
+        collapsed.lifetime = .keepAlways
+        add(collapsed)
+
+        app.buttons["waterSettings"].tap()
+        XCTAssertTrue(app.textFields["waterGoalField"].waitForExistence(timeout: 5))
+        app.buttons["Cancel"].tap()
+        XCTAssertEqual(toggle.value as? String, "Collapsed")
+
+        app.terminate()
+        launchForHome(resetData: false)
+        XCTAssertEqual(toggle.value as? String, "Collapsed")
+        XCTAssertFalse(progress.exists)
+        toggle.tap()
+        XCTAssertTrue(progress.waitForExistence(timeout: 5))
+        XCTAssertEqual(toggle.value as? String, "Expanded")
+        XCTAssertEqual(progress.value as? String, "12 fl oz of 100 fl oz")
+        XCTAssertTrue(app.buttons["waterCustom"].isHittable)
+        let expanded = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        expanded.name = "Water expanded"
+        expanded.lifetime = .keepAlways
+        add(expanded)
+    }
+
+    @MainActor
     func testWaterSettingsPersist() throws {
         launchForHome()
         app.buttons["waterSettings"].tap()

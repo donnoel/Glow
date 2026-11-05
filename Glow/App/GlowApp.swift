@@ -100,6 +100,7 @@ struct GlowApp: App {
             for goal in try context.fetch(FetchDescriptor<WaterDayGoal>()) { context.delete(goal) }
             for preferences in try context.fetch(FetchDescriptor<WaterPreferences>()) { context.delete(preferences) }
             UserDefaults.standard.removeObject(forKey: "water.lastAmountMilliliters")
+            UserDefaults.standard.removeObject(forKey: "water.isExpanded")
             UserDefaults.standard.removeObject(forKey: WaterNudgeCoordinator.phoneEnabledKey)
 
             try context.save()

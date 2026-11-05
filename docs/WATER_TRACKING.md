@@ -26,6 +26,12 @@ opens Water settings. In Insights, choose 7 or 30 days and open a day in history
 its entries. Settings persist in the model store; last-amount highlighting is a
 device-local preference. A tap on a quick amount logs immediately.
 
+Tap the Water header to collapse the card to a compact row or expand it again.
+It starts expanded and remembers the choice on each device across relaunches.
+Settings remain available while collapsed; collapsing does not change logged
+water, goals or reminders. The header announces its expanded/collapsed state,
+and the transition respects Reduce Motion.
+
 Water settings also offers opt-in [gentle water nudges](WATER_NUDGES.md): adaptive
 Watch notification taps, automatic daytime pacing, and an independent
 switch for quiet phone copies. Logging, undo and goal completion update the

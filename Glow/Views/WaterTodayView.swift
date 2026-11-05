@@ -5,6 +5,8 @@ struct WaterTodayView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("water.isExpanded") private var isExpanded = true
     @State private var hasWideCard = false
     @Query private var entries: [WaterEntry]
     @Query private var goals: [WaterDayGoal]
@@ -32,10 +34,29 @@ struct WaterTodayView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Label("Water", systemImage: "drop.fill")
-                    .font(.headline)
-                    .accessibilityAddTraits(.isHeader)
-                Spacer()
+                Button {
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.2)) {
+                        isExpanded.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Label("Water", systemImage: "drop.fill")
+                            .font(.headline)
+                        Spacer()
+                        Image(systemName: isExpanded ? "chevron.down" : "chevron.right")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(GlowTheme.textSecondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Water")
+                .accessibilityValue(isExpanded ? "Expanded" : "Collapsed")
+                .accessibilityHint(isExpanded ? "Hides water progress and logging controls" : "Shows water progress and logging controls")
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("waterExpansionToggle")
+
                 Button { viewModel.sheet = .settings } label: {
                     Image(systemName: "slider.horizontal.3")
                         .frame(minWidth: 44, minHeight: 44)
@@ -44,16 +65,18 @@ struct WaterTodayView: View {
                 .accessibilityIdentifier("waterSettings")
             }
 
-            if usesWideLayout {
-                HStack(alignment: .center, spacing: 32) {
+            if isExpanded {
+                if usesWideLayout {
+                    HStack(alignment: .center, spacing: 32) {
+                        progressButton
+                            .frame(maxWidth: .infinity)
+                        loggingControls
+                            .frame(maxWidth: .infinity)
+                    }
+                } else {
                     progressButton
-                        .frame(maxWidth: .infinity)
                     loggingControls
-                        .frame(maxWidth: .infinity)
                 }
-            } else {
-                progressButton
-                loggingControls
             }
         }
         .padding(.vertical, 4)
